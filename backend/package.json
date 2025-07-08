@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --legacy-watch src/server.ts",
+    "create-admin": "ts-node scripts/createAdmin.ts",
+    "seed": "ts-node scripts/seedData.ts",
+    "fix-db": "ts-node scripts/fixDatabase.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "husky install",
-    "prepare": "husky",
-    "test": "jest --watch --runInBand"
+    "prepare": "husky"
   },
   "keywords": [
     "microservicees"
@@ -18,27 +20,28 @@
   "license": "ISC",
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/http-errors": "^2.0.4",
-    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.12.0",
     "@types/winston": "^2.4.4",
     "eslint": "^9.19.0",
     "http": "^0.0.1-security",
     "husky": "^9.1.7",
-    "jest": "^29.7.0",
     "lint-staged": "^15.4.3",
     "nodemon": "^3.1.9",
-    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.22.0"
   },
   "dependencies": {
-    "@types/supertest": "^6.0.2",
+    "@types/mongoose": "^5.11.96",
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "supertest": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.16.2",
     "winston": "^3.17.0"
   },
   "lint-staged": {
