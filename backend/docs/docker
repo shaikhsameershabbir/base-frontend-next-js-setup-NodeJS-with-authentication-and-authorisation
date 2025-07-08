@@ -1,0 +1,17 @@
+run docker 
+
+# create image 
+   docker build -t auth-service:dev -f docker/dev/DocketFile .
+
+# check all images 
+   docker image ls
+
+# Run expres in docket image with port binding and sourcecode sync 
+  docker run --rm -it -v ${PWD}:/usr/src/app -v /usr/src/app/node_modules --env-file ${PWD}/.env -p 5555:5555 -e NODE_ENV=development auth-service:dev
+
+
+# it is for interactive mode with turminal there is also a detach mode if you run in detach mode then to stop the container you need to 
+# run
+ docker ps command  
+# then choose docker container which you are willing to stop and then run 
+docker stop <container id>

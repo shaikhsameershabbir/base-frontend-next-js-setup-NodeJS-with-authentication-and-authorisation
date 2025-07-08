@@ -1,22 +1,23 @@
-import { ErrorRequestHandler } from "express";
+
+import { Request, Response, NextFunction } from 'express';
+
 import { HttpError } from "http-errors";
-import { config } from "../config/config";
+import { logger } from "../config/logger";
 
-const globalErrorHandler: ErrorRequestHandler = (
-    err: HttpError,
-    _req,
-    res,
-    _next
-) => {
-    const statusCode = err.statusCode || 500;
-    console.log(err);
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const errorHandler = (err: HttpError, req: Request, res: Response, next: NextFunction) => {
 
+    logger.error(err.message);
+    const statusCode = err.statusCode || 500
     res.status(statusCode).json({
-        success: false,
-        message: err.message || 'Something went wrong',
-        errorStack: config.env === 'development' ? err.stack : ''
+        errors: [
+            {
+                type: err.name,
+                msg: err.message,
+                path: "",
+                location: ""
+            }
+        ]
     });
-    // Don't return the response object
-};
 
-export default globalErrorHandler;
+};
