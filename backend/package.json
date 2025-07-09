@@ -7,6 +7,7 @@
     "dev": "nodemon --legacy-watch src/server.ts",
     "create-admin": "ts-node scripts/createAdmin.ts",
     "seed": "ts-node scripts/seedData.ts",
+    "seed-users": "ts-node scripts/seedUsers.ts",
     "fix-db": "ts-node scripts/fixDatabase.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",

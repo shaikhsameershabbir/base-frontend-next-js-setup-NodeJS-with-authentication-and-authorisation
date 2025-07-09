@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
-        
+
         const { username, password } = req.body;
         console.log('--------------------------------->');
 
@@ -419,6 +419,50 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 
     } catch (error) {
         logger.error('Update user error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+// Get users by role (with access control)
+export const getUsersByRole = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { role } = req.params;
+        console.log(role);
+        
+        const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
+
+        if (!accessibleUserIds || accessibleUserIds.length === 0) {
+            res.json({
+                success: true,
+                data: { users: [] }
+            });
+            return;
+        }
+
+        // Validate role parameter
+        const validRoles = ['superadmin', 'admin', 'distributor', 'player'];
+        if (!validRoles.includes(role)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid role parameter'
+            });
+            return;
+        }
+        
+        const users = await User.find({
+            _id: { $in: accessibleUserIds },
+            role: role
+        }).select('-password').populate('parentId', 'username role');
+        res.json({
+            success: true,
+            data: { users }
+        });
+
+    } catch (error) {
+        logger.error('Get users by role error:', error);
         res.status(500).json({
             success: false,
             message: 'Internal server error'

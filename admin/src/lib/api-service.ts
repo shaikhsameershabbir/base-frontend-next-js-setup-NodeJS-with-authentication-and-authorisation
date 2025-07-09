@@ -59,12 +59,12 @@ export const authAPI = {
     },
 
     getProfile: async (): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.get('/api/auth/profile');
+        const response = await apiClient.get('/api/profile');
         return response.data;
     },
 
     updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.put('/api/auth/profile', data);
+        const response = await apiClient.put('/api/profile', data);
         return response.data;
     },
 };
@@ -72,17 +72,22 @@ export const authAPI = {
 // Users API
 export const usersAPI = {
     getUsers: async (): Promise<ApiResponse<{ users: User[] }>> => {
-        const response = await apiClient.get('/api/auth/users');
+        const response = await apiClient.get('/api/users');
+        return response.data;
+    },
+
+    getUsersByRole: async (role: string): Promise<ApiResponse<{ users: User[] }>> => {
+        const response = await apiClient.get(`/api/users/role/${role}`);
         return response.data;
     },
 
     getUserById: async (userId: string): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.get(`/api/auth/users/${userId}`);
+        const response = await apiClient.get(`/api/users/${userId}`);
         return response.data;
     },
 
     updateUser: async (userId: string, data: UpdateUserRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.put(`/api/auth/users/${userId}`, data);
+        const response = await apiClient.put(`/api/users/${userId}`, data);
         return response.data;
     },
 };

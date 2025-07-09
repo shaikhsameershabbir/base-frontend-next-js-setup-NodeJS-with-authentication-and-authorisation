@@ -22,17 +22,17 @@ export const superNavbar: NavbarItem[] = [
             },
             {
                 title: "All Distributers",
-                href: "/users/admin",
+                href: "/users/distributor",
                 icon: "Users",
             },
             {
                 title: "All Agents",
-                href: "/users/agents",
+                href: "/users/agent",
                 icon: "Users",
             },
             {
                 title: "All players",
-                href: "/users/players",
+                href: "/users/player",
                 icon: "Users",
             }
         ],
@@ -98,22 +98,21 @@ export const superNavbar: NavbarItem[] = [
                 href: "/reports/summary",
                 icon: "Activity",
             },
-       
-        ],
-    },
-    {
-        title: "System",
-        icon: "Settings",
-        children: [
             {
-                title: "Settings",
-                href: "/settings",
+                title: "System",
                 icon: "Settings",
-            },
-            {
-                title: "Logs",
-                href: "/system/logs",
-                icon: "Activity",
+                children: [
+                    {
+                        title: "Settings",
+                        href: "/settings",
+                        icon: "Settings",
+                    },
+                    {
+                        title: "Logs",
+                        href: "/system/logs",
+                        icon: "Activity",
+                    },
+                ],
             },
         ],
     },
@@ -131,17 +130,17 @@ export const adminNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Distributers",
-                href: "/users/admin",
+                href: "/users/distributor",
                 icon: "Users",
             },
             {
                 title: "All Agents",
-                href: "/users/agents",
+                href: "/users/agent",
                 icon: "Users",
             },
             {
                 title: "All players",
-                href: "/users/players",
+                href: "/users/player",
                 icon: "Users",
             }
         ],
@@ -234,17 +233,17 @@ export const distributorNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Distributers",
-                href: "/users/admin",
+                href: "/users/distributor",
                 icon: "Users",
             },
             {
                 title: "All Agents",
-                href: "/users/agents",
+                href: "/users/agent",
                 icon: "Users",
             },
             {
                 title: "All players",
-                href: "/users/players",
+                href: "/users/player",
                 icon: "Users",
             }
         ],
@@ -337,17 +336,17 @@ export const agentNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Distributers",
-                href: "/users/admin",
+                href: "/users/distributor",
                 icon: "Users",
             },
             {
                 title: "All Agents",
-                href: "/users/agents",
+                href: "/users/agent",
                 icon: "Users",
             },
             {
                 title: "All players",
-                href: "/users/players",
+                href: "/users/player",
                 icon: "Users",
             }
         ],
