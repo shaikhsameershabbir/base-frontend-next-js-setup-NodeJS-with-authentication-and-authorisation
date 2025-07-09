@@ -172,11 +172,6 @@ const sidebarItems: SidebarItem[] = [
                 icon: <Settings className="h-4 w-4" />,
             },
             {
-                title: "Database",
-                href: "/system/database",
-                icon: <Database className="h-4 w-4" />,
-            },
-            {
                 title: "Logs",
                 href: "/system/logs",
                 icon: <Activity className="h-4 w-4" />,
@@ -189,6 +184,7 @@ interface SidebarItemProps {
     item: SidebarItem
     level?: number
 }
+
 
 function SidebarItem({ item, level = 0 }: SidebarItemProps) {
     const pathname = usePathname()
@@ -264,7 +260,592 @@ function SidebarItem({ item, level = 0 }: SidebarItemProps) {
     )
 }
 
-export function Sidebar() {
+interface SidebarProps {
+    role?: string;
+}
+
+// Place role-based navbars here (from your manually added selection)
+let superNavbar = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: <Home className="h-4 w-4" />,
+    },
+    {
+        title: "User Management",
+        icon: <Users className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Users",
+                href: "/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "User Groups",
+                href: "/users/groups",
+                icon: <Shield className="h-4 w-4" />,
+            },
+            {
+                title: "User Commissions",
+                href: "/users/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Market Management",
+        icon: <Target className="h-4 w-4" />,
+        children: [
+            {
+                title: "Kalyan Bazar",
+                href: "/markets/kalyan",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Day",
+                href: "/markets/milan-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Night",
+                href: "/markets/milan-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Day",
+                href: "/markets/rajdhani-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Night",
+                href: "/markets/rajdhani-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Bid Management",
+        icon: <TrendingUp className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Bids",
+                href: "/bids",
+                icon: <ClipboardList className="h-4 w-4" />,
+            },
+            {
+                title: "Winning Bids",
+                href: "/bids/winners",
+                icon: <Award className="h-4 w-4" />,
+            },
+            {
+                title: "Bid History",
+                href: "/bids/history",
+                icon: <History className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Point Management",
+        icon: <Wallet className="h-4 w-4" />,
+        children: [
+            {
+                title: "Point Transfer",
+                href: "/points/transfer",
+                icon: <Wallet className="h-4 w-4" />,
+            },
+            {
+                title: "Transfer History",
+                href: "/points/history",
+                icon: <History className="h-4 w-4" />,
+            },
+            {
+                title: "Point Balance",
+                href: "/points/balance",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Reports",
+        icon: <BarChart3 className="h-4 w-4" />,
+        children: [
+            {
+                title: "Market Reports",
+                href: "/reports/markets",
+                icon: <BarChart3 className="h-4 w-4" />,
+            },
+            {
+                title: "User Reports",
+                href: "/reports/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "Commission Reports",
+                href: "/reports/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+            {
+                title: "Total Summary",
+                href: "/reports/summary",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "System",
+        icon: <Settings className="h-4 w-4" />,
+        children: [
+            {
+                title: "Settings",
+                href: "/settings",
+                icon: <Settings className="h-4 w-4" />,
+            },
+            {
+                title: "Logs",
+                href: "/system/logs",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+]
+let adminNavbar = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: <Home className="h-4 w-4" />,
+    },
+    {
+        title: "User Management",
+        icon: <Users className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Users",
+                href: "/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "User Groups",
+                href: "/users/groups",
+                icon: <Shield className="h-4 w-4" />,
+            },
+            {
+                title: "User Commissions",
+                href: "/users/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Market Management",
+        icon: <Target className="h-4 w-4" />,
+        children: [
+            {
+                title: "Kalyan Bazar",
+                href: "/markets/kalyan",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Day",
+                href: "/markets/milan-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Night",
+                href: "/markets/milan-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Day",
+                href: "/markets/rajdhani-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Night",
+                href: "/markets/rajdhani-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Bid Management",
+        icon: <TrendingUp className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Bids",
+                href: "/bids",
+                icon: <ClipboardList className="h-4 w-4" />,
+            },
+            {
+                title: "Winning Bids",
+                href: "/bids/winners",
+                icon: <Award className="h-4 w-4" />,
+            },
+            {
+                title: "Bid History",
+                href: "/bids/history",
+                icon: <History className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Point Management",
+        icon: <Wallet className="h-4 w-4" />,
+        children: [
+            {
+                title: "Point Transfer",
+                href: "/points/transfer",
+                icon: <Wallet className="h-4 w-4" />,
+            },
+            {
+                title: "Transfer History",
+                href: "/points/history",
+                icon: <History className="h-4 w-4" />,
+            },
+            {
+                title: "Point Balance",
+                href: "/points/balance",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Reports",
+        icon: <BarChart3 className="h-4 w-4" />,
+        children: [
+            {
+                title: "Market Reports",
+                href: "/reports/markets",
+                icon: <BarChart3 className="h-4 w-4" />,
+            },
+            {
+                title: "User Reports",
+                href: "/reports/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "Commission Reports",
+                href: "/reports/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+            {
+                title: "Total Summary",
+                href: "/reports/summary",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "System",
+        icon: <Settings className="h-4 w-4" />,
+        children: [
+            {
+                title: "Settings",
+                href: "/settings",
+                icon: <Settings className="h-4 w-4" />,
+            },
+            {
+                title: "Logs",
+                href: "/system/logs",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+]
+let distributorNavbar = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: <Home className="h-4 w-4" />,
+    },
+    {
+        title: "User Management",
+        icon: <Users className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Users",
+                href: "/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "User Groups",
+                href: "/users/groups",
+                icon: <Shield className="h-4 w-4" />,
+            },
+            {
+                title: "User Commissions",
+                href: "/users/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Market Management",
+        icon: <Target className="h-4 w-4" />,
+        children: [
+            {
+                title: "Kalyan Bazar",
+                href: "/markets/kalyan",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Day",
+                href: "/markets/milan-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Night",
+                href: "/markets/milan-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Day",
+                href: "/markets/rajdhani-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Night",
+                href: "/markets/rajdhani-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Bid Management",
+        icon: <TrendingUp className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Bids",
+                href: "/bids",
+                icon: <ClipboardList className="h-4 w-4" />,
+            },
+            {
+                title: "Winning Bids",
+                href: "/bids/winners",
+                icon: <Award className="h-4 w-4" />,
+            },
+            {
+                title: "Bid History",
+                href: "/bids/history",
+                icon: <History className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Point Management",
+        icon: <Wallet className="h-4 w-4" />,
+        children: [
+            {
+                title: "Point Transfer",
+                href: "/points/transfer",
+                icon: <Wallet className="h-4 w-4" />,
+            },
+            {
+                title: "Transfer History",
+                href: "/points/history",
+                icon: <History className="h-4 w-4" />,
+            },
+            {
+                title: "Point Balance",
+                href: "/points/balance",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Reports",
+        icon: <BarChart3 className="h-4 w-4" />,
+        children: [
+            {
+                title: "Market Reports",
+                href: "/reports/markets",
+                icon: <BarChart3 className="h-4 w-4" />,
+            },
+            {
+                title: "User Reports",
+                href: "/reports/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "Commission Reports",
+                href: "/reports/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+            {
+                title: "Total Summary",
+                href: "/reports/summary",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "System",
+        icon: <Settings className="h-4 w-4" />,
+        children: [
+            {
+                title: "Settings",
+                href: "/settings",
+                icon: <Settings className="h-4 w-4" />,
+            },
+            {
+                title: "Logs",
+                href: "/system/logs",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+]
+let agentNavbar = [
+    {
+        title: "Dashboard",
+        href: "/dashboard",
+        icon: <Home className="h-4 w-4" />,
+    },
+    {
+        title: "User Management",
+        icon: <Users className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Users",
+                href: "/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "User Groups",
+                href: "/users/groups",
+                icon: <Shield className="h-4 w-4" />,
+            },
+            {
+                title: "User Commissions",
+                href: "/users/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Market Management",
+        icon: <Target className="h-4 w-4" />,
+        children: [
+            {
+                title: "Kalyan Bazar",
+                href: "/markets/kalyan",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Day",
+                href: "/markets/milan-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Milan Night",
+                href: "/markets/milan-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Day",
+                href: "/markets/rajdhani-day",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+            {
+                title: "Rajdhani Night",
+                href: "/markets/rajdhani-night",
+                icon: <Gamepad2 className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Bid Management",
+        icon: <TrendingUp className="h-4 w-4" />,
+        children: [
+            {
+                title: "All Bids",
+                href: "/bids",
+                icon: <ClipboardList className="h-4 w-4" />,
+            },
+            {
+                title: "Winning Bids",
+                href: "/bids/winners",
+                icon: <Award className="h-4 w-4" />,
+            },
+            {
+                title: "Bid History",
+                href: "/bids/history",
+                icon: <History className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Point Management",
+        icon: <Wallet className="h-4 w-4" />,
+        children: [
+            {
+                title: "Point Transfer",
+                href: "/points/transfer",
+                icon: <Wallet className="h-4 w-4" />,
+            },
+            {
+                title: "Transfer History",
+                href: "/points/history",
+                icon: <History className="h-4 w-4" />,
+            },
+            {
+                title: "Point Balance",
+                href: "/points/balance",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "Reports",
+        icon: <BarChart3 className="h-4 w-4" />,
+        children: [
+            {
+                title: "Market Reports",
+                href: "/reports/markets",
+                icon: <BarChart3 className="h-4 w-4" />,
+            },
+            {
+                title: "User Reports",
+                href: "/reports/users",
+                icon: <Users className="h-4 w-4" />,
+            },
+            {
+                title: "Commission Reports",
+                href: "/reports/commissions",
+                icon: <DollarSign className="h-4 w-4" />,
+            },
+            {
+                title: "Total Summary",
+                href: "/reports/summary",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+    {
+        title: "System",
+        icon: <Settings className="h-4 w-4" />,
+        children: [
+            {
+                title: "Settings",
+                href: "/settings",
+                icon: <Settings className="h-4 w-4" />,
+            },
+            {
+                title: "Logs",
+                href: "/system/logs",
+                icon: <Activity className="h-4 w-4" />,
+            },
+        ],
+    },
+]
+
+export function Sidebar({ role }: SidebarProps) {
+    let items: SidebarItem[] = [];
+    if (role === "superadmin") items = superNavbar;
+    else if (role === "admin") items = adminNavbar;
+    else if (role === "distributor") items = distributorNavbar;
+    else if (role === "agent") items = agentNavbar;
+    else items = [];
+
     return (
         <div className="flex h-full w-64 flex-col glass-effect border-r border-border bg-background/80 dark:bg-background/90">
             <div className="flex h-16 items-center border-b border-border px-6 bg-background/80 dark:bg-background/90">
@@ -281,7 +862,7 @@ export function Sidebar() {
 
             <div className="flex-1 overflow-auto py-6">
                 <nav className="space-y-2 px-4">
-                    {sidebarItems.map((item, index) => (
+                    {items.map((item: SidebarItem, index: number) => (
                         <SidebarItem key={index} item={item} />
                     ))}
                 </nav>
