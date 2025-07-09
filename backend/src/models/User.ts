@@ -5,7 +5,8 @@ export interface IUser extends Document {
     username: string;
     password: string;
     balance: number;
-    role: 'admin' | 'user';
+    role: 'superadmin' | 'admin' | 'distributor' | 'player';
+    parentId?: mongoose.Types.ObjectId; // Reference to parent user (admin for distributor, distributor for player)
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -33,8 +34,16 @@ const userSchema = new Schema<IUser>({
     },
     role: {
         type: String,
-        enum: ['admin', 'user'],
-        default: 'user'
+        enum: ['superadmin', 'admin', 'distributor', 'player'],
+        default: 'player'
+    },
+    parentId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: function () {
+            // parentId is required for all roles except superadmin
+            return this.role !== 'superadmin';
+        }
     },
     isActive: {
         type: Boolean,
@@ -43,6 +52,10 @@ const userSchema = new Schema<IUser>({
 }, {
     timestamps: true
 });
+
+// Index for efficient queries
+userSchema.index({ parentId: 1, role: 1 });
+userSchema.index({ role: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

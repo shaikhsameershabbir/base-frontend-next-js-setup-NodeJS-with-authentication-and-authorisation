@@ -1,98 +1,120 @@
 import mongoose from 'mongoose';
 import { User } from '../src/models/User';
-import { logger } from '../src/config/logger';
 
-// MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/matka-sk';
-
-const seedData = async () => {
+async function seedData() {
     try {
         // Connect to MongoDB
-        await mongoose.connect(MONGODB_URI);
-        logger.info('Connected to MongoDB');
+        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/matka-sk';
+        await mongoose.connect(mongoURI);
+        console.log('Connected to MongoDB');
 
-        // Clear existing users (optional - comment out if you want to keep existing data)
-        // await User.deleteMany({});
-        // logger.info('Cleared existing users');
+        // Clear existing data
+        await User.deleteMany({});
+        console.log('Cleared existing users');
 
-        // Create admin user
-        const adminData = {
+        // Create superadmin
+        const superadmin = new User({
+            username: 'superadmin',
+            password: 'superadmin123',
+            balance: 1000000,
+            role: 'superadmin',
+            isActive: true
+        });
+        await superadmin.save();
+        console.log('Created superadmin');
+
+        // Create admin under superadmin
+        const admin = new User({
             username: 'admin',
             password: 'admin123',
-            balance: 10000,
-            role: 'admin' as const,
+            balance: 100000,
+            role: 'admin',
+            parentId: superadmin._id,
             isActive: true
-        };
+        });
+        await admin.save();
+        console.log('Created admin');
 
-        let adminUser = await User.findOne({ username: adminData.username });
-        if (!adminUser) {
-            adminUser = new User(adminData);
-            await adminUser.save();
-            logger.info('✅ Admin user created');
-            logger.info(`   Username: ${adminData.username}`);
-            logger.info(`   Password: ${adminData.password}`);
-            logger.info(`   Balance: ${adminData.balance}`);
-            logger.info(`   Role: ${adminData.role}`);
-        } else {
-            logger.info('ℹ️  Admin user already exists');
-        }
-
-        // Create test user
-        const testUserData = {
-            username: 'testuser',
-            password: 'test123',
-            balance: 5000,
-            role: 'user' as const,
+        // Create distributors under admin
+        const distributor1 = new User({
+            username: 'distributor1',
+            password: 'dist123',
+            balance: 50000,
+            role: 'distributor',
+            parentId: admin._id,
             isActive: true
-        };
+        });
+        await distributor1.save();
 
-        let testUser = await User.findOne({ username: testUserData.username });
-        if (!testUser) {
-            testUser = new User(testUserData);
-            await testUser.save();
-            logger.info('✅ Test user created');
-            logger.info(`   Username: ${testUserData.username}`);
-            logger.info(`   Password: ${testUserData.password}`);
-            logger.info(`   Balance: ${testUserData.balance}`);
-            logger.info(`   Role: ${testUserData.role}`);
-        } else {
-            logger.info('ℹ️  Test user already exists');
-        }
+        const distributor2 = new User({
+            username: 'distributor2',
+            password: 'dist123',
+            balance: 30000,
+            role: 'distributor',
+            parentId: admin._id,
+            isActive: true
+        });
+        await distributor2.save();
+        console.log('Created distributors');
 
-        // Create another test user
-        const playerData = {
+        // Create players under distributors
+        const player1 = new User({
             username: 'player1',
             password: 'player123',
-            balance: 2500,
-            role: 'user' as const,
+            balance: 1000,
+            role: 'player',
+            parentId: distributor1._id,
             isActive: true
-        };
+        });
+        await player1.save();
 
-        let playerUser = await User.findOne({ username: playerData.username });
-        if (!playerUser) {
-            playerUser = new User(playerData);
-            await playerUser.save();
-            logger.info('✅ Player user created');
-            logger.info(`   Username: ${playerData.username}`);
-            logger.info(`   Password: ${playerData.password}`);
-            logger.info(`   Balance: ${playerData.balance}`);
-            logger.info(`   Role: ${playerData.role}`);
-        } else {
-            logger.info('ℹ️  Player user already exists');
-        }
+        const player2 = new User({
+            username: 'player2',
+            password: 'player123',
+            balance: 2000,
+            role: 'player',
+            parentId: distributor1._id,
+            isActive: true
+        });
+        await player2.save();
 
-        logger.info('\n🎉 Seed data creation completed!');
-        logger.info('\n📋 Available users:');
-        logger.info('   Admin: admin / admin123 (Balance: 10000)');
-        logger.info('   Test: testuser / test123 (Balance: 5000)');
-        logger.info('   Player: player1 / player123 (Balance: 2500)');
+        const player3 = new User({
+            username: 'player3',
+            password: 'player123',
+            balance: 1500,
+            role: 'player',
+            parentId: distributor2._id,
+            isActive: true
+        });
+        await player3.save();
 
+        const player4 = new User({
+            username: 'player4',
+            password: 'player123',
+            balance: 3000,
+            role: 'player',
+            parentId: distributor2._id,
+            isActive: true
+        });
+        await player4.save();
+        console.log('Created players');
+
+        console.log('\n=== Seed Data Summary ===');
+        console.log('Superadmin: superadmin / superadmin123');
+        console.log('Admin: admin / admin123');
+        console.log('Distributor 1: distributor1 / dist123');
+        console.log('Distributor 2: distributor2 / dist123');
+        console.log('Player 1: player1 / player123');
+        console.log('Player 2: player2 / player123');
+        console.log('Player 3: player3 / player123');
+        console.log('Player 4: player4 / player123');
+
+        console.log('\nSeed data created successfully!');
         process.exit(0);
     } catch (error) {
-        logger.error('❌ Error creating seed data:', error);
+        console.error('Error seeding data:', error);
         process.exit(1);
     }
-};
+}
 
-// Run the script
 seedData(); 

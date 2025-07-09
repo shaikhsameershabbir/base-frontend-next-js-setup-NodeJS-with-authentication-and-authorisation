@@ -1,25 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, extractTokenFromHeader, JWTPayload } from '../utils/jwt';
+import { verifyToken, extractTokenFromCookie } from '../utils/jwt';
 import { User } from '../models/User';
+import { logger } from '../config/logger';
 
-// Extend Express Request interface to include user
+// Extend Request interface to include user
 declare global {
     namespace Express {
         interface Request {
-            user?: JWTPayload;
+            user?: {
+                userId: string;
+                username: string;
+                balance: number;
+                role: string;
+                parentId?: string;
+            };
         }
     }
 }
 
-export const authenticateToken = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const authHeader = req.headers.authorization;
+        // Extract token from cookie
+        const token = extractTokenFromCookie(req.headers.cookie || '');
 
-        if (!authHeader) {
+        if (!token) {
             res.status(401).json({
                 success: false,
                 message: 'Access token required'
@@ -27,11 +31,11 @@ export const authenticateToken = async (
             return;
         }
 
-        const token = extractTokenFromHeader(authHeader);
+        // Verify token
         const decoded = verifyToken(token);
 
         // Check if user still exists and is active
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = await User.findById(decoded.userId);
         if (!user || !user.isActive) {
             res.status(401).json({
                 success: false,
@@ -40,9 +44,12 @@ export const authenticateToken = async (
             return;
         }
 
+        // Attach user info to request
         req.user = decoded;
         next();
+
     } catch (error) {
+        logger.error('Authentication error:', error);
         res.status(401).json({
             success: false,
             message: 'Invalid or expired token'
@@ -50,7 +57,7 @@ export const authenticateToken = async (
     }
 };
 
-export const requireRole = (roles: string[]) => {
+export const requireRole = (allowedRoles: string[]) => {
     return (req: Request, res: Response, next: NextFunction): void => {
         if (!req.user) {
             res.status(401).json({
@@ -60,7 +67,7 @@ export const requireRole = (roles: string[]) => {
             return;
         }
 
-        if (!roles.includes(req.user.role)) {
+        if (!allowedRoles.includes(req.user.role)) {
             res.status(403).json({
                 success: false,
                 message: 'Insufficient permissions'
@@ -70,4 +77,73 @@ export const requireRole = (roles: string[]) => {
 
         next();
     };
+};
+
+// Middleware to determine accessible user IDs based on role hierarchy
+export const setAccessibleUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+        let accessibleUserIds: string[] = [];
+
+        switch (req.user.role) {
+            case 'superadmin':
+                // Superadmin can access all users
+                const allUsers = await User.find({}).select('_id');
+                accessibleUserIds = allUsers.map(user => String(user._id));
+                break;
+
+            case 'admin':
+                // Admin can access distributors and players under them
+                const adminUsers = await User.find({
+                    $or: [
+                        { _id: req.user.userId },
+                        { parentId: req.user.userId },
+                        {
+                            parentId: {
+                                $in: await User.find({ parentId: req.user.userId }).select('_id').then(users => users.map(u => u._id))
+                            }
+                        }
+                    ]
+                }).select('_id');
+                accessibleUserIds = adminUsers.map(user => String(user._id));
+                break;
+
+            case 'distributor':
+                // Distributor can access players under them
+                const distributorUsers = await User.find({
+                    $or: [
+                        { _id: req.user.userId },
+                        { parentId: req.user.userId }
+                    ]
+                }).select('_id');
+                accessibleUserIds = distributorUsers.map(user => String(user._id));
+                break;
+
+            case 'player':
+                // Player can only access themselves
+                accessibleUserIds = [req.user.userId];
+                break;
+
+            default:
+                accessibleUserIds = [];
+        }
+
+        // Attach accessible user IDs to request
+        (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds = accessibleUserIds;
+        next();
+
+    } catch (error) {
+        logger.error('Set accessible users error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
 }; 

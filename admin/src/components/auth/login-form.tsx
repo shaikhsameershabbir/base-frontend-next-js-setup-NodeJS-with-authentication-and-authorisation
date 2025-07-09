@@ -1,30 +1,30 @@
 "use client"
 
 import { useState } from "react"
-import { Eye, EyeOff, Lock, Mail, Shield, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Eye, EyeOff, Lock, User, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { authAPI } from "@/lib/api-service"
 
-interface LoginFormProps {
-    onLogin: (email: string, password: string) => void
-    isLoading?: boolean
-}
-
-export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
-    const [email, setEmail] = useState("")
+export function LoginForm() {
+    const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
-    const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
+    const [isLoading, setIsLoading] = useState(false)
+    const [error, setError] = useState("")
+    const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
+    const router = useRouter()
 
     const validateForm = () => {
-        const newErrors: { email?: string; password?: string } = {}
+        const newErrors: { username?: string; password?: string } = {}
 
-        if (!email) {
-            newErrors.email = "Email is required"
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = "Please enter a valid email"
+        if (!username) {
+            newErrors.username = "Username is required"
+        } else if (username.length < 3) {
+            newErrors.username = "Username must be at least 3 characters"
         }
 
         if (!password) {
@@ -37,10 +37,27 @@ export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
         return Object.keys(newErrors).length === 0
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (validateForm()) {
-            onLogin(email, password)
+        if (!validateForm()) return
+
+        setIsLoading(true)
+        setError("")
+
+        try {
+            const response = await authAPI.login({ username, password })
+
+            if (response.success) {
+                // Redirect to dashboard on successful login
+                router.push("/dashboard")
+            } else {
+                setError(response.message || "Login failed")
+            }
+        } catch (err: any) {
+            console.error("Login error:", err)
+            setError(err.response?.data?.message || "An error occurred during login")
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -69,22 +86,21 @@ export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
                 <CardContent className="space-y-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-3">
-                            <Label htmlFor="email" className="text-sm font-medium text-primary">Email</Label>
+                            <Label htmlFor="username" className="text-sm font-medium text-primary">Username</Label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                 <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className={`pl-12 pr-4 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.email ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"
-                                        }`}
+                                    id="username"
+                                    type="text"
+                                    placeholder="Enter your username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className={`pl-12 pr-4 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.username ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
                                     disabled={isLoading}
                                 />
                             </div>
-                            {errors.email && (
-                                <p className="text-sm text-destructive animate-fade-in">{errors.email}</p>
+                            {errors.username && (
+                                <p className="text-sm text-destructive animate-fade-in">{errors.username}</p>
                             )}
                         </div>
 
@@ -98,8 +114,7 @@ export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
                                     placeholder="Enter your password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.password ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"
-                                        }`}
+                                    className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.password ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
                                     disabled={isLoading}
                                 />
                                 <Button
@@ -138,6 +153,12 @@ export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
                             </Button>
                         </div>
 
+                        {error && (
+                            <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-lg">
+                                {error}
+                            </div>
+                        )}
+
                         <Button
                             type="submit"
                             className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
@@ -158,8 +179,10 @@ export function LoginForm({ onLogin, isLoading = false }: LoginFormProps) {
                         <div className="text-center space-y-3">
                             <p className="text-sm text-muted-foreground font-medium">Demo Credentials</p>
                             <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-3 space-y-1">
-                                <p className="text-xs font-mono text-muted-foreground">Email: admin@example.com</p>
-                                <p className="text-xs font-mono text-muted-foreground">Password: admin123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Superadmin: superadmin / superadmin123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Admin: admin / admin123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Distributor: distributor1 / dist123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Player: player1 / player123</p>
                             </div>
                         </div>
                     </div>
