@@ -300,7 +300,7 @@ export default function UsersPage() {
                                                 </td>
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant="ghost" size="sm" className="hover:bg-card/20 dark:hover:bg-card/30">
+                                                        <Button variant="ghost" size="sm" className="hover:bg-card/20 dark:hover:bg-card/30" onClick={() => router.push(`/users/${role}/${user._id}`)}>
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="sm" className="hover:bg-card/20 dark:hover:bg-card/30">
