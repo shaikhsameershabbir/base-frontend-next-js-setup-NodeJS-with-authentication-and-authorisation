@@ -95,7 +95,7 @@ export default function DashboardPage() {
                 {/* Market Overview */}
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
                     {/* Market Status */}
-                    <Card className="col-span-4 glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                    <Card className="col-span-4 glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardHeader className="pb-6">
                             <CardTitle className="flex items-center gap-3 text-xl font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
@@ -185,7 +185,7 @@ export default function DashboardPage() {
 
                 {/* Quick Actions */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "100ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "100ms" }}>
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "200ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "200ms" }}>
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "300ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "300ms" }}>
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">

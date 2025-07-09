@@ -166,7 +166,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* Filters and Search */}
-                <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                     <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                             <div className="flex flex-col md:flex-row gap-4 flex-1">
@@ -212,7 +212,7 @@ export default function UsersPage() {
                 </Card>
 
                 {/* Users Table */}
-                <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                     <CardHeader className="pb-6">
                         <CardTitle className="flex items-center gap-3 text-xl font-bold">
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">

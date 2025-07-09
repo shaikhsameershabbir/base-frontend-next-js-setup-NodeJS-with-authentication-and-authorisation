@@ -191,7 +191,7 @@ export default function PointTransferPage() {
 
                 {/* Stats Cards */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -205,7 +205,7 @@ export default function PointTransferPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "100ms" }}>
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "100ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -219,7 +219,7 @@ export default function PointTransferPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "200ms" }}>
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "200ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
@@ -233,7 +233,7 @@ export default function PointTransferPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "300ms" }}>
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "300ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
@@ -250,7 +250,7 @@ export default function PointTransferPage() {
 
                 <div className="grid gap-8 md:grid-cols-2">
                     {/* New Transfer */}
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardHeader className="pb-6">
                             <CardTitle className="flex items-center gap-3 text-xl font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -316,7 +316,7 @@ export default function PointTransferPage() {
                     </Card>
 
                     {/* Quick Actions */}
-                    <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardHeader className="pb-6">
                             <CardTitle className="flex items-center gap-3 text-xl font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -359,7 +359,7 @@ export default function PointTransferPage() {
                 </div>
 
                 {/* Filters and Search */}
-                <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                     <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                             <div className="flex flex-col md:flex-row gap-4 flex-1">
@@ -408,7 +408,7 @@ export default function PointTransferPage() {
                 </Card>
 
                 {/* Transfers Table */}
-                <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                     <CardHeader className="pb-6">
                         <CardTitle className="flex items-center gap-3 text-xl font-bold">
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">

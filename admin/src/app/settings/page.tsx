@@ -75,7 +75,7 @@ export default function SettingsPage() {
                 <div className="grid gap-8 md:grid-cols-3">
                     {/* Theme Settings */}
                     <div className="md:col-span-2">
-                        <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                        <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                             <CardHeader className="pb-6">
                                 <CardTitle className="flex items-center gap-3 text-xl font-bold text-primary">
                                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
@@ -93,7 +93,7 @@ export default function SettingsPage() {
                     {/* Quick Settings */}
                     <div className="space-y-6">
                         {/* Profile Settings */}
-                        <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "100ms" }}>
+                        <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "100ms" }}>
                             <CardHeader className="pb-4">
                                 <CardTitle className="flex items-center gap-3 text-lg font-bold text-primary">
                                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -127,7 +127,7 @@ export default function SettingsPage() {
                         </Card>
 
                         {/* System Settings */}
-                        <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "200ms" }}>
+                        <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "200ms" }}>
                             <CardHeader className="pb-4">
                                 <CardTitle className="flex items-center gap-3 text-lg font-bold text-primary">
                                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -172,7 +172,7 @@ export default function SettingsPage() {
                         </Card>
 
                         {/* Database Settings */}
-                        <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "300ms" }}>
+                        <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "300ms" }}>
                             <CardHeader className="pb-4">
                                 <CardTitle className="flex items-center gap-3 text-lg font-bold text-primary">
                                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">

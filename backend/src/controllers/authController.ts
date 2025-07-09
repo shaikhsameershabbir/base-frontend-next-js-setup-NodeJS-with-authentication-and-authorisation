@@ -431,7 +431,7 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
     try {
         const { role } = req.params;
         console.log(role);
-        
+
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
 
         if (!accessibleUserIds || accessibleUserIds.length === 0) {
@@ -451,7 +451,7 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
             });
             return;
         }
-        
+
         const users = await User.find({
             _id: { $in: accessibleUserIds },
             role: role

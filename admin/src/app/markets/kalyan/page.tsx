@@ -140,7 +140,7 @@ export default function KalyanMarketPage() {
 
                 {/* Market Status */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="glass-card hover-lift animate-slide-up">
+                    <Card className="glass-card ">
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
@@ -159,7 +159,7 @@ export default function KalyanMarketPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "100ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "100ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -173,7 +173,7 @@ export default function KalyanMarketPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "200ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "200ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
@@ -187,7 +187,7 @@ export default function KalyanMarketPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up" style={{ animationDelay: "300ms" }}>
+                    <Card className="glass-card " style={{ animationDelay: "300ms" }}>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function KalyanMarketPage() {
 
                 {/* Market Controls */}
                 <div className="grid gap-6 md:grid-cols-2">
-                    <Card className="glass-card hover-lift animate-slide-up">
+                    <Card className="glass-card ">
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
@@ -241,7 +241,7 @@ export default function KalyanMarketPage() {
                         </CardContent>
                     </Card>
 
-                    <Card className="glass-card hover-lift animate-slide-up">
+                    <Card className="glass-card ">
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
@@ -283,7 +283,7 @@ export default function KalyanMarketPage() {
                 </div>
 
                 {/* Recent Bids */}
-                <Card className="glass-card hover-lift animate-slide-up">
+                <Card className="glass-card ">
                     <CardHeader className="pb-6">
                         <CardTitle className="flex items-center gap-3 text-xl font-bold">
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">

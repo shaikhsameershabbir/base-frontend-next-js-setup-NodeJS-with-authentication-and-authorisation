@@ -160,7 +160,7 @@ const getStatusColor = (status: ActivityItem["status"]) => {
 
 export function RecentActivity() {
     return (
-        <Card className="glass-card hover-lift animate-slide-up bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+        <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
             <CardHeader className="pb-6">
                 <CardTitle className="flex items-center gap-3 text-xl font-bold">
                     <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
