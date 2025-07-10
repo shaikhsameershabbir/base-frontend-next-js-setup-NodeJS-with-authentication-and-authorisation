@@ -36,6 +36,7 @@ export default function UsersPage() {
     const router = useRouter()
     const params = useParams()
     const role = params.role as string
+    const userId = params.userid as string
 
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [users, setUsers] = useState<UserWithStats[]>([])
@@ -60,7 +61,7 @@ export default function UsersPage() {
             setLoading(true)
             setError(null)
 
-            const response = await usersAPI.getUsersByRole(role)
+            const response = await usersAPI.getUsersByRole(role, userId)
 
             if (response.success && response.data) {
                 setUsers(response.data.users)
@@ -108,7 +109,7 @@ export default function UsersPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-4xl font-bold tracking-tight gradient-text text-primary">
+                        <h1 className="text-4xl font-medium text-secondary">
                             {getRoleDisplayName(role)}s
                         </h1>
                         <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
@@ -126,7 +127,7 @@ export default function UsersPage() {
                         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                             <div className="flex flex-col md:flex-row gap-4 flex-1">
                                 <div className="relative flex-1 max-w-md">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted" />
                                     <Input
                                         placeholder={`Search ${getRoleDisplayName(role).toLowerCase()}s by username...`}
                                         value={searchTerm}
@@ -169,7 +170,7 @@ export default function UsersPage() {
                 {/* Users Table */}
                 <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                     <CardHeader className="pb-6">
-                        <CardTitle className="flex items-center gap-3 text-xl font-bold">
+                        <CardTitle className="flex items-center gap-3 text-xl font-bold text-primary">
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                                 <Users className="h-4 w-4 text-white" />
                             </div>
@@ -185,8 +186,8 @@ export default function UsersPage() {
                         ) : error ? (
                             <div className="flex items-center justify-center py-12">
                                 <div className="text-center">
-                                    <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                                    <p className="text-red-500 font-medium">{error}</p>
+                                    <XCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                                    <p className="text-destructive font-medium">{error}</p>
                                     <Button
                                         onClick={fetchUsers}
                                         className="mt-4 bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90"
@@ -198,8 +199,8 @@ export default function UsersPage() {
                         ) : filteredUsers.length === 0 ? (
                             <div className="flex items-center justify-center py-12">
                                 <div className="text-center">
-                                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                                    <p className="text-muted-foreground font-medium">No {getRoleDisplayName(role).toLowerCase()}s found</p>
+                                    <Users className="h-12 w-12 text-muted mx-auto mb-4" />
+                                    <p className="text-muted font-medium">No {getRoleDisplayName(role).toLowerCase()}s found</p>
                                 </div>
                             </div>
                         ) : (
@@ -236,7 +237,7 @@ export default function UsersPage() {
                                                     </Badge>
                                                 </td>
                                                 <td className="py-4 px-4">
-                                                    <span className="font-medium text-green-400 dark:text-green-300">
+                                                    <span className="font-medium text-green-600 dark:text-green-400">
                                                         ₹{user.balance.toLocaleString()}
                                                     </span>
                                                 </td>
@@ -255,13 +256,26 @@ export default function UsersPage() {
                                                 </td>
                                                 <td className="py-4 px-4">
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant="ghost" size="sm" className="hover:bg-card/20 dark:hover:bg-card/30" onClick={() => router.push(`/users/${role}/${user._id}`)}>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                            onClick={() => router.push(`/users/${role}/${user._id}`)}
+                                                        >
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="sm" className="hover:bg-card/20 dark:hover:bg-card/30">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                        >
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
-                                                        <Button variant="ghost" size="sm" className="hover:bg-red-500/10 hover:text-red-500">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="hover:bg-destructive/10 hover:text-destructive text-primary"
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>

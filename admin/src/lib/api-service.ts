@@ -76,8 +76,8 @@ export const usersAPI = {
         return response.data;
     },
 
-    getUsersByRole: async (role: string): Promise<ApiResponse<{ users: User[] }>> => {
-        const response = await apiClient.get(`/api/users/role/${role}`);
+    getUsersByRole: async (role: string, userId: string): Promise<ApiResponse<{ users: User[] }>> => {
+        const response = await apiClient.get(`/api/users/${role}/${userId}`);
         return response.data;
     },
 
