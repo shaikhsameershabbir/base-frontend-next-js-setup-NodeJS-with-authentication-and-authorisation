@@ -41,7 +41,32 @@ export const getStatusIcon = (isActive: boolean) => {
         ? <CheckCircle className="h-4 w-4 text-green-600" />
         : <XCircle className="h-4 w-4 text-red-600" />
 }
-
+export const getChildRole = (role: string) => {
+    switch (role) {
+        case "superadmin":
+            return "admin"
+        case "admin":
+            return "distributor"
+        case "distributor":
+            return "agent"
+        default:
+            return "player"
+    }
+}
+export const getRoleDisplayName = (role: string) => {
+    switch (role) {
+        case "superadmin":
+            return "Super Admin"
+        case "admin":
+            return "Admin"
+        case "distributor":
+            return "Distributor"
+        case "player":
+            return "Player"
+        default:
+            return role
+    }
+}
 function helper() {
 
 

@@ -22,7 +22,7 @@ import {
     Loader2,
     User as UserIcon
 } from "lucide-react"
-import { getRoleColor, getRoleIcon, getStatusColor, getStatusIcon } from "@/app/helperFunctions/helper"
+import { getChildRole, getRoleColor, getRoleDisplayName, getRoleIcon, getStatusColor, getStatusIcon } from "@/app/helperFunctions/helper"
 
 interface UserWithStats extends UserType {
     avatar?: string
@@ -84,20 +84,7 @@ export default function UsersPage() {
         return matchesSearch && matchesStatus
     })
 
-    const getRoleDisplayName = (role: string) => {
-        switch (role) {
-            case "superadmin":
-                return "Super Admin"
-            case "admin":
-                return "Admin"
-            case "distributor":
-                return "Distributor"
-            case "player":
-                return "Player"
-            default:
-                return role
-        }
-    }
+
 
     if (!isAuthenticated) {
         return null
@@ -139,7 +126,7 @@ export default function UsersPage() {
                                     <Button
                                         variant={filterStatus === "all" ? "default" : "outline"}
                                         onClick={() => setFilterStatus("all")}
-                                        className= "text-primary bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90"
+                                        className="text-primary bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90"
                                     >
                                         All
                                     </Button>
@@ -260,7 +247,7 @@ export default function UsersPage() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
-                                                            onClick={() => router.push(`/users/${role}/${user._id}`)}
+                                                            onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
                                                         >
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
