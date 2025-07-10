@@ -135,11 +135,11 @@ export default function UsersPage() {
                                         className="pl-10 bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
                                     />
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 bg-primary ">
                                     <Button
                                         variant={filterStatus === "all" ? "default" : "outline"}
                                         onClick={() => setFilterStatus("all")}
-                                        className="bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90"
+                                        className= "text-primary bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90"
                                     >
                                         All
                                     </Button>
