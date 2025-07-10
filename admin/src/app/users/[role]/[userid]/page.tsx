@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { usersAPI, User as UserType } from "@/lib/api-service"
+import { AddUserModal } from "@/components/modals/AddUserModal"
 import {
     Users,
     Search,
@@ -27,10 +28,6 @@ import { getChildRole, getRoleColor, getRoleDisplayName, getRoleIcon, getStatusC
 interface UserWithStats extends UserType {
     avatar?: string
 }
-
-
-
-
 
 export default function UsersPage() {
     const router = useRouter()
@@ -76,6 +73,11 @@ export default function UsersPage() {
         }
     }
 
+    const handleUserAdded = () => {
+        // Refresh the users list when a new user is added
+        fetchUsers()
+    }
+
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesStatus = filterStatus === "all" ||
@@ -83,8 +85,6 @@ export default function UsersPage() {
             (filterStatus === "inactive" && !user.isActive)
         return matchesSearch && matchesStatus
     })
-
-
 
     if (!isAuthenticated) {
         return null
@@ -146,10 +146,11 @@ export default function UsersPage() {
                                     </Button>
                                 </div>
                             </div>
-                            <Button className="bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add {getRoleDisplayName(role)}
-                            </Button>
+                            <AddUserModal
+                                role={role}
+                                parentId={userId}
+                                onUserAdded={handleUserAdded}
+                            />
                         </div>
                     </CardContent>
                 </Card>
