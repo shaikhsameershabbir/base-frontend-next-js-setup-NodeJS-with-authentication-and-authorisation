@@ -429,8 +429,8 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
 // Get users by role (with access control)
 export const getUsersByRole = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { role } = req.params;
-        console.log(role);
+        const { role, userId } = req.params;
+        console.log('-----------------------', role, userId);
 
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
 
@@ -456,6 +456,8 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
             _id: { $in: accessibleUserIds },
             role: role
         }).select('-password').populate('parentId', 'username role');
+        console.log(users);
+        
         res.json({
             success: true,
             data: { users }

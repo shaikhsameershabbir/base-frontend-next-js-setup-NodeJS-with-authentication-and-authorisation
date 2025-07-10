@@ -25,7 +25,7 @@ router.put('/profile', authenticateToken, updateProfile);
 
 // User management routes (with role-based access)
 router.get('/users', authenticateToken, setAccessibleUsers, getUsers);
-router.get('/users/role/:role', authenticateToken, setAccessibleUsers, getUsersByRole);
+router.get('/users/:role/:userId', authenticateToken, setAccessibleUsers, getUsersByRole);
 router.get('/users/:userId', authenticateToken, setAccessibleUsers, getUserById);
 router.put('/users/:userId', authenticateToken, setAccessibleUsers, updateUser);
 
