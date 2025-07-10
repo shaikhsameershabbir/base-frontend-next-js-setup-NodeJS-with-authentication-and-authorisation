@@ -1,23 +1,17 @@
 import { Router } from 'express';
-import {
-    register,
-    login,
-    logout,
-    getProfile,
-    updateProfile,
-    getUsers,
-    getUserById,
-    updateUser,
-    getUsersByRole
-} from '../controllers/authController';
+import {login, logout} from '../controllers/auth/authController';
 import { authenticateToken, requireRole, setAccessibleUsers } from '../middlewares/auth';
+import { register } from '../controllers/users/register';
+import { getProfile, updateProfile } from '../controllers/users/profile';
+import { getUserById, getUsers, getUsersByRole } from '../controllers/users/getuser';
+import { updateUser } from '../controllers/users/updateUser';
 
 const router = Router();
 
 // Public routes
-router.post('/register', register);
 router.post('/auth/login', login);
 router.post('/auth/logout', logout);
+router.post('/register', register);
 
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
