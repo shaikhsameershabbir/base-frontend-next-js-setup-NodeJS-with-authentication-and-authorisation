@@ -5,7 +5,7 @@ export interface IUser extends Document {
     username: string;
     password: string;
     balance: number;
-    role: 'superadmin' | 'admin' | 'distributor' | 'player';
+    role: 'superadmin' | 'admin' | 'distributor' |'agent'| 'player';
     parentId?: mongoose.Types.ObjectId; // Reference to parent user (admin for distributor, distributor for player)
     isActive: boolean;
     createdAt: Date;
@@ -34,7 +34,7 @@ const userSchema = new Schema<IUser>({
     },
     role: {
         type: String,
-        enum: ['superadmin', 'admin', 'distributor', 'player'],
+        enum: ['superadmin', 'admin', 'distributor', 'agent', 'player'],
         default: 'player'
     },
     parentId: {

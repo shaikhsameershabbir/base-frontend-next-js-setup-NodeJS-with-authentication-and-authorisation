@@ -1,8 +1,9 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { User } from '../../models/User';
 import { logger } from '../../config/logger';
+import type { AuthenticatedRequest } from '../../middlewares/auth';
 
-export const getProfile = async (req: Request, res: Response): Promise<void> => {
+export const getProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const user = await User.findById(req.user?.userId).select('-password');
 
@@ -16,7 +17,18 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
 
         res.json({
             success: true,
-            data: { user }
+            message: 'Profile retrieved successfully',
+            data: {
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    balance: user.balance,
+                    role: user.role,
+                    parentId: user.parentId,
+                    isActive: user.isActive,
+                    createdAt: user.createdAt
+                }
+            }
         });
 
     } catch (error) {
@@ -28,12 +40,21 @@ export const getProfile = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
-export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+export const updateProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { username, balance } = req.body;
         const userId = req.user?.userId;
+        const { username, balance } = req.body;
+
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
 
         const user = await User.findById(userId);
+
         if (!user) {
             res.status(404).json({
                 success: false,
@@ -42,9 +63,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Check if new username already exists
-        if (username && username !== user.username) {
-            const existingUser = await User.findOne({ username });
+        // Update fields if provided
+        if (username !== undefined) {
+            // Check if username is already taken by another user
+            const existingUser = await User.findOne({ username, _id: { $ne: userId } });
             if (existingUser) {
                 res.status(400).json({
                     success: false,
@@ -52,30 +74,29 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
                 });
                 return;
             }
+            user.username = username;
         }
 
-        // Update user
-        if (username) user.username = username;
-        if (balance !== undefined) user.balance = balance;
+        if (balance !== undefined) {
+            user.balance = balance;
+        }
 
         await user.save();
-
-        // Remove password from response
-        const userResponse = {
-            _id: user._id,
-            username: user.username,
-            balance: user.balance,
-            role: user.role,
-            parentId: user.parentId,
-            isActive: user.isActive,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
-        };
 
         res.json({
             success: true,
             message: 'Profile updated successfully',
-            data: { user: userResponse }
+            data: {
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    balance: user.balance,
+                    role: user.role,
+                    parentId: user.parentId,
+                    isActive: user.isActive,
+                    createdAt: user.createdAt
+                }
+            }
         });
 
     } catch (error) {

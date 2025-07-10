@@ -47,7 +47,11 @@ export function LoginForm() {
         try {
             const response = await authAPI.login({ username, password })
 
-            if (response.success) {
+            if (response.success && response.data) {
+                // Store authentication state
+                localStorage.setItem('isAuthenticated', 'true')
+                localStorage.setItem('user', JSON.stringify(response.data.user))
+
                 // Redirect to dashboard on successful login
                 router.push("/dashboard")
             } else {
@@ -55,7 +59,17 @@ export function LoginForm() {
             }
         } catch (err: any) {
             console.error("Login error:", err)
-            setError(err.response?.data?.message || "An error occurred during login")
+
+            // Handle specific error cases
+            if (err.response?.status === 429) {
+                setError("Too many login attempts. Please try again later.")
+            } else if (err.response?.status === 401) {
+                setError("Invalid username or password")
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message)
+            } else {
+                setError("An error occurred during login. Please try again.")
+            }
         } finally {
             setIsLoading(false)
         }
@@ -179,9 +193,9 @@ export function LoginForm() {
                         <div className="text-center space-y-3">
                             <p className="text-sm text-muted-foreground font-medium">Demo Credentials</p>
                             <div className="bg-muted/50 dark:bg-muted/30 rounded-lg p-3 space-y-1">
-                                <p className="text-xs font-mono text-muted-foreground">Superadmin: superadmin / superadmin123</p>
-                                <p className="text-xs font-mono text-muted-foreground">Admin: admin / admin123</p>
-                                <p className="text-xs font-mono text-muted-foreground">Distributor: distributor1 / dist123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Superadmin: smasher / 123456</p>
+                                <p className="text-xs font-mono text-muted-foreground">Admin: admin1 / admin123</p>
+                                <p className="text-xs font-mono text-muted-foreground">Distributor: distributor1_1 / dist123</p>
                                 <p className="text-xs font-mono text-muted-foreground">Player: player1 / player123</p>
                             </div>
                         </div>

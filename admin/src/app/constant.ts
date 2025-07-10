@@ -329,7 +329,7 @@ export const agentNavbar: NavbarItem[] = [
         title: "User Management",
         icon: "Users",
         children: [
-           
+
             {
                 title: "All players",
                 href: "/users/player/all",

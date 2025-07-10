@@ -41,20 +41,30 @@ export interface ApiResponse<T = any> {
     data?: T;
 }
 
+export interface LoginResponse {
+    user: User;
+    tokenExpires: number;
+}
+
 // Auth API
 export const authAPI = {
-    login: async (credentials: LoginRequest): Promise<ApiResponse<{ user: User }>> => {
+    login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
         const response = await apiClient.post('/api/auth/login', credentials);
         return response.data;
     },
 
-    register: async (userData: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/auth/register', userData);
+    refresh: async (): Promise<ApiResponse<{ tokenExpires: number }>> => {
+        const response = await apiClient.post('/api/auth/refresh');
         return response.data;
     },
 
     logout: async (): Promise<ApiResponse> => {
         const response = await apiClient.post('/api/auth/logout');
+        return response.data;
+    },
+
+    logoutAll: async (): Promise<ApiResponse> => {
+        const response = await apiClient.post('/api/auth/logout-all');
         return response.data;
     },
 

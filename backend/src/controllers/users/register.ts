@@ -1,74 +1,50 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/User';
-import { generateToken, getCookieOptions } from '../../utils/jwt';
+import { generateTokenPair, getAccessTokenCookieOptions, getRefreshTokenCookieOptions } from '../../utils/jwt';
 import { logger } from '../../config/logger';
+import bcrypt from 'bcryptjs';
+
 export const register = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { username, password, balance, role, parentId } = req.body;
+        const { username, password, balance = 0, role = 'player', parentId } = req.body;
 
-        // Check if user already exists
+        // Validate required fields
+        if (!username || !password) {
+            res.status(400).json({
+                success: false,
+                message: 'Username and password are required'
+            });
+            return;
+        }
+
+        // Check if username already exists
         const existingUser = await User.findOne({ username });
-
         if (existingUser) {
             res.status(400).json({
                 success: false,
-                message: 'User with this username already exists'
+                message: 'Username already exists'
             });
             return;
-        }
-
-        // Validate role hierarchy
-        if (role !== 'superadmin' && !parentId) {
-            res.status(400).json({
-                success: false,
-                message: 'Parent ID is required for non-superadmin roles'
-            });
-            return;
-        }
-
-        // Validate parent exists and has appropriate role
-        if (parentId) {
-            const parent = await User.findById(parentId);
-            if (!parent) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Parent user not found'
-                });
-                return;
-            }
-
-            // Role hierarchy validation
-            const validParentRoles = {
-                'admin': ['superadmin'],
-                'distributor': ['admin'],
-                'player': ['distributor']
-            };
-
-            if (!validParentRoles[role as keyof typeof validParentRoles]?.includes(parent.role)) {
-                res.status(400).json({
-                    success: false,
-                    message: `Invalid parent role. ${role} can only be created under ${validParentRoles[role as keyof typeof validParentRoles]?.join(' or ')}`
-                });
-                return;
-            }
         }
 
         // Create new user
         const user = new User({
             username,
             password,
-            balance: balance || 0,
-            role: role || 'player',
-            parentId
+            balance,
+            role,
+            parentId,
+            isActive: true
         });
 
         await user.save();
 
-        // Generate token
-        const token = generateToken(user);
+        // Generate token pair
+        const tokenPair = generateTokenPair(user);
 
-        // Set HTTP-only cookie
-        res.cookie('authToken', token, getCookieOptions());
+        // Set HTTP-only cookies
+        res.cookie('authToken', tokenPair.accessToken, getAccessTokenCookieOptions());
+        res.cookie('refreshToken', tokenPair.refreshToken, getRefreshTokenCookieOptions());
 
         // Remove password from response
         const userResponse = {
@@ -85,7 +61,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             success: true,
             message: 'User registered successfully',
             data: {
-                user: userResponse
+                user: userResponse,
+                tokenExpires: tokenPair.accessTokenExpires
             }
         });
 

@@ -2,6 +2,8 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/User';
 import { logger } from '../../config/logger';
+import { AuthenticatedRequest } from '../../middlewares/auth';
+import { checkAccessRole } from '../../utils';
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
@@ -71,11 +73,22 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Get users by role (with access control)
-export const getUsersByRole = async (req: Request, res: Response): Promise<void> => {
+export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { role, userId } = req.params;
-        console.log('-----------------------', role, userId);
 
+
+        const { role, userId } = req.params;
+        console.log(userId);
+
+        const currentRole = req.user?.role || 'player';
+        // check if the current role has access to the role
+        if (!checkAccessRole(currentRole, role)) {
+            res.status(403).json({
+                success: false,
+                message: 'Access denied to this user'
+            });
+            return;
+        }
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
 
         if (!accessibleUserIds || accessibleUserIds.length === 0) {
@@ -87,7 +100,7 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
         }
 
         // Validate role parameter
-        const validRoles = ['superadmin', 'admin', 'distributor', 'player'];
+        const validRoles = ['superadmin', 'admin', 'distributor', 'agent', 'player'];
         if (!validRoles.includes(role)) {
             res.status(400).json({
                 success: false,
@@ -100,7 +113,7 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
             _id: { $in: accessibleUserIds },
             role: role
         }).select('-password').populate('parentId', 'username role');
-        console.log(users);
+        // console.log(users);
 
         res.json({
             success: true,
@@ -114,4 +127,6 @@ export const getUsersByRole = async (req: Request, res: Response): Promise<void>
             message: 'Internal server error'
         });
     }
-}; 
+};
+
+
