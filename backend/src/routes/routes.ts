@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { login, logout, logoutAll, refresh, loginLimiter } from '../controllers/auth/authController';
+import { register } from '../controllers/auth/register';
 import { authenticateToken, requireRole, setAccessibleUsers } from '../middlewares/auth';
-import { register } from '../controllers/users/register';
+import { createUser } from '../controllers/users/register';
 import { getProfile, updateProfile } from '../controllers/users/profile';
 import { getUserById, getUsers, getUsersByRole } from '../controllers/users/getuser';
 import { updateUser } from '../controllers/users/updateUser';
@@ -13,7 +14,7 @@ const router = Router();
 router.post('/auth/login', loginLimiter, login);
 router.post('/auth/refresh', refresh);
 router.post('/auth/logout', logout);
-router.post('/register', register);
+router.post('/auth/register', register); // Public registration for new users
 
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
@@ -26,11 +27,12 @@ router.get('/users/:role/:userId', authenticateToken, setAccessibleUsers, getUse
 router.get('/users/:userId', authenticateToken, setAccessibleUsers, getUserById);
 router.put('/users/:userId', authenticateToken, setAccessibleUsers, updateUser);
 
-// Role-specific routes
-router.post('/register/admin', authenticateToken, requireRole(['superadmin']), register);
-router.post('/register/distributor', authenticateToken, requireRole(['admin']), register);
-router.post('/register/agent', authenticateToken, requireRole(['distributor']), register);
-router.post('/register/player', authenticateToken, requireRole(['agent']), register);
+// User creation routes (for authenticated users creating other users)
+router.post('/users/create', authenticateToken, createUser); // Generic user creation
+router.post('/users/create/admin', authenticateToken, requireRole(['superadmin']), createUser);
+router.post('/users/create/distributor', authenticateToken, requireRole(['superadmin', 'admin']), createUser);
+router.post('/users/create/agent', authenticateToken, requireRole(['superadmin', 'admin', 'distributor']), createUser);
+router.post('/users/create/player', authenticateToken, requireRole(['superadmin', 'admin', 'distributor', 'agent']), createUser);
 
 
 

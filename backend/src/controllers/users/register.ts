@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { User } from '../../models/User';
-import { generateTokenPair, getAccessTokenCookieOptions, getRefreshTokenCookieOptions } from '../../utils/jwt';
 import { HierarchyService } from '../../services/hierarchyService';
 import { logger } from '../../config/logger';
 
@@ -14,11 +13,11 @@ interface AuthenticatedRequest extends Request {
     };
 }
 
-export const register = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+export const createUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         console.log(req.body);
-        
-        const { username, password, balance, role , parentId } = req.body;
+
+        const { username, password, balance, role, parentId } = req.body;
         const currentUser = req.user;
 
         // Validate required fields
@@ -138,16 +137,6 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
             await HierarchyService.updateAncestorCounts((user._id as { toString(): string }).toString());
         }
 
-        // Generate token pair (only if not creating superadmin)
-        let tokenPair = null;
-        if (finalRole !== 'superadmin') {
-            tokenPair = generateTokenPair(user);
-
-            // Set HTTP-only cookies
-            res.cookie('authToken', tokenPair.accessToken, getAccessTokenCookieOptions());
-            res.cookie('refreshToken', tokenPair.refreshToken, getRefreshTokenCookieOptions());
-        }
-
         // Remove password from response
         const userResponse = {
             _id: user._id,
@@ -163,13 +152,12 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
             success: true,
             message: `${finalRole} created successfully`,
             data: {
-                user: userResponse,
-                ...(tokenPair && { tokenExpires: tokenPair.accessTokenExpires })
+                user: userResponse
             }
         });
 
     } catch (error) {
-        logger.error('Registration error:', error);
+        logger.error('User creation error:', error);
         res.status(500).json({
             success: false,
             message: 'Internal server error'

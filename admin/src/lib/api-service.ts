@@ -4,7 +4,7 @@ export interface User {
     _id: string;
     username: string;
     balance: number;
-    role: 'superadmin' | 'admin' | 'distributor'|'agent' | 'player';
+    role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: string;
     isActive: boolean;
     createdAt: string;
@@ -101,20 +101,24 @@ export const usersAPI = {
         return response.data;
     },
 
-    registerAdmin: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/register/admin', data);
+    createUser: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/users/create', data);
         return response.data;
     },
-    registerDistributor: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/register/distributor', data);
+    createAdmin: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/users/create/admin', data);
         return response.data;
     },
-    registerAgent: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/register/agent', data);
+    createDistributor: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/users/create/distributor', data);
         return response.data;
     },
-    registerPlayer: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/register/player', data);
+    createAgent: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/users/create/agent', data);
+        return response.data;
+    },
+    createPlayer: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/users/create/player', data);
         return response.data;
     },
 };

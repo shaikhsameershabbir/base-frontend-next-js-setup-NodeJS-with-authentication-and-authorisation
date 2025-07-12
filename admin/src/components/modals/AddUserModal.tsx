@@ -104,16 +104,16 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             let response
             switch (formData.role) {
                 case 'admin':
-                    response = await usersAPI.registerAdmin(userData)
+                    response = await usersAPI.createAdmin(userData)
                     break
                 case 'distributor':
-                    response = await usersAPI.registerDistributor(userData)
+                    response = await usersAPI.createDistributor(userData)
                     break
                 case 'agent':
-                    response = await usersAPI.registerAgent(userData)
+                    response = await usersAPI.createAgent(userData)
                     break
                 case 'player':
-                    response = await usersAPI.registerPlayer(userData)
+                    response = await usersAPI.createPlayer(userData)
                     break
                 default:
                     throw new Error('Invalid role')

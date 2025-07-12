@@ -951,11 +951,23 @@ GET /api/hierarchy/upline
 Authorization: Bearer <access_token>
 ```
 
-### User Registration Endpoints
+### User Registration & Creation Endpoints
 
-#### Register Admin (Superadmin only)
+#### Public User Registration
 ```http
-POST /api/register/admin
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "username": "newplayer",
+  "password": "player123",
+  "balance": 1000
+}
+```
+
+#### Create Admin User (Superadmin only)
+```http
+POST /api/users/create/admin
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -966,9 +978,9 @@ Content-Type: application/json
 }
 ```
 
-#### Register Distributor (Admin only)
+#### Create Distributor User (Admin only)
 ```http
-POST /api/register/distributor
+POST /api/users/create/distributor
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
@@ -979,9 +991,22 @@ Content-Type: application/json
 }
 ```
 
-#### Register Player (Distributor only)
+#### Create Agent User (Distributor only)
 ```http
-POST /api/register/player
+POST /api/users/create/agent
+Authorization: Bearer <access_token>
+Content-Type: application/json
+
+{
+  "username": "newagent",
+  "password": "agent123",
+  "balance": 25000
+}
+```
+
+#### Create Player User (Agent only)
+```http
+POST /api/users/create/player
 Authorization: Bearer <access_token>
 Content-Type: application/json
 
