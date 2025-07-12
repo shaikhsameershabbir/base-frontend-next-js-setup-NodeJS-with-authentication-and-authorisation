@@ -6,25 +6,68 @@ import { AuthenticatedRequest } from '../../middlewares/auth';
 import { checkAccessRole } from '../../utils';
 import { HierarchyService } from '../../services/hierarchyService';
 
+interface PaginationQuery {
+    page?: string;
+    limit?: string;
+    search?: string;
+}
+
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
+        const { page = '1', limit = '10', search = '' } = req.query as PaginationQuery;
 
         if (!accessibleUserIds || accessibleUserIds.length === 0) {
             res.json({
                 success: true,
-                data: { users: [] }
+                data: {
+                    users: [],
+                    pagination: {
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        total: 0,
+                        totalPages: 0
+                    }
+                }
             });
             return;
         }
 
-        const users = await User.find({
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build search query
+        const searchQuery: any = {
             _id: { $in: accessibleUserIds }
-        }).select('-password').populate('parentId', 'username role');
+        };
+
+        if (search && search.trim()) {
+            searchQuery.username = { $regex: search.trim(), $options: 'i' };
+        }
+
+        // Get total count for pagination
+        const total = await User.countDocuments(searchQuery);
+
+        // Get users with pagination
+        const users = await User.find(searchQuery)
+            .select('-password')
+            .populate('parentId', 'username role')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum);
 
         res.json({
             success: true,
-            data: { users }
+            data: {
+                users,
+                pagination: {
+                    page: pageNum,
+                    limit: limitNum,
+                    total,
+                    totalPages: Math.ceil(total / limitNum)
+                }
+            }
         });
 
     } catch (error) {
@@ -78,6 +121,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { role, userId } = req.params;
+        const { page = '1', limit = '10', search = '' } = req.query as PaginationQuery;
         const currentUserId = req.user?.userId;
         const currentRole = req.user?.role || 'player';
 
@@ -103,7 +147,6 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
         }
 
         let targetUserId: string;
-        let users: unknown[] = [];
 
         if (userId === 'all') {
             // Get all users with specified role under current user's downline
@@ -132,17 +175,59 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
             console.log('Getting users with role', role, 'under target user:', targetUserId);
         }
 
-        // Use hierarchy service to get users efficiently
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Use hierarchy service to get users efficiently with pagination
         try {
             const downlineUsers = await HierarchyService.getDownlineUsers(
                 targetUserId,
                 role,
-                1000, // limit
-                0 // skip
+                limitNum,
+                skip
             );
 
-            users = downlineUsers;
-            console.log(`Found ${users.length} users with role ${role}`);
+            // Apply search filter if provided
+            let filteredUsers = downlineUsers;
+            if (search && search.trim()) {
+                const searchRegex = new RegExp(search.trim(), 'i');
+                filteredUsers = downlineUsers.filter((user: any) =>
+                    searchRegex.test(user.username)
+                );
+            }
+
+            // Get total count for pagination
+            const allDownlineUsers = await HierarchyService.getDownlineUsers(
+                targetUserId,
+                role,
+                10000, // Large limit to get all users for counting
+                0
+            );
+
+            let total = allDownlineUsers.length;
+            if (search && search.trim()) {
+                const searchRegex = new RegExp(search.trim(), 'i');
+                total = allDownlineUsers.filter((user: any) =>
+                    searchRegex.test(user.username)
+                ).length;
+            }
+
+            console.log(`Found ${filteredUsers.length} users with role ${role} (page ${pageNum})`);
+
+            res.json({
+                success: true,
+                data: {
+                    users: filteredUsers,
+                    pagination: {
+                        page: pageNum,
+                        limit: limitNum,
+                        total,
+                        totalPages: Math.ceil(total / limitNum)
+                    }
+                }
+            });
+
         } catch (hierarchyError) {
             console.error('Hierarchy query failed, falling back to direct query:', hierarchyError);
 
@@ -151,21 +236,53 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
             if (!accessibleUserIds || accessibleUserIds.length === 0) {
                 res.json({
                     success: true,
-                    data: { users: [] }
+                    data: {
+                        users: [],
+                        pagination: {
+                            page: pageNum,
+                            limit: limitNum,
+                            total: 0,
+                            totalPages: 0
+                        }
+                    }
                 });
                 return;
             }
 
-            users = await User.find({
+            // Build search query
+            const searchQuery: any = {
                 _id: { $in: accessibleUserIds },
                 role: role
-            }).select('-password').populate('parentId', 'username role');
-        }
+            };
 
-        res.json({
-            success: true,
-            data: { users }
-        });
+            if (search && search.trim()) {
+                searchQuery.username = { $regex: search.trim(), $options: 'i' };
+            }
+
+            // Get total count for pagination
+            const total = await User.countDocuments(searchQuery);
+
+            // Get users with pagination
+            const users = await User.find(searchQuery)
+                .select('-password')
+                .populate('parentId', 'username role')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNum);
+
+            res.json({
+                success: true,
+                data: {
+                    users,
+                    pagination: {
+                        page: pageNum,
+                        limit: limitNum,
+                        total,
+                        totalPages: Math.ceil(total / limitNum)
+                    }
+                }
+            });
+        }
 
     } catch (error) {
         logger.error('Get users by role error:', error);

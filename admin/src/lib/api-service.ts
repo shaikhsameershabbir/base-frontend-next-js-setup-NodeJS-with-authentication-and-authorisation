@@ -35,6 +35,13 @@ export interface UpdateUserRequest {
     isActive?: boolean;
 }
 
+export interface PaginationInfo {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
 export interface ApiResponse<T = any> {
     success: boolean;
     message: string;
@@ -44,6 +51,11 @@ export interface ApiResponse<T = any> {
 export interface LoginResponse {
     user: User;
     tokenExpires: number;
+}
+
+export interface UsersResponse {
+    users: User[];
+    pagination: PaginationInfo;
 }
 
 // Auth API
@@ -81,13 +93,23 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-    getUsers: async (): Promise<ApiResponse<{ users: User[] }>> => {
-        const response = await apiClient.get('/api/users');
+    getUsers: async (page = 1, limit = 10, search = ''): Promise<ApiResponse<UsersResponse>> => {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            ...(search && { search })
+        });
+        const response = await apiClient.get(`/api/users?${params}`);
         return response.data;
     },
 
-    getUsersByRole: async (role: string, userId: string): Promise<ApiResponse<{ users: User[] }>> => {
-        const response = await apiClient.get(`/api/users/${role}/${userId}`);
+    getUsersByRole: async (role: string, userId: string, page = 1, limit = 10, search = ''): Promise<ApiResponse<UsersResponse>> => {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            ...(search && { search })
+        });
+        const response = await apiClient.get(`/api/users/${role}/${userId}?${params}`);
         return response.data;
     },
 

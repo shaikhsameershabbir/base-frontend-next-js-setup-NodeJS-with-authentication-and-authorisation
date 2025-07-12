@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { usersAPI, User as UserType } from "@/lib/api-service"
+import { Pagination } from "@/components/ui/pagination"
+import { usersAPI, User as UserType, PaginationInfo } from "@/lib/api-service"
 import { AddUserModal } from "@/components/modals/AddUserModal"
+import { useDebounce } from "@/hooks/useDebounce"
 import {
     Users,
     Search,
@@ -42,6 +44,18 @@ export default function UsersPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all")
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pagination, setPagination] = useState<PaginationInfo>({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0
+    })
+
+    // Debounce search term
+    const debouncedSearchTerm = useDebounce(searchTerm, 500)
+
     useEffect(() => {
         // Check authentication
         const auth = localStorage.getItem("isAuthenticated")
@@ -49,19 +63,25 @@ export default function UsersPage() {
             router.push("/login")
         } else {
             setIsAuthenticated(true)
+        }
+    }, [router])
+
+    useEffect(() => {
+        if (isAuthenticated) {
             fetchUsers()
         }
-    }, [router, role])
+    }, [isAuthenticated, role, debouncedSearchTerm, currentPage])
 
     const fetchUsers = async () => {
         try {
             setLoading(true)
             setError(null)
 
-            const response = await usersAPI.getUsersByRole(role, userId)
+            const response = await usersAPI.getUsersByRole(role, userId, currentPage, pagination.limit, debouncedSearchTerm)
 
             if (response.success && response.data) {
                 setUsers(response.data.users)
+                setPagination(response.data.pagination)
             } else {
                 setError(response.message || 'Failed to fetch users')
             }
@@ -74,16 +94,25 @@ export default function UsersPage() {
     }
 
     const handleUserAdded = () => {
-        // Refresh the users list when a new user is added
+        // Reset to first page and refresh the users list when a new user is added
+        setCurrentPage(1)
         fetchUsers()
     }
 
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page)
+    }
+
+    const handleSearchChange = (value: string) => {
+        setSearchTerm(value)
+        setCurrentPage(1) // Reset to first page when searching
+    }
+
     const filteredUsers = users.filter(user => {
-        const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
             (filterStatus === "inactive" && !user.isActive)
-        return matchesSearch && matchesStatus
+        return matchesStatus
     })
 
     if (!isAuthenticated) {
@@ -118,7 +147,7 @@ export default function UsersPage() {
                                     <Input
                                         placeholder={`Search ${getRoleDisplayName(role).toLowerCase()}s by username...`}
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
                                         className="pl-10 bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
                                     />
                                 </div>
@@ -162,7 +191,7 @@ export default function UsersPage() {
                             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                                 <Users className="h-4 w-4 text-white" />
                             </div>
-                            {getRoleDisplayName(role)}s ({filteredUsers.length})
+                            {getRoleDisplayName(role)}s ({pagination.total} total)
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -188,91 +217,106 @@ export default function UsersPage() {
                             <div className="flex items-center justify-center py-12">
                                 <div className="text-center">
                                     <Users className="h-12 w-12 text-muted mx-auto mb-4" />
-                                    <p className="text-muted font-medium">No {getRoleDisplayName(role).toLowerCase()}s found</p>
+                                    <p className="text-muted font-medium">
+                                        {searchTerm ? `No ${getRoleDisplayName(role).toLowerCase()}s found matching "${searchTerm}"` : `No ${getRoleDisplayName(role).toLowerCase()}s found`}
+                                    </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className="border-b border-border">
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Username</th>
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Role</th>
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Balance</th>
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Status</th>
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Joined</th>
-                                            <th className="text-left py-4 px-4 font-semibold text-primary">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredUsers.map((user, index) => (
-                                            <tr
-                                                key={user._id}
-                                                className="border-b border-border/50 hover:bg-card/20 dark:hover:bg-card/30 transition-colors"
-                                                style={{ animationDelay: `${index * 50}ms` }}
-                                            >
-                                                <td className="py-4 px-4">
-                                                    <div className="font-medium text-primary">
-                                                        {user.username}
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <Badge className={`text-xs ${getRoleColor(user.role)}`}>
-                                                        <div className="flex items-center gap-1">
-                                                            {getRoleIcon(user.role)}
-                                                            {getRoleDisplayName(user.role)}
-                                                        </div>
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <span className="font-medium text-green-600 dark:text-green-400">
-                                                        ₹{user.balance.toLocaleString()}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <Badge className={`text-xs ${getStatusColor(user.isActive)}`}>
-                                                        <div className="flex items-center gap-1">
-                                                            {getStatusIcon(user.isActive)}
-                                                            {user.isActive ? 'Active' : 'Inactive'}
-                                                        </div>
-                                                    </Badge>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <span className="text-sm text-secondary">
-                                                        {new Date(user.createdAt).toLocaleDateString()}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 px-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
-                                                            onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="hover:bg-destructive/10 hover:text-destructive text-primary"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="border-b border-border">
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Username</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Role</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Balance</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Status</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Joined</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Actions</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            {filteredUsers.map((user, index) => (
+                                                <tr
+                                                    key={user._id}
+                                                    className="border-b border-border/50 hover:bg-card/20 dark:hover:bg-card/30 transition-colors"
+                                                    style={{ animationDelay: `${index * 50}ms` }}
+                                                >
+                                                    <td className="py-4 px-4">
+                                                        <div className="font-medium text-primary">
+                                                            {user.username}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <Badge className={`text-xs ${getRoleColor(user.role)}`}>
+                                                            <div className="flex items-center gap-1">
+                                                                {getRoleIcon(user.role)}
+                                                                {getRoleDisplayName(user.role)}
+                                                            </div>
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <span className="font-medium text-green-600 dark:text-green-400">
+                                                            ₹{user.balance.toLocaleString()}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <Badge className={`text-xs ${getStatusColor(user.isActive)}`}>
+                                                            <div className="flex items-center gap-1">
+                                                                {getStatusIcon(user.isActive)}
+                                                                {user.isActive ? 'Active' : 'Inactive'}
+                                                            </div>
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <span className="text-sm text-secondary">
+                                                            {new Date(user.createdAt).toLocaleDateString()}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                                onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="hover:bg-destructive/10 hover:text-destructive text-primary"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination */}
+                                <div className="mt-6">
+                                    <Pagination
+                                        currentPage={pagination.page}
+                                        totalPages={pagination.totalPages}
+                                        totalItems={pagination.total}
+                                        itemsPerPage={pagination.limit}
+                                        onPageChange={handlePageChange}
+                                    />
+                                </div>
+                            </>
                         )}
                     </CardContent>
                 </Card>
