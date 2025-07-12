@@ -10,6 +10,7 @@ A comprehensive role-based authentication system with hierarchical data access c
 - **Modern UI**: Next.js admin panel with Tailwind CSS and shadcn/ui
 - **RESTful API**: Node.js/Express backend with MongoDB
 - **Type Safety**: Full TypeScript support
+- **User Management Actions**: Activate/deactivate users, cascade delete users and their downline, update user passwords (see below)
 
 ## Role Hierarchy
 
@@ -29,6 +30,13 @@ Superadmin
 - **Admin**: Access to distributors and players under them
 - **Distributor**: Access to players under them
 - **Player**: Access only to their own data
+
+## User Management Features (NEW)
+
+- **Activate/Deactivate Users**: Toggle user status directly from the admin panel. Inactive users cannot log in.
+- **Cascade Delete**: Deleting a user will also delete all their downline users and hierarchy entries.
+- **Password Update**: Update a user's password via a secure modal dialog.
+- **All actions are available in the Actions column of the user management table.**
 
 ## Quick Start
 
@@ -119,9 +127,13 @@ The system includes pre-configured demo users for testing:
 - `PUT /api/auth/profile` - Update user profile
 
 ### User Management
-- `GET /api/auth/users` - Get accessible users
-- `GET /api/auth/users/:userId` - Get specific user
-- `PUT /api/auth/users/:userId` - Update user
+- `GET /api/users` - Get accessible users (supports pagination and search)
+- `GET /api/users/:role/:userId` - Get users by role and parent (supports pagination and search)
+- `GET /api/users/:userId` - Get specific user
+- `PUT /api/users/:userId` - Update user (username, balance, isActive)
+- `DELETE /api/users/:userId` - **Cascade delete** user and all downline
+- `PUT /api/users/:userId/active` - **Toggle active/inactive** status
+- `PUT /api/users/:userId/password` - **Update user password**
 
 ### Health Check
 - `GET /health` - Server health status
@@ -141,6 +153,7 @@ The system includes pre-configured demo users for testing:
 - **Real-time Updates**: Live data synchronization
 - **Error Handling**: User-friendly error messages
 - **Loading States**: Smooth user experience
+- **User Management Table**: Activate/deactivate, cascade delete, and update password for users
 
 ## Development
 
