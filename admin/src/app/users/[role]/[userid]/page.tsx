@@ -26,6 +26,7 @@ import {
     User as UserIcon
 } from "lucide-react"
 import { getChildRole, getRoleColor, getRoleDisplayName, getRoleIcon, getStatusColor, getStatusIcon } from "@/app/helperFunctions/helper"
+import { EditPasswordModal } from '@/components/modals/EditPasswordModal';
 
 interface UserWithStats extends UserType {
     avatar?: string
@@ -55,6 +56,13 @@ export default function UsersPage() {
 
     // Debounce search term
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
+
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editUserId, setEditUserId] = useState<string | null>(null);
+    const [editLoading, setEditLoading] = useState(false);
+    const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+    const [toggleLoadingId, setToggleLoadingId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     useEffect(() => {
         // Check authentication
@@ -108,6 +116,44 @@ export default function UsersPage() {
         setCurrentPage(1) // Reset to first page when searching
     }
 
+    const handleToggleActive = async (userId: string) => {
+        setToggleLoadingId(userId);
+        try {
+            await usersAPI.toggleUserActive(userId);
+            fetchUsers();
+        } finally {
+            setToggleLoadingId(null);
+        }
+    };
+
+    const handleDeleteUser = async (userId: string) => {
+        setDeleteLoadingId(userId);
+        try {
+            await usersAPI.deleteUser(userId);
+            fetchUsers();
+        } finally {
+            setDeleteLoadingId(null);
+            setConfirmDeleteId(null);
+        }
+    };
+
+    const handleEditPassword = (userId: string) => {
+        setEditUserId(userId);
+        setEditModalOpen(true);
+    };
+
+    const handleSubmitPassword = async (password: string) => {
+        if (!editUserId) return;
+        setEditLoading(true);
+        try {
+            await usersAPI.updateUserPassword(editUserId, password);
+            setEditModalOpen(false);
+            setEditUserId(null);
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
     const filteredUsers = users.filter(user => {
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
@@ -121,6 +167,12 @@ export default function UsersPage() {
 
     return (
         <AdminLayout>
+            <EditPasswordModal
+                open={editModalOpen}
+                onClose={() => { setEditModalOpen(false); setEditUserId(null); }}
+                onSubmit={handleSubmitPassword}
+                loading={editLoading}
+            />
             <div className="space-y-8 animate-fade-in">
                 {/* Header */}
                 <div className="space-y-2">
@@ -266,6 +318,22 @@ export default function UsersPage() {
                                                             <div className="flex items-center gap-1">
                                                                 {getStatusIcon(user.isActive)}
                                                                 {user.isActive ? 'Active' : 'Inactive'}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="ml-2 p-1 h-6 w-6"
+                                                                    onClick={() => handleToggleActive(user._id)}
+                                                                    disabled={toggleLoadingId === user._id}
+                                                                    title={user.isActive ? 'Deactivate' : 'Activate'}
+                                                                >
+                                                                    {toggleLoadingId === user._id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin text-muted" />
+                                                                    ) : user.isActive ? (
+                                                                        <XCircle className="h-4 w-4 text-destructive" />
+                                                                    ) : (
+                                                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                                                    )}
+                                                                </Button>
                                                             </div>
                                                         </Badge>
                                                     </td>
@@ -288,6 +356,7 @@ export default function UsersPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                                onClick={() => handleEditPassword(user._id)}
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
@@ -295,9 +364,28 @@ export default function UsersPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="hover:bg-destructive/10 hover:text-destructive text-primary"
+                                                                onClick={() => setConfirmDeleteId(user._id)}
+                                                                disabled={deleteLoadingId === user._id}
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
+                                                                {deleteLoadingId === user._id ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                )}
                                                             </Button>
+                                                            {/* Confirm Delete Dialog */}
+                                                            {confirmDeleteId === user._id && (
+                                                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                                                                    <div className="bg-card rounded-lg p-6 w-full max-w-sm shadow-lg">
+                                                                        <h2 className="text-lg font-bold mb-4">Delete User</h2>
+                                                                        <p className="mb-4">Are you sure you want to delete <span className="font-semibold">{user.username}</span> and all their downline? This action cannot be undone.</p>
+                                                                        <div className="flex gap-2 justify-end">
+                                                                            <Button onClick={() => setConfirmDeleteId(null)} variant="outline" disabled={deleteLoadingId === user._id}>Cancel</Button>
+                                                                            <Button onClick={() => handleDeleteUser(user._id)} variant="destructive" loading={deleteLoadingId === user._id}>Delete</Button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>

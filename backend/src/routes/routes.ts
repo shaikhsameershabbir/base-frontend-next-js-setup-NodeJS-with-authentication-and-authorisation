@@ -5,7 +5,7 @@ import { authenticateToken, requireRole, setAccessibleUsers } from '../middlewar
 import { createUser } from '../controllers/users/register';
 import { getProfile, updateProfile } from '../controllers/users/profile';
 import { getUserById, getUsers, getUsersByRole } from '../controllers/users/getuser';
-import { updateUser } from '../controllers/users/updateUser';
+import { updateUser, deleteUserAndDownline, toggleUserActive, updateUserPassword } from '../controllers/users/updateUser';
 
 
 const router = Router();
@@ -26,6 +26,9 @@ router.get('/users', authenticateToken, setAccessibleUsers, getUsers);
 router.get('/users/:role/:userId', authenticateToken, setAccessibleUsers, getUsersByRole);
 router.get('/users/:userId', authenticateToken, setAccessibleUsers, getUserById);
 router.put('/users/:userId', authenticateToken, setAccessibleUsers, updateUser);
+router.delete('/users/:userId', authenticateToken, setAccessibleUsers, deleteUserAndDownline);
+router.put('/users/:userId/active', authenticateToken, setAccessibleUsers, toggleUserActive);
+router.put('/users/:userId/password', authenticateToken, setAccessibleUsers, updateUserPassword);
 
 // User creation routes (for authenticated users creating other users)
 router.post('/users/create', authenticateToken, createUser); // Generic user creation

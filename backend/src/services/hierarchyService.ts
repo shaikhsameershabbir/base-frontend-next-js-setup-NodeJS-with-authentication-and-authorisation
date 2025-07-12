@@ -210,4 +210,27 @@ export class HierarchyService {
             return false;
         }
     }
+
+    /**
+     * Recursively get all downline user IDs for a user (optionally include self)
+     */
+    static async getAllDownlineUserIds(userId: string, includeSelf = false): Promise<string[]> {
+        const ids: Set<string> = new Set();
+        if (includeSelf) ids.add(userId);
+        // Find direct children
+        const children = await UserHierarchy.find({ parentId: userId });
+        for (const child of children) {
+            ids.add(child.userId.toString());
+            const childDownline = await this.getAllDownlineUserIds(child.userId.toString(), false);
+            childDownline.forEach(id => ids.add(id));
+        }
+        return Array.from(ids);
+    }
+
+    /**
+     * Delete hierarchy entries for a list of user IDs
+     */
+    static async deleteHierarchyEntries(userIds: string[]): Promise<void> {
+        await UserHierarchy.deleteMany({ userId: { $in: userIds } });
+    }
 } 

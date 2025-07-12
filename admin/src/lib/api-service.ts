@@ -143,6 +143,18 @@ export const usersAPI = {
         const response = await apiClient.post('/api/users/create/player', data);
         return response.data;
     },
+    deleteUser: async (userId: string): Promise<ApiResponse> => {
+        const response = await apiClient.delete(`/api/users/${userId}`);
+        return response.data;
+    },
+    toggleUserActive: async (userId: string): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.put(`/api/users/${userId}/active`);
+        return response.data;
+    },
+    updateUserPassword: async (userId: string, password: string): Promise<ApiResponse> => {
+        const response = await apiClient.put(`/api/users/${userId}/password`, { password });
+        return response.data;
+    },
 };
 
 // Health check
