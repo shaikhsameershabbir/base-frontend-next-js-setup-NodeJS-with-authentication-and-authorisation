@@ -1,49 +1,85 @@
-import mongoose from 'mongoose';
-import { User } from '../models/User';
-import { UserHierarchy, IUserHierarchy } from '../models/UserHierarchy';
+import { User, IUser } from '../models/User';
+import { UserHierarchy } from '../models/UserHierarchy';
 import { logger } from '../config/logger';
+
+interface UserWithHierarchy extends IUser {
+    hierarchy: {
+        level: number;
+        downlineCount: number;
+        totalDownlineCount: number;
+    };
+}
 
 export class HierarchyService {
     /**
-     * Create or update hierarchy entry for a user
+     * Get the level for a given role
      */
-    static async createHierarchyEntry(user: any): Promise<IUserHierarchy> {
-        try {
-            const level = this.getLevelByRole(user.role);
-            let path: mongoose.Types.ObjectId[] = [];
-            let parentHierarchy = null;
+    static getRoleLevel(role: string): number {
+        switch (role) {
+            case 'superadmin': return 0;
+            case 'admin': return 1;
+            case 'distributor': return 2;
+            case 'agent': return 3;
+            case 'player': return 4;
+            default: throw new Error(`Invalid role: ${role}`);
+        }
+    }
 
-            if (user.parentId) {
-                parentHierarchy = await UserHierarchy.findOne({ userId: user.parentId });
-                if (parentHierarchy) {
-                    path = [...parentHierarchy.path, user.parentId];
+    /**
+     * Get the child role for a given parent role
+     */
+    static getChildRole(parentRole: string): string {
+        switch (parentRole) {
+            case 'superadmin': return 'admin';
+            case 'admin': return 'distributor';
+            case 'distributor': return 'agent';
+            case 'agent': return 'player';
+            default: throw new Error(`Cannot create child for role: ${parentRole}`);
+        }
+    }
+
+    /**
+     * Check if a role can create another role
+     */
+    static canCreateRole(parentRole: string, childRole: string): boolean {
+        const parentLevel = this.getRoleLevel(parentRole);
+        const childLevel = this.getRoleLevel(childRole);
+        return childLevel > parentLevel;
+    }
+
+    /**
+     * Create hierarchy entry for a new user
+     */
+    static async createHierarchyEntry(
+        userId: string,
+        parentId: string | undefined,
+        role: string
+    ): Promise<void> {
+        try {
+            const level = this.getRoleLevel(role);
+            let path: string[] = [];
+
+            // Handle special case where parentId is "all"
+            if (parentId && parentId !== 'all') {
+                // Get parent's hierarchy to build path
+                const parentHierarchy = await UserHierarchy.findOne({ userId: parentId });
+                if (!parentHierarchy) {
+                    throw new Error('Parent hierarchy not found');
                 }
+                path = [...parentHierarchy.path.map(id => id.toString()), parentId];
             }
 
-            const hierarchyData = {
-                userId: user._id,
-                username: user.username,
-                role: user.role,
-                parentId: user.parentId,
-                parentUsername: parentHierarchy?.username,
-                parentRole: parentHierarchy?.role,
+            const hierarchyEntry = new UserHierarchy({
+                userId,
+                parentId: parentId === 'all' ? undefined : parentId,
                 path,
                 level,
-                isActive: user.isActive
-            };
+                downlineCount: 0,
+                totalDownlineCount: 0
+            });
 
-            const hierarchy = await UserHierarchy.findOneAndUpdate(
-                { userId: user._id },
-                hierarchyData,
-                { upsert: true, new: true }
-            );
-
-            // Update parent's downline counts
-            if (user.parentId) {
-                await this.updateParentDownlineCounts(user.parentId);
-            }
-
-            return hierarchy;
+            await hierarchyEntry.save();
+            logger.info(`Created hierarchy entry for user ${userId} with role ${role}`);
         } catch (error) {
             logger.error('Error creating hierarchy entry:', error);
             throw error;
@@ -51,229 +87,127 @@ export class HierarchyService {
     }
 
     /**
-     * Get user's complete downline (all levels)
+     * Update downline counts for all ancestors
      */
-    static async getDownline(
-        userId: mongoose.Types.ObjectId,
+    static async updateAncestorCounts(userId: string): Promise<void> {
+        try {
+            const hierarchy = await UserHierarchy.findOne({ userId });
+            if (!hierarchy || !hierarchy.parentId) return;
+
+            // Update direct parent's downline count
+            await UserHierarchy.updateOne(
+                { userId: hierarchy.parentId },
+                { $inc: { downlineCount: 1, totalDownlineCount: 1 } }
+            );
+
+            // Update all ancestors' total downline count
+            if (hierarchy.path.length > 0) {
+                await UserHierarchy.updateMany(
+                    { userId: { $in: hierarchy.path } },
+                    { $inc: { totalDownlineCount: 1 } }
+                );
+            }
+
+            logger.info(`Updated ancestor counts for user ${userId}`);
+        } catch (error) {
+            logger.error('Error updating ancestor counts:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get users under a specific user's downline
+     */
+    static async getDownlineUsers(
+        userId: string,
         role?: string,
-        page = 1,
-        limit = 20
-    ) {
+        limit = 50,
+        skip = 0
+    ): Promise<UserWithHierarchy[]> {
         try {
-            const skip = (page - 1) * limit;
-            const downline = await UserHierarchy.findDownline(userId, role, limit, skip);
+            const hierarchy = await UserHierarchy.findOne({ userId });
+            if (!hierarchy) return [];
 
-            const total = await UserHierarchy.countDocuments({
-                path: { $in: [userId] },
-                isActive: true,
-                ...(role && { role })
-            });
-
-            return {
-                users: downline.map((h: IUserHierarchy) => h.userId),
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    pages: Math.ceil(total / limit)
-                }
+            const query: Record<string, unknown> = {
+                path: { $in: [userId] }
             };
-        } catch (error) {
-            logger.error('Error getting downline:', error);
-            throw error;
-        }
-    }
 
-    /**
-     * Get user's direct downline (immediate children only)
-     */
-    static async getDirectDownline(
-        userId: mongoose.Types.ObjectId,
-        role?: string
-    ) {
-        try {
-            const downline = await UserHierarchy.findDirectDownline(userId, role);
-            return downline.map((h: IUserHierarchy) => h.userId);
-        } catch (error) {
-            logger.error('Error getting direct downline:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get downline statistics
-     */
-    static async getDownlineStats(userId: mongoose.Types.ObjectId) {
-        try {
-            const stats = await UserHierarchy.getDownlineStats(userId);
-            return stats;
-        } catch (error) {
-            logger.error('Error getting downline stats:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get user's upline (path to root)
-     */
-    static async getUpline(userId: mongoose.Types.ObjectId) {
-        try {
-            const hierarchy = await UserHierarchy.findOne({ userId });
-            if (!hierarchy || !hierarchy.path.length) {
-                return [];
+            if (role) {
+                query.level = this.getRoleLevel(role);
             }
 
-            const upline = await UserHierarchy.find({
-                userId: { $in: hierarchy.path }
-            }).populate('userId', 'username role balance isActive');
+            const downlineHierarchies = await UserHierarchy.find(query)
+                .sort({ createdAt: -1 })
+                .limit(limit)
+                .skip(skip)
+                .populate<{ userId: IUser }>('userId', 'username balance role isActive createdAt parentId');
 
-            return upline.map(h => h.userId);
-        } catch (error) {
-            logger.error('Error getting upline:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Check if user can access target user (is in downline)
-     */
-    static async canAccessUser(
-        requestingUserId: mongoose.Types.ObjectId,
-        targetUserId: mongoose.Types.ObjectId
-    ): Promise<boolean> {
-        try {
-            const targetHierarchy = await UserHierarchy.findOne({ userId: targetUserId });
-            if (!targetHierarchy) return false;
-
-            return targetHierarchy.path.some(id => id.equals(requestingUserId));
-        } catch (error) {
-            logger.error('Error checking user access:', error);
-            return false;
-        }
-    }
-
-    /**
-     * Update downline counts for a user
-     */
-    static async updateDownlineCounts(userId: mongoose.Types.ObjectId) {
-        try {
-            const hierarchy = await UserHierarchy.findOne({ userId });
-            if (hierarchy) {
-                await hierarchy.updateDownlineCounts();
-            }
-        } catch (error) {
-            logger.error('Error updating downline counts:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Update parent's downline counts recursively
-     */
-    static async updateParentDownlineCounts(userId: mongoose.Types.ObjectId) {
-        try {
-            const hierarchy = await UserHierarchy.findOne({ userId });
-            if (hierarchy) {
-                await hierarchy.updateDownlineCounts();
-
-                // Update parent recursively
-                if (hierarchy.parentId) {
-                    await this.updateParentDownlineCounts(hierarchy.parentId);
-                }
-            }
-        } catch (error) {
-            logger.error('Error updating parent downline counts:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Get hierarchy level by role
-     */
-    private static getLevelByRole(role: string): number {
-        const levels = {
-            superadmin: 0,
-            admin: 1,
-            distributor: 2,
-            agent: 3,
-            player: 4
-        };
-        return levels[role as keyof typeof levels] || 0;
-    }
-
-    /**
-     * Get user details with hierarchy information
-     */
-    static async getUserDetails(userId: mongoose.Types.ObjectId) {
-        try {
-            const hierarchy = await UserHierarchy.findOne({ userId })
-                .populate('userId', 'username balance role isActive createdAt parentId');
-
-            if (!hierarchy) return null;
-
-            const downlineStats = await this.getDownlineStats(userId);
-            const directDownline = await this.getDirectDownline(userId);
-
-            return {
-                user: hierarchy.userId,
+            return downlineHierarchies.map(h => ({
+                ...h.userId.toObject(),
                 hierarchy: {
-                    level: hierarchy.level,
-                    parentId: hierarchy.parentId,
-                    parentUsername: hierarchy.parentUsername,
-                    parentRole: hierarchy.parentRole,
-                    downlineCount: hierarchy.downlineCount
-                },
-                stats: downlineStats,
-                directDownline: directDownline.length
-            };
+                    level: h.level,
+                    downlineCount: h.downlineCount,
+                    totalDownlineCount: h.totalDownlineCount
+                }
+            }));
         } catch (error) {
-            logger.error('Error getting user details:', error);
+            logger.error('Error getting downline users:', error);
             throw error;
         }
     }
 
     /**
-     * Bulk create hierarchy entries (for seeding)
+     * Get direct children of a user
      */
-    static async bulkCreateHierarchy(users: any[]) {
+    static async getDirectChildren(
+        userId: string,
+        role?: string
+    ): Promise<UserWithHierarchy[]> {
         try {
-            const hierarchyEntries: Array<{
-                userId: mongoose.Types.ObjectId;
-                username: string;
-                role: string;
-                parentId?: mongoose.Types.ObjectId;
-                path: mongoose.Types.ObjectId[];
-                level: number;
-                isActive: boolean;
-            }> = [];
+            const query: Record<string, unknown> = {
+                parentId: userId
+            };
 
-            for (const user of users) {
-                const level = this.getLevelByRole(user.role);
-                let path: mongoose.Types.ObjectId[] = [];
-
-                if (user.parentId) {
-                    const parentHierarchy = hierarchyEntries.find(h => h.userId.equals(user.parentId));
-                    if (parentHierarchy) {
-                        path = [...parentHierarchy.path, user.parentId];
-                    }
-                }
-
-                hierarchyEntries.push({
-                    userId: user._id,
-                    username: user.username,
-                    role: user.role,
-                    parentId: user.parentId,
-                    path,
-                    level,
-                    isActive: user.isActive
-                });
+            if (role) {
+                query.level = this.getRoleLevel(role);
             }
 
-            await UserHierarchy.insertMany(hierarchyEntries);
-            logger.info(`Created ${hierarchyEntries.length} hierarchy entries`);
+            const children = await UserHierarchy.find(query)
+                .populate<{ userId: IUser }>('userId', 'username balance role isActive createdAt parentId');
+
+            return children.map(h => ({
+                ...h.userId.toObject(),
+                hierarchy: {
+                    level: h.level,
+                    downlineCount: h.downlineCount,
+                    totalDownlineCount: h.totalDownlineCount
+                }
+            }));
         } catch (error) {
-            logger.error('Error bulk creating hierarchy:', error);
+            logger.error('Error getting direct children:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Validate parent-child relationship
+     */
+    static async validateParentChild(parentId: string | undefined, childRole: string): Promise<boolean> {
+        try {
+            // Handle special cases
+            if (!parentId || parentId === 'all') {
+                // Only superadmin can be created without a parent
+                return childRole === 'superadmin';
+            }
+
+            const parent = await User.findById(parentId);
+            if (!parent) return false;
+
+            const parentRole = parent.role;
+            return this.canCreateRole(parentRole, childRole);
+        } catch (error) {
+            logger.error('Error validating parent-child relationship:', error);
+            return false;
         }
     }
 } 

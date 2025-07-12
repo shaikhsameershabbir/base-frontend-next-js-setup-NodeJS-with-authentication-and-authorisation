@@ -1,10 +1,11 @@
 // Get users based on role hierarchy
 import { Request, Response } from 'express';
-import mongoose from 'mongoose';
 import { User } from '../../models/User';
 import { logger } from '../../config/logger';
 import { AuthenticatedRequest } from '../../middlewares/auth';
 import { checkAccessRole } from '../../utils';
+import { HierarchyService } from '../../services/hierarchyService';
+
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
     try {
         const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
@@ -101,7 +102,7 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
             return;
         }
 
-        let targetUserId: mongoose.Types.ObjectId;
+        let targetUserId: string;
         let users: unknown[] = [];
 
         if (userId === 'all') {
@@ -113,11 +114,11 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
                 });
                 return;
             }
-            targetUserId = new mongoose.Types.ObjectId(currentUserId);
+            targetUserId = currentUserId;
             console.log('Getting all users with role', role, 'under current user:', targetUserId);
         } else {
             // Get users with specified role under the provided userId
-            targetUserId = new mongoose.Types.ObjectId(userId);
+            targetUserId = userId;
 
             // Check if current user has access to the target user
             const accessibleUserIds = (req as Request & { accessibleUserIds?: string[] }).accessibleUserIds;
@@ -132,17 +133,15 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
         }
 
         // Use hierarchy service to get users efficiently
-        const { HierarchyService } = await import('../../services/hierarchyService');
-
         try {
-            const downlineResult = await HierarchyService.getDownline(
+            const downlineUsers = await HierarchyService.getDownlineUsers(
                 targetUserId,
                 role,
-                1, // page
-                1000 // limit - adjust as needed
+                1000, // limit
+                0 // skip
             );
 
-            users = downlineResult.users;
+            users = downlineUsers;
             console.log(`Found ${users.length} users with role ${role}`);
         } catch (hierarchyError) {
             console.error('Hierarchy query failed, falling back to direct query:', hierarchyError);

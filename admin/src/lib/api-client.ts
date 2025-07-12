@@ -66,26 +66,24 @@ apiClient.interceptors.response.use(
                     return apiClient(originalRequest)
                 } else {
                     processQueue(new Error('Token refresh failed'), null)
+                    // Clear all local/session storage and redirect to login
+                    if (typeof window !== 'undefined') {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        alert('Your session has expired. Please log in again.')
+                        window.location.href = "/login"
+                    }
                     throw new Error('Token refresh failed')
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null)
-
-                // Clear authentication state and redirect to login
+                // Clear all local/session storage and redirect to login
                 if (typeof window !== 'undefined') {
-                    localStorage.removeItem('isAuthenticated')
-                    localStorage.removeItem('user')
-
-                    // Show user-friendly message
-                    const message = 'Your session has expired. Please log in again.'
-
-                    // Show user-friendly message
-                    alert(message)
-
-                    // Redirect to login page
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    alert('Your session has expired. Please log in again.')
                     window.location.href = "/login"
                 }
-
                 return Promise.reject(refreshError)
             } finally {
                 isRefreshing = false

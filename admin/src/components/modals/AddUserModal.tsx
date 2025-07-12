@@ -35,7 +35,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
         username: "",
         password: "",
         confirmPassword: "",
-        balance: "1000",
+        balance: "100",
         role: role
     })
 
@@ -97,7 +97,8 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                 username: formData.username.trim(),
                 password: formData.password,
                 balance: parseFloat(formData.balance),
-                role: formData.role
+                role: formData.role as 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player',
+                parentId: parentId // Pass the parentId to the backend
             }
 
             let response
@@ -107,6 +108,9 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                     break
                 case 'distributor':
                     response = await usersAPI.registerDistributor(userData)
+                    break
+                case 'agent':
+                    response = await usersAPI.registerAgent(userData)
                     break
                 case 'player':
                     response = await usersAPI.registerPlayer(userData)

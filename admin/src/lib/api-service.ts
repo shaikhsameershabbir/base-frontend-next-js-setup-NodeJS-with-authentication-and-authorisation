@@ -4,7 +4,7 @@ export interface User {
     _id: string;
     username: string;
     balance: number;
-    role: 'superadmin' | 'admin' | 'distributor' | 'player';
+    role: 'superadmin' | 'admin' | 'distributor'|'agent' | 'player';
     parentId?: string;
     isActive: boolean;
     createdAt: string;
@@ -20,7 +20,7 @@ export interface RegisterRequest {
     username: string;
     password: string;
     balance?: number;
-    role?: 'superadmin' | 'admin' | 'distributor' | 'player';
+    role?: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: string;
 }
 
@@ -98,6 +98,23 @@ export const usersAPI = {
 
     updateUser: async (userId: string, data: UpdateUserRequest): Promise<ApiResponse<{ user: User }>> => {
         const response = await apiClient.put(`/api/users/${userId}`, data);
+        return response.data;
+    },
+
+    registerAdmin: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/register/admin', data);
+        return response.data;
+    },
+    registerDistributor: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/register/distributor', data);
+        return response.data;
+    },
+    registerAgent: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/register/agent', data);
+        return response.data;
+    },
+    registerPlayer: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
+        const response = await apiClient.post('/api/register/player', data);
         return response.data;
     },
 };

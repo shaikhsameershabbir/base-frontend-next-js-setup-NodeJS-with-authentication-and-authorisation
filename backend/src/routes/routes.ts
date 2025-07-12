@@ -29,7 +29,8 @@ router.put('/users/:userId', authenticateToken, setAccessibleUsers, updateUser);
 // Role-specific routes
 router.post('/register/admin', authenticateToken, requireRole(['superadmin']), register);
 router.post('/register/distributor', authenticateToken, requireRole(['admin']), register);
-router.post('/register/player', authenticateToken, requireRole(['distributor']), register);
+router.post('/register/agent', authenticateToken, requireRole(['distributor']), register);
+router.post('/register/player', authenticateToken, requireRole(['agent']), register);
 
 
 

@@ -137,10 +137,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const refresh = async (req: Request, res: Response): Promise<void> => {
     try {
+        // Log incoming cookies for debugging
+        logger.info('Refresh endpoint called. Incoming cookies:', { cookies: req.headers.cookie });
+
         // Extract refresh token from cookies
         const refreshToken = extractRefreshTokenFromCookie(req.headers.cookie || '');
+        logger.info('Extracted refresh token:', { refreshToken });
 
         if (!refreshToken) {
+            logger.warn('No refresh token found in cookies.');
             res.status(401).json({
                 success: false,
                 message: 'Refresh token required'
@@ -149,11 +154,22 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
         }
 
         // Verify refresh token
-        const decoded = verifyRefreshToken(refreshToken);
+        let decoded;
+        try {
+            decoded = verifyRefreshToken(refreshToken);
+        } catch (verifyError) {
+            logger.error('Refresh token verification failed:', verifyError);
+            res.status(401).json({
+                success: false,
+                message: 'Invalid refresh token (verification failed)'
+            });
+            return;
+        }
 
         // Check if token is blacklisted
         const isBlacklisted = await TokenBlacklist.findOne({ tokenId: decoded.jti });
         if (isBlacklisted) {
+            logger.warn('Refresh token is blacklisted.', { tokenId: decoded.jti });
             res.status(401).json({
                 success: false,
                 message: 'Token has been revoked'
@@ -164,6 +180,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
         // Check if user still exists and is active
         const user = await User.findById(decoded.userId);
         if (!user || !user.isActive) {
+            logger.warn('User not found or inactive during refresh.', { userId: decoded.userId });
             res.status(401).json({
                 success: false,
                 message: 'User not found or inactive'
@@ -186,10 +203,10 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
         });
 
     } catch (error) {
-        logger.error('Token refresh error:', error);
+        logger.error('Token refresh error (outer catch):', error);
         res.status(401).json({
             success: false,
-            message: 'Invalid refresh token'
+            message: 'Invalid refresh token (outer catch)'
         });
     }
 };
