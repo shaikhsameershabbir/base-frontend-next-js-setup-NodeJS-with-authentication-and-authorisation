@@ -6,7 +6,7 @@ import { createUser } from '../controllers/users/register';
 import { getProfile, updateProfile } from '../controllers/users/profile';
 import { getUserById, getUsers, getUsersByRole } from '../controllers/users/getuser';
 import { updateUser, deleteUserAndDownline, toggleUserActive, updateUserPassword } from '../controllers/users/updateUser';
-
+import marketRoutes from './marketRoutes';
 
 const router = Router();
 
@@ -37,6 +37,7 @@ router.post('/users/create/distributor', authenticateToken, requireRole(['supera
 router.post('/users/create/agent', authenticateToken, requireRole(['superadmin', 'admin', 'distributor']), createUser);
 router.post('/users/create/player', authenticateToken, requireRole(['superadmin', 'admin', 'distributor', 'agent']), createUser);
 
-
+// Market routes
+router.use(marketRoutes);
 
 export default router; 
