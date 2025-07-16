@@ -11,8 +11,8 @@ interface AuthenticatedRequest extends Request {
 
 export const getMarkets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { search = '', page = 1, limit = 10, status } = req.query as any;
-        const query: any = {};
+        const { search = '', page = 1, limit = 10, status } = req.query as { search?: string; page?: string | number; limit?: string | number; status?: string };
+        const query: Record<string, unknown> = {};
         if (search) query.marketName = { $regex: search, $options: 'i' };
         if (status === 'active') query.isActive = true;
         if (status === 'inactive') query.isActive = false;
@@ -36,7 +36,7 @@ export const getMarkets = async (req: AuthenticatedRequest, res: Response): Prom
             }
         });
         return;
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
         return;
     }
@@ -55,9 +55,7 @@ export const createMarket = async (req: AuthenticatedRequest, res: Response): Pr
         await market.save();
         res.status(201).json({ success: true, data: { market } });
         return;
-    } catch (error) {
-        console.log(error);
-        
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
         return;
     }
@@ -78,7 +76,7 @@ export const updateMarket = async (req: AuthenticatedRequest, res: Response): Pr
         await market.save();
         res.json({ success: true, data: { market } });
         return;
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
         return;
     }
@@ -90,7 +88,7 @@ export const deleteMarket = async (req: AuthenticatedRequest, res: Response): Pr
         await Market.findByIdAndDelete(marketId);
         res.json({ success: true, message: 'Market deleted' });
         return;
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
         return;
     }
@@ -108,7 +106,7 @@ export const toggleMarketActive = async (req: AuthenticatedRequest, res: Respons
         await market.save();
         res.json({ success: true, data: { market } });
         return;
-    } catch (error) {
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
         return;
     }
