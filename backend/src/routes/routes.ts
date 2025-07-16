@@ -6,6 +6,12 @@ import { createUser } from '../controllers/users/register';
 import { getProfile, updateProfile } from '../controllers/users/profile';
 import { getUserById, getUsers, getUsersByRole } from '../controllers/users/getuser';
 import { updateUser, deleteUserAndDownline, toggleUserActive, updateUserPassword } from '../controllers/users/updateUser';
+import {
+    getAvailableMarketsForAssignment,
+    assignMarketsToUser,
+    getAssignedMarkets,
+    removeMarketAssignments
+} from '../controllers/markets/marketAssignmentController';
 import marketRoutes from './marketRoutes';
 
 const router = Router();
@@ -20,6 +26,12 @@ router.post('/auth/register', register); // Public registration for new users
 router.get('/profile', authenticateToken, getProfile);
 router.put('/profile', authenticateToken, updateProfile);
 router.post('/auth/logout-all', authenticateToken, logoutAll);
+
+// Market assignment routes (must come before conflicting user routes)
+router.get('/users/:userId/available-markets', authenticateToken, getAvailableMarketsForAssignment);
+router.post('/users/:userId/assign-markets', authenticateToken, assignMarketsToUser);
+router.get('/users/:userId/assigned-markets', authenticateToken, getAssignedMarkets);
+router.post('/users/:userId/remove-markets', authenticateToken, removeMarketAssignments);
 
 // User management routes (with role-based access)
 router.get('/users', authenticateToken, setAccessibleUsers, getUsers);

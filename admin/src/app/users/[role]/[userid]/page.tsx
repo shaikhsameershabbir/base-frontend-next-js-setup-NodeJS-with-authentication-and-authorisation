@@ -23,10 +23,12 @@ import {
     CheckCircle,
     XCircle,
     Loader2,
-    User as UserIcon
+    User as UserIcon,
+    Building2
 } from "lucide-react"
 import { getChildRole, getRoleColor, getRoleDisplayName, getRoleIcon, getStatusColor, getStatusIcon } from "@/app/helperFunctions/helper"
 import { EditPasswordModal } from '@/components/modals/EditPasswordModal';
+import { AssignMarketModal } from '@/components/modals/AssignMarketModal';
 
 interface UserWithStats extends UserType {
     avatar?: string
@@ -63,6 +65,8 @@ export default function UsersPage() {
     const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
     const [toggleLoadingId, setToggleLoadingId] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [assignMarketModalOpen, setAssignMarketModalOpen] = useState(false);
+    const [selectedUserForAssignment, setSelectedUserForAssignment] = useState<{ id: string; name: string; role: string } | null>(null);
 
     useEffect(() => {
         // Check authentication
@@ -154,6 +158,20 @@ export default function UsersPage() {
         }
     };
 
+    const handleAssignMarket = (user: UserWithStats) => {
+        setSelectedUserForAssignment({
+            id: user._id,
+            name: user.username,
+            role: user.role
+        });
+        setAssignMarketModalOpen(true);
+    };
+
+    const handleMarketAssignmentSuccess = () => {
+        // Optionally refresh the users list or show a success message
+        fetchUsers();
+    };
+
     const filteredUsers = users.filter(user => {
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
@@ -172,6 +190,14 @@ export default function UsersPage() {
                 onClose={() => { setEditModalOpen(false); setEditUserId(null); }}
                 onSubmit={handleSubmitPassword}
                 loading={editLoading}
+            />
+            <AssignMarketModal
+                open={assignMarketModalOpen}
+                onClose={() => { setAssignMarketModalOpen(false); setSelectedUserForAssignment(null); }}
+                userId={selectedUserForAssignment?.id || ''}
+                userName={selectedUserForAssignment?.name || ''}
+                userRole={selectedUserForAssignment?.role || ''}
+                onSuccess={handleMarketAssignmentSuccess}
             />
             <div className="space-y-8 animate-fade-in">
                 {/* Header */}
@@ -359,6 +385,15 @@ export default function UsersPage() {
                                                                 onClick={() => handleEditPassword(user._id)}
                                                             >
                                                                 <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="hover:bg-blue-500/10 hover:text-blue-500 text-primary"
+                                                                onClick={() => handleAssignMarket(user)}
+                                                                title="Assign Markets"
+                                                            >
+                                                                <Building2 className="h-4 w-4" />
                                                             </Button>
                                                             <Button
                                                                 variant="ghost"

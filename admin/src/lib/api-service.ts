@@ -155,6 +155,23 @@ export const usersAPI = {
         const response = await apiClient.put(`/api/users/${userId}/password`, { password });
         return response.data;
     },
+    // Market assignment APIs
+    getAvailableMarkets: async (userId: string): Promise<ApiResponse<{ markets: any[] }>> => {
+        const response = await apiClient.get(`/api/users/${userId}/available-markets`);
+        return response.data;
+    },
+    assignMarkets: async (userId: string, marketIds: string[]): Promise<ApiResponse> => {
+        const response = await apiClient.post(`/api/users/${userId}/assign-markets`, { marketIds });
+        return response.data;
+    },
+    getAssignedMarkets: async (userId: string): Promise<ApiResponse<{ assignments: any[] }>> => {
+        const response = await apiClient.get(`/api/users/${userId}/assigned-markets`);
+        return response.data;
+    },
+    removeMarketAssignments: async (userId: string, marketIds: string[]): Promise<ApiResponse> => {
+        const response = await apiClient.post(`/api/users/${userId}/remove-markets`, { marketIds });
+        return response.data;
+    },
 };
 
 // Health check
