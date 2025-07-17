@@ -179,76 +179,16 @@ export default function PointTransferPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-4xl font-bold tracking-tight gradient-text text-primary">Point Transfer</h1>
+                        <h1 className="text-4xl font-bold tracking-tight dark:text-white text-black">Point Transfer</h1>
                         <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
                             <Wallet className="h-4 w-4 text-white" />
                         </div>
                     </div>
-                    <p className="text-lg font-medium text-secondary">
-                        Manual point transfer system for players
-                    </p>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                    <Send className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-secondary">Total Transfers</p>
-                                    <p className="text-2xl font-bold text-blue-600">1,247</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+         
 
-                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "100ms" }}>
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                                    <CheckCircle className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-secondary">Completed</p>
-                                    <p className="text-2xl font-bold text-green-600">1,156</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "200ms" }}>
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 flex items-center justify-center">
-                                    <Clock className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-secondary">Pending</p>
-                                    <p className="text-2xl font-bold text-yellow-600">8</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border" style={{ animationDelay: "300ms" }}>
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-                                    <DollarSign className="h-6 w-6 text-white" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-secondary">Today's Volume</p>
-                                    <p className="text-2xl font-bold text-purple-600">₹2.4L</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                <div className="grid gap-8 md:grid-cols-2">
+                <div className="grid gap-8 md:grid-cols-1">
                     {/* New Transfer */}
                     <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardHeader className="pb-6">
@@ -315,47 +255,7 @@ export default function PointTransferPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Quick Actions */}
-                    <Card className="glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
-                        <CardHeader className="pb-6">
-                            <CardTitle className="flex items-center gap-3 text-xl font-bold">
-                                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                    <TrendingUp className="h-4 w-4 text-white" />
-                                </div>
-                                Quick Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-3">
-                                <Button variant="outline" className="w-full border-green-500/20 hover:bg-green-500/10">
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Approve Pending
-                                </Button>
-                                <Button variant="outline" className="w-full border-blue-500/20 hover:bg-blue-500/10">
-                                    <History className="h-4 w-4 mr-2" />
-                                    View History
-                                </Button>
-                                <Button variant="outline" className="w-full border-purple-500/20 hover:bg-purple-500/10">
-                                    <DollarSign className="h-4 w-4 mr-2" />
-                                    Bulk Transfer
-                                </Button>
-                                <Button variant="outline" className="w-full border-orange-500/20 hover:bg-orange-500/10">
-                                    <AlertCircle className="h-4 w-4 mr-2" />
-                                    Failed Transfers
-                                </Button>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-blue-600/10 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-500/20">
-                                <h4 className="font-semibold text-blue-600 mb-2 text-primary">Transfer Guidelines</h4>
-                                <ul className="text-sm text-secondary space-y-1">
-                                    <li>• Verify user identity before transfer</li>
-                                    <li>• Check user balance for debit transfers</li>
-                                    <li>• Add clear reason for audit trail</li>
-                                    <li>• Review pending transfers regularly</li>
-                                </ul>
-                            </div>
-                        </CardContent>
-                    </Card>
+        
                 </div>
 
                 {/* Filters and Search */}
@@ -435,7 +335,6 @@ export default function PointTransferPage() {
                                                 <ArrowRight className="h-3 w-3 text-muted-foreground" />
                                                 <span className="font-semibold text-sm text-primary">{transfer.toUser}</span>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">{transfer.reason}</p>
                                             {transfer.adminNote && (
                                                 <p className="text-xs text-blue-600 mt-1 text-link">{transfer.adminNote}</p>
                                             )}

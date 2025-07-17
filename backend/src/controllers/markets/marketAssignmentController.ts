@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import { User } from '../../models/User';
 import { Market, IMarket } from '../../models/Market';
 import { UserMarketAssignment } from '../../models/UserMarketAssignment';
@@ -93,9 +94,7 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         const assignedMarkets = existingAssignments.map(assignment => {
             const market = assignment.marketId as unknown as IMarket;
             return {
-                _id: typeof market._id === 'object' && market._id !== null && 'toString' in market._id
-                    ? (market._id as any).toString()
-                    : String(market._id),
+                _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
                 marketName: market.marketName,
                 openTime: market.openTime.toISOString(),
                 closeTime: market.closeTime.toISOString(),
@@ -110,9 +109,7 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
             !assignedMarketIds.includes(String(market._id))
         ).map(market => {
             return {
-                _id: typeof market._id === 'object' && market._id !== null && 'toString' in market._id
-                    ? (market._id as any).toString()
-                    : String(market._id),
+                _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
                 marketName: market.marketName,
                 openTime: market.openTime.toISOString(),
                 closeTime: market.closeTime.toISOString(),

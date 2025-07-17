@@ -184,7 +184,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-3">
                     <Card className="glass-card " style={{ animationDelay: "100ms" }}>
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
@@ -219,9 +219,9 @@ export default function DashboardPage() {
                         <CardHeader className="pb-4">
                             <CardTitle className="flex items-center gap-3 text-lg font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
-                                    <Wallet className="h-4 w-4 text-white" />
+                                    <Wallet className="h-4 w-4 dark:text-white text-black" />
                                 </div>
-                                Point Transfer
+                                Point Transfers
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
