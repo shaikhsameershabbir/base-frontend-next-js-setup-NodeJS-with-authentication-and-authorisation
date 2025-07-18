@@ -15,6 +15,7 @@ import {
 import { logger } from '../../config/logger';
 import rateLimit from 'express-rate-limit';
 import type { AuthenticatedRequest } from '../../middlewares/auth';
+import { ActivityService } from '../../services/activityService';
 
 // Rate limiting for login attempts
 const loginLimiter = rateLimit({
@@ -30,10 +31,7 @@ const loginLimiter = rateLimit({
 
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
-
-
-        const { username, password } = req.body;
-
+        const { username, password, login } = req.body;
         // Input validation
         if (!username || !password) {
             res.status(400).json({
@@ -92,7 +90,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         }
 
         // Generate token pair
-        const tokenPair = generateTokenPair(user);
+        const tokenPair = generateTokenPair(user, login || 'web');
 
         // Set HTTP-only cookies
         res.cookie('authToken', tokenPair.accessToken, getAccessTokenCookieOptions());
@@ -107,6 +105,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             parentId: user.parentId,
             isActive: user.isActive,
             createdAt: user.createdAt
+
         };
 
         // Log successful login
@@ -116,6 +115,27 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             ip: req.ip,
             userAgent: req.get('User-Agent')
         });
+
+        // Get real IP address
+        const realIp = req.headers['x-forwarded-for'] ||
+            req.headers['x-real-ip'] ||
+            req.connection.remoteAddress ||
+            req.socket.remoteAddress ||
+            req.ip ||
+            'unknown';
+
+        // Log activity
+        try {
+            await ActivityService.logLogin(
+                String(user._id),
+                Array.isArray(realIp) ? realIp[0] : String(realIp),
+                req.get('User-Agent'),
+                login // Pass the login parameter
+            );
+        } catch (activityError) {
+            logger.error('Failed to log login activity:', activityError);
+            // Don't fail the login if activity logging fails
+        }
 
         res.json({
             success: true,
@@ -243,6 +263,27 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
             } catch (error) {
                 logger.error('Logout error:', error);
                 // Token might be expired, continue with logout
+            }
+        }
+
+        // Log logout activity
+        if (req.user) {
+            // Get real IP address
+            const realIp = req.headers['x-forwarded-for'] ||
+                req.headers['x-real-ip'] ||
+                req.connection.remoteAddress ||
+                req.socket.remoteAddress ||
+                req.ip ||
+                'unknown';
+
+            try {
+                await ActivityService.logLogout(
+                    req.user.userId,
+                    Array.isArray(realIp) ? realIp[0] : String(realIp)
+                );
+            } catch (activityError) {
+                logger.error('Failed to log logout activity:', activityError);
+                // Don't fail the logout if activity logging fails
             }
         }
 

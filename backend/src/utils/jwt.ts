@@ -20,6 +20,7 @@ export interface TokenPair {
     refreshToken: string;
     accessTokenExpires: number;
     refreshTokenExpires: number;
+    device: string;
 }
 
 // Generate a unique token ID for revocation tracking
@@ -27,7 +28,7 @@ const generateTokenId = (): string => {
     return crypto.randomBytes(32).toString('hex');
 };
 
-export const generateTokenPair = (user: IUser): TokenPair => {
+export const generateTokenPair = (user: IUser, device: string = 'unknown'): TokenPair => {
     const tokenId = generateTokenId();
     const now = Math.floor(Date.now() / 1000);
 
@@ -36,6 +37,7 @@ export const generateTokenPair = (user: IUser): TokenPair => {
         username: user.username,
         balance: user.balance,
         role: user.role,
+        device: device,
         parentId: user.parentId ? String(user.parentId) : undefined,
         type: 'access',
         jti: tokenId,
@@ -48,6 +50,7 @@ export const generateTokenPair = (user: IUser): TokenPair => {
         username: user.username,
         balance: user.balance,
         role: user.role,
+        device: device,
         parentId: user.parentId ? String(user.parentId) : undefined,
         type: 'refresh',
         jti: tokenId,
@@ -67,11 +70,12 @@ export const generateTokenPair = (user: IUser): TokenPair => {
         accessToken,
         refreshToken,
         accessTokenExpires: accessTokenPayload.exp!,
-        refreshTokenExpires: refreshTokenPayload.exp!
+        refreshTokenExpires: refreshTokenPayload.exp!,
+        device
     };
 };
 
-export const generateAccessToken = (user: IUser): string => {
+export const generateAccessToken = (user: IUser, device: string = 'unknown'): string => {
     const tokenId = generateTokenId();
     const now = Math.floor(Date.now() / 1000);
 
@@ -80,6 +84,7 @@ export const generateAccessToken = (user: IUser): string => {
         username: user.username,
         balance: user.balance,
         role: user.role,
+        device: device,
         parentId: user.parentId ? String(user.parentId) : undefined,
         type: 'access',
         jti: tokenId,

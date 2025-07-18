@@ -14,6 +14,7 @@ export interface User {
 export interface LoginRequest {
     username: string;
     password: string;
+    login: string;
 }
 
 export interface RegisterRequest {

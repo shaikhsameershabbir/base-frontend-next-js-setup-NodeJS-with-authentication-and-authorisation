@@ -19,6 +19,7 @@ import {
     getTransferStats
 } from '../controllers/transfers/transferController';
 import marketRoutes from './marketRoutes';
+import activityRoutes from './activityRoutes';
 
 const router = Router();
 
@@ -57,6 +58,9 @@ router.post('/users/create/player', authenticateToken, requireRole(['superadmin'
 
 // Market routes
 router.use(marketRoutes);
+
+// Activity routes
+router.use('/activities', activityRoutes);
 
 // Balance transfer routes
 router.get('/transfers/children', authenticateToken, getChildUsers);

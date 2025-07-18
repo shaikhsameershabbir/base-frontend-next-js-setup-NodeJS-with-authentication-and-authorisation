@@ -14,7 +14,7 @@ export default function SplashScreenWrapper({
     <>
       {showSplash ? (
         <SplashScreen
-          duration={4000} // 5 seconds, you can adjust this value
+          duration={1000} // 1 second, you can adjust this value
           onComplete={() => setShowSplash(false)}
         />
       ) : (
