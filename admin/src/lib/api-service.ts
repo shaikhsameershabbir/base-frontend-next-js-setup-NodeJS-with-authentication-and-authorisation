@@ -61,32 +61,32 @@ export interface UsersResponse {
 // Auth API
 export const authAPI = {
     login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-        const response = await apiClient.post('/api/auth/login', credentials);
+        const response = await apiClient.post('/auth/login', credentials);
         return response.data;
     },
 
     refresh: async (): Promise<ApiResponse<{ tokenExpires: number }>> => {
-        const response = await apiClient.post('/api/auth/refresh');
+        const response = await apiClient.post('/auth/refresh');
         return response.data;
     },
 
     logout: async (): Promise<ApiResponse> => {
-        const response = await apiClient.post('/api/auth/logout');
+        const response = await apiClient.post('/auth/logout');
         return response.data;
     },
 
     logoutAll: async (): Promise<ApiResponse> => {
-        const response = await apiClient.post('/api/auth/logout-all');
+        const response = await apiClient.post('/auth/logout-all');
         return response.data;
     },
 
     getProfile: async (): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.get('/api/profile');
+        const response = await apiClient.get('/profile');
         return response.data;
     },
 
     updateProfile: async (data: UpdateProfileRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.put('/api/profile', data);
+        const response = await apiClient.put('/profile', data);
         return response.data;
     },
 };
@@ -99,7 +99,7 @@ export const usersAPI = {
             limit: limit.toString(),
             ...(search && { search })
         });
-        const response = await apiClient.get(`/api/users?${params}`);
+        const response = await apiClient.get(`/users?${params}`);
         return response.data;
     },
 
@@ -109,67 +109,67 @@ export const usersAPI = {
             limit: limit.toString(),
             ...(search && { search })
         });
-        const response = await apiClient.get(`/api/users/${role}/${userId}?${params}`);
+        const response = await apiClient.get(`/users/${role}/${userId}?${params}`);
         return response.data;
     },
 
     getUserById: async (userId: string): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.get(`/api/users/${userId}`);
+        const response = await apiClient.get(`/users/${userId}`);
         return response.data;
     },
 
     updateUser: async (userId: string, data: UpdateUserRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.put(`/api/users/${userId}`, data);
+        const response = await apiClient.put(`/users/${userId}`, data);
         return response.data;
     },
 
     createUser: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/users/create', data);
+        const response = await apiClient.post('/users/create', data);
         return response.data;
     },
     createAdmin: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/users/create/admin', data);
+        const response = await apiClient.post('/users/create/admin', data);
         return response.data;
     },
     createDistributor: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/users/create/distributor', data);
+        const response = await apiClient.post('/users/create/distributor', data);
         return response.data;
     },
     createAgent: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/users/create/agent', data);
+        const response = await apiClient.post('/users/create/agent', data);
         return response.data;
     },
     createPlayer: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/api/users/create/player', data);
+        const response = await apiClient.post('/users/create/player', data);
         return response.data;
     },
     deleteUser: async (userId: string): Promise<ApiResponse> => {
-        const response = await apiClient.delete(`/api/users/${userId}`);
+        const response = await apiClient.delete(`/users/${userId}`);
         return response.data;
     },
     toggleUserActive: async (userId: string): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.put(`/api/users/${userId}/active`);
+        const response = await apiClient.put(`/users/${userId}/active`);
         return response.data;
     },
     updateUserPassword: async (userId: string, password: string): Promise<ApiResponse> => {
-        const response = await apiClient.put(`/api/users/${userId}/password`, { password });
+        const response = await apiClient.put(`/users/${userId}/password`, { password });
         return response.data;
     },
     // Market assignment APIs
     getAvailableMarkets: async (userId: string): Promise<ApiResponse<{ markets: any[] }>> => {
-        const response = await apiClient.get(`/api/users/${userId}/available-markets`);
+        const response = await apiClient.get(`/users/${userId}/available-markets`);
         return response.data;
     },
     assignMarkets: async (userId: string, marketIds: string[]): Promise<ApiResponse> => {
-        const response = await apiClient.post(`/api/users/${userId}/assign-markets`, { marketIds });
+        const response = await apiClient.post(`/users/${userId}/assign-markets`, { marketIds });
         return response.data;
     },
     getAssignedMarkets: async (userId: string): Promise<ApiResponse<{ assignments: any[] }>> => {
-        const response = await apiClient.get(`/api/users/${userId}/assigned-markets`);
+        const response = await apiClient.get(`/users/${userId}/assigned-markets`);
         return response.data;
     },
     removeMarketAssignments: async (userId: string, marketIds: string[]): Promise<ApiResponse> => {
-        const response = await apiClient.post(`/api/users/${userId}/remove-markets`, { marketIds });
+        const response = await apiClient.post(`/users/${userId}/remove-markets`, { marketIds });
         return response.data;
     },
 };

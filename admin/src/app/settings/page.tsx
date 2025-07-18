@@ -62,9 +62,9 @@ export default function SettingsPage() {
                 {/* Header */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-4xl font-bold tracking-tight gradient-text text-primary">Settings</h1>
+                        <h1 className="text-4xl font-bold tracking-tight text-primary dark:text-white">Settings</h1>
                         <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
-                            <Settings className="h-4 w-4 text-inverse" />
+                            <Settings className="h-4 w-4 text-inverse dark:text-white text-white" />
                         </div>
                     </div>
                     <p className="text-lg font-medium text-secondary dark:text-white">

@@ -24,23 +24,23 @@ export const marketAPI = {
             ...(search && { search }),
             ...(status && { status }),
         });
-        const response = await apiClient.get(`/api/markets?${params}`);
+        const response = await apiClient.get(`/markets?${params}`);
         return response.data;
     },
     createMarket: async (data: Partial<Market>) => {
-        const response = await apiClient.post('/api/markets', data);
+        const response = await apiClient.post('/markets', data);
         return response.data;
     },
     updateMarket: async (marketId: string, data: Partial<Market>) => {
-        const response = await apiClient.put(`/api/markets/${marketId}`, data);
+        const response = await apiClient.put(`/markets/${marketId}`, data);
         return response.data;
     },
     deleteMarket: async (marketId: string) => {
-        const response = await apiClient.delete(`/api/markets/${marketId}`);
+        const response = await apiClient.delete(`/markets/${marketId}`);
         return response.data;
     },
     toggleMarketActive: async (marketId: string) => {
-        const response = await apiClient.put(`/api/markets/${marketId}/active`);
+        const response = await apiClient.put(`/markets/${marketId}/active`);
         return response.data;
     },
 }; 

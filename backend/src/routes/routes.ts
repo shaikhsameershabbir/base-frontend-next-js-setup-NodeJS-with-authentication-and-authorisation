@@ -12,6 +12,12 @@ import {
     getAssignedMarkets,
     removeMarketAssignments
 } from '../controllers/markets/marketAssignmentController';
+import {
+    getChildUsers,
+    processTransfer,
+    getTransferHistory,
+    getTransferStats
+} from '../controllers/transfers/transferController';
 import marketRoutes from './marketRoutes';
 
 const router = Router();
@@ -51,5 +57,11 @@ router.post('/users/create/player', authenticateToken, requireRole(['superadmin'
 
 // Market routes
 router.use(marketRoutes);
+
+// Balance transfer routes
+router.get('/transfers/children', authenticateToken, getChildUsers);
+router.post('/transfers/process', authenticateToken, processTransfer);
+router.get('/transfers/history', authenticateToken, getTransferHistory);
+router.get('/transfers/stats', authenticateToken, getTransferStats);
 
 export default router; 

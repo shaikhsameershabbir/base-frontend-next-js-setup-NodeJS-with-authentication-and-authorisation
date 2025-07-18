@@ -25,6 +25,18 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false,
 }));
 
+// CORS configuration - must come before rate limiting
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie']
+}));
+
+// Handle preflight requests explicitly
+app.options('*', cors());
+
 // Global rate limiting
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -38,17 +50,6 @@ const globalLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
-
-// CORS configuration for cookie support
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true, // Allow credentials (cookies)
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['Set-Cookie'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-}));
 
 // Body parsing middleware with size limits
 app.use(express.json({ limit: '10mb' }));

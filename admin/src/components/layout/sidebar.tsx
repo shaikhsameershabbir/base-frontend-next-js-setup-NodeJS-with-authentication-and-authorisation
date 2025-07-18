@@ -161,7 +161,7 @@ export function Sidebar({ role }: SidebarProps) {
                         <Target className="h-5 w-5 text-inverse" />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-lg gradient-text text-primary">Matka Admin</span>
+                        <span className="font-bold text-lg  dark:text-white text-black">Matka Admin</span>
                         <span className="text-xs text-secondary dark:text-white">Skill Game Management</span>
                     </div>
                 </div>
