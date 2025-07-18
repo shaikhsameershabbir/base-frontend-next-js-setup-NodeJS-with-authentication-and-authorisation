@@ -46,13 +46,8 @@ export default function LoginPage() {
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('userRole', user.role);
 
-        // Check if user has already set MPIN
-        const hasMpin = localStorage.getItem('hasMpin');
-        if (hasMpin) {
-          router.replace('/mpin-login');
-        } else {
-          router.replace('/set-mpin');
-        }
+        // Redirect directly to home page (skip MPIN setup)
+        router.replace('/home');
       } else {
         setError(response.message || 'Login failed');
       }

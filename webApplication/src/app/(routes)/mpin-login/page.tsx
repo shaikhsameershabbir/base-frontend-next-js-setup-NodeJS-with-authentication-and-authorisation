@@ -12,7 +12,7 @@ export default function MPINLoginPage() {
     // Check if user has set MPIN
     const hasMpin = localStorage.getItem('hasMpin');
     if (!hasMpin) {
-      router.replace('/set-mpin');
+      router.replace('/home');
     }
   }, [router]);
 
@@ -39,7 +39,7 @@ export default function MPINLoginPage() {
     // Clear stored MPIN and redirect to set new MPIN
     localStorage.removeItem('mpin');
     localStorage.removeItem('hasMpin');
-    router.replace('/set-mpin');
+    router.replace('/home');
   };
 
   return (
