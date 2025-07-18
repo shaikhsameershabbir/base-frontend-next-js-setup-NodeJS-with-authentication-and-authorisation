@@ -32,6 +32,8 @@ const loginLimiter = rateLimit({
 export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { username, password, login } = req.body;
+        console.log('------------------------------------------------->>', username, password, login);
+        
         // Input validation
         if (!username || !password) {
             res.status(400).json({
@@ -40,7 +42,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
             return;
         }
-
+        
         // Sanitize inputs
         const sanitizedUsername = username.trim().toLowerCase();
         const sanitizedPassword = password.trim();
@@ -52,12 +54,13 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
             return;
         }
-
+        
         // Find user by username (case-insensitive)
         const user = await User.findOne({
             username: { $regex: new RegExp(`^${sanitizedUsername}$`, 'i') }
         });
-
+        
+        console.log('------------------------------------------------->> Login success ', user);
 
         if (!user) {
             res.status(401).json({
@@ -72,6 +75,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             res.status(401).json({
                 success: false,
                 message: 'Account is deactivated. Please contact administrator.'
+            });
+            return;
+        }
+        
+        // For web login, only allow players
+        if (login === 'web' && user.role !== 'player') {
+            res.status(403).json({
+                success: false,
+                message: 'Access denied. This login is only for players.'
             });
             return;
         }
@@ -132,6 +144,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
                 req.get('User-Agent'),
                 login // Pass the login parameter
             );
+            // update last login
+            user.lastLogin = new Date();
+            user.loginSource = login || 'unknown';
+            await user.save();
         } catch (activityError) {
             logger.error('Failed to log login activity:', activityError);
             // Don't fail the login if activity logging fails

@@ -5,9 +5,11 @@ export interface IUser extends Document {
     username: string;
     password: string;
     balance: number;
-    role: 'superadmin' | 'admin' | 'distributor' |'agent'| 'player';
+    role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: mongoose.Types.ObjectId; // Reference to parent user (admin for distributor, distributor for player)
     isActive: boolean;
+    loginSource: string;
+    lastLogin: Date;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
@@ -48,6 +50,14 @@ const userSchema = new Schema<IUser>({
     isActive: {
         type: Boolean,
         default: true
+    },
+    loginSource: {
+        type: String,
+        default: 'unknown'
+    },
+    lastLogin: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true

@@ -20,6 +20,7 @@ import {
 } from '../controllers/transfers/transferController';
 import marketRoutes from './marketRoutes';
 import activityRoutes from './activityRoutes';
+import playerRoutes from './playerRoutes';
 
 const router = Router();
 
@@ -61,6 +62,9 @@ router.use(marketRoutes);
 
 // Activity routes
 router.use('/activities', activityRoutes);
+
+// Player routes (for web application)
+router.use('/player', playerRoutes);
 
 // Balance transfer routes
 router.get('/transfers/children', authenticateToken, getChildUsers);

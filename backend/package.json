@@ -9,6 +9,7 @@
     "seed": "ts-node scripts/seedData.ts",
     "seed-users": "ts-node scripts/seedUsers.ts",
     "fix-db": "ts-node scripts/fixDatabase.ts",
+    "test:player-login": "ts-node scripts/testPlayerLogin.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "husky install",
