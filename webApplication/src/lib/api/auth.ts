@@ -10,10 +10,11 @@ export const authAPI = {
         return response.data;
     },
 
-    refresh: async (): Promise<ApiResponse<{ tokenExpires: number }>> => {
-        const response = await apiClient.post('/auth/refresh');
-        return response.data;
-    },
+    // Note: Refresh is handled by HTTP-only cookies, not by API calls
+    // refresh: async (): Promise<ApiResponse<{ tokenExpires: number }>> => {
+    //     const response = await apiClient.post('/auth/refresh');
+    //     return response.data;
+    // },
 
     logout: async (): Promise<ApiResponse> => {
         const response = await apiClient.post('/auth/logout');
@@ -40,6 +41,14 @@ export const usersAPI = {
     },
     getAssignedMarkets: async (userId: string): Promise<ApiResponse<{ assignments: any[] }>> => {
         const response = await apiClient.get(`/users/${userId}/assigned-markets`);
+        return response.data;
+    },
+};
+
+// Markets API
+export const marketsAPI = {
+    getAssignedMarkets: async (): Promise<ApiResponse<{ assignments: any[] }>> => {
+        const response = await apiClient.get('/player/assigned-markets');
         return response.data;
     },
 };

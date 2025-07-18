@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authenticatePlayer, checkPlayerRole } from '../middlewares/playerAuth';
 import { getProfile, updateProfile } from '../controllers/users/profile';
 import { ActivityService } from '../services/activityService';
+import { getAssignedMarketsForAuthenticatedUser } from '../controllers/markets/marketAssignmentController';
 
 // Extend Request interface to include user
 interface PlayerRequest extends Request {
@@ -19,6 +20,9 @@ const router = Router();
 // Player-specific routes (require player authentication)
 router.get('/profile', authenticatePlayer, getProfile);
 router.put('/profile', authenticatePlayer, updateProfile);
+
+// Get player's assigned markets
+router.get('/assigned-markets', authenticatePlayer, getAssignedMarketsForAuthenticatedUser);
 
 // Get player's own activities
 router.get('/activities', authenticatePlayer, async (req: PlayerRequest, res: Response) => {
@@ -47,6 +51,7 @@ router.get('/activities', authenticatePlayer, async (req: PlayerRequest, res: Re
             }
         });
     } catch (error) {
+        console.error('Error fetching player activities:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch player activities'
@@ -65,6 +70,7 @@ router.get('/activities/stats', authenticatePlayer, async (req: PlayerRequest, r
             data: { stats }
         });
     } catch (error) {
+        console.error('Error fetching player activity statistics:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch player activity statistics'

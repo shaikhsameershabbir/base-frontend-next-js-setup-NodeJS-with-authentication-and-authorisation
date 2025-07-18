@@ -71,7 +71,11 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         // Get markets that the current user can assign
         let availableMarkets: IMarket[];
 
-        if (currentUser.role === 'superadmin' || currentUser.role === 'Superadmin' || currentUser.role === 'SUPERADMIN') {
+        if (
+            currentUser.role === 'superadmin' ||
+            currentUser.role === 'Superadmin' ||
+            currentUser.role === 'SUPERADMIN'
+        ) {
             // Superadmin can assign any market
             availableMarkets = await Market.find({ isActive: true });
         } else {
@@ -81,8 +85,13 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
                 isActive: true
             }).populate('marketId');
 
-            availableMarkets = userAssignments.map(assignment => assignment.marketId as unknown as IMarket);
+            // Only include assignments where marketId is not null
+            availableMarkets = userAssignments
+                .filter(assignment => assignment.marketId !== null)
+                .map(assignment => assignment.marketId as unknown as IMarket);
         }
+
+        console.log('=--------------------------------------->>', availableMarkets);
 
         // Get already assigned markets
         const existingAssignments = await UserMarketAssignment.find({
@@ -90,33 +99,46 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
             isActive: true
         }).populate('marketId');
 
-        const assignedMarketIds = existingAssignments.map(assignment => String((assignment.marketId as unknown as IMarket)._id));
-        const assignedMarkets = existingAssignments.map(assignment => {
+        // Only include assignments where marketId is not null
+        const validExistingAssignments = existingAssignments.filter(
+            assignment => assignment.marketId !== null
+        );
+
+        const assignedMarketIds = validExistingAssignments.map(assignment =>
+            String((assignment.marketId as unknown as IMarket)._id)
+        );
+
+        const assignedMarkets = validExistingAssignments.map(assignment => {
             const market = assignment.marketId as unknown as IMarket;
             return {
                 _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
                 marketName: market.marketName,
-                openTime: market.openTime.toISOString(),
-                closeTime: market.closeTime.toISOString(),
+                openTime: market.openTime instanceof Date ? market.openTime.toISOString() : '',
+                closeTime: market.closeTime instanceof Date ? market.closeTime.toISOString() : '',
                 isActive: market.isActive,
                 isAssigned: true,
                 assignmentId: assignment._id
             };
         });
 
-        // Filter unassigned markets
-        const unassignedMarkets = availableMarkets.filter(market =>
-            !assignedMarketIds.includes(String(market._id))
-        ).map(market => {
-            return {
-                _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
-                marketName: market.marketName,
-                openTime: market.openTime.toISOString(),
-                closeTime: market.closeTime.toISOString(),
-                isActive: market.isActive,
-                isAssigned: false
-            };
-        });
+        // Filter unassigned markets, only include those with valid _id
+        const unassignedMarkets = availableMarkets
+            .filter(
+                market =>
+                    market &&
+                    market._id &&
+                    !assignedMarketIds.includes(String(market._id))
+            )
+            .map(market => {
+                return {
+                    _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
+                    marketName: market.marketName,
+                    openTime: market.openTime instanceof Date ? market.openTime.toISOString() : '',
+                    closeTime: market.closeTime instanceof Date ? market.closeTime.toISOString() : '',
+                    isActive: market.isActive,
+                    isAssigned: false
+                };
+            });
 
         // Combine assigned and unassigned markets
         const allMarkets = [...assignedMarkets, ...unassignedMarkets];
@@ -282,7 +304,7 @@ export const assignMarketsToUser = async (req: AuthenticatedRequest, res: Respon
     }
 };
 
-// Get assigned markets for a user
+// Get assigned markets for a user using userId
 export const getAssignedMarkets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { userId } = req.params;
@@ -334,6 +356,45 @@ export const getAssignedMarkets = async (req: AuthenticatedRequest, res: Respons
                     username: targetUser.username,
                     role: targetUser.role
                 }
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error getting assigned markets:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+// Get assigned markets for a authenticated user
+
+export const getAssignedMarketsForAuthenticatedUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const currentUser = req.user;
+        console.log('------------------------------------------------------>>')
+        if (!currentUser) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
+
+
+
+        // Get assigned markets
+        const assignments = await UserMarketAssignment.find({
+            assignedTo: currentUser.userId,
+            isActive: true
+        }).populate('marketId assignedBy');
+        console.log(assignments);
+
+        res.json({
+            success: true,
+            data: {
+                assignments: assignments,
+
             }
         });
 

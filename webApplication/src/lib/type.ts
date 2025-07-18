@@ -27,5 +27,6 @@ export interface ApiResponse<T = any> {
 }
 export interface LoginResponse {
     user: User;
+    token: string;
     tokenExpires: number;
 }

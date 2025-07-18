@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import SplashScreenWrapper from './components/SplashScreenWrapper';
 import Header from './components/Header';
 import { GlobalProvider } from '@/contexts/GlobalContext';
+import { MarketsProvider } from '@/contexts/MarketsContext';
 
 const geistSans = localFont({
   src: [
@@ -75,10 +76,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <GlobalProvider>
-          {/* <SplashScreenWrapper> */}
-          <Header />
-          {children}
-          {/* </SplashScreenWrapper> */}
+          <MarketsProvider>
+            {/* <SplashScreenWrapper> */}
+            <Header />
+            {children}
+            {/* </SplashScreenWrapper> */}
+          </MarketsProvider>
         </GlobalProvider>
       </body>
     </html>

@@ -158,6 +158,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             message: 'Login successful',
             data: {
                 user: userResponse,
+                token: tokenPair.accessToken,
                 tokenExpires: tokenPair.accessTokenExpires
             }
         });
@@ -173,12 +174,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const refresh = async (req: Request, res: Response): Promise<void> => {
     try {
-        // Log incoming cookies for debugging
-        logger.info('Refresh endpoint called. Incoming cookies:', { cookies: req.headers.cookie });
-
         // Extract refresh token from cookies
         const refreshToken = extractRefreshTokenFromCookie(req.headers.cookie || '');
-        logger.info('Extracted refresh token:', { refreshToken });
 
         if (!refreshToken) {
             logger.warn('No refresh token found in cookies.');
@@ -197,7 +194,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
             logger.error('Refresh token verification failed:', verifyError);
             res.status(401).json({
                 success: false,
-                message: 'Invalid refresh token (verification failed)'
+                message: 'Session expired. Please log in again.'
             });
             return;
         }
@@ -208,7 +205,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
             logger.warn('Refresh token is blacklisted.', { tokenId: decoded.jti });
             res.status(401).json({
                 success: false,
-                message: 'Token has been revoked'
+                message: 'Session expired. Please log in again.'
             });
             return;
         }
@@ -219,7 +216,7 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
             logger.warn('User not found or inactive during refresh.', { userId: decoded.userId });
             res.status(401).json({
                 success: false,
-                message: 'User not found or inactive'
+                message: 'Account is deactivated. Please contact administrator.'
             });
             return;
         }

@@ -17,8 +17,16 @@ interface PlayerRequest extends Request {
 
 export const authenticatePlayer = async (req: PlayerRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-        // Extract token from cookie
-        const token = extractTokenFromCookie(req.headers.cookie || '');
+        // Extract token from cookie or Authorization header
+        let token = extractTokenFromCookie(req.headers.cookie || '');
+
+        // Fallback to Authorization header if no cookie token
+        if (!token) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
 
         if (!token) {
             res.status(401).json({

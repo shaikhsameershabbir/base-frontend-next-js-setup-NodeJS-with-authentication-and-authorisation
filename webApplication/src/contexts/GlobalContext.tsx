@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { authAPI } from '@/lib/api/auth';
+import { resetRefreshFailed } from '@/lib/api-client';
 
 // Types
 interface User {
@@ -150,12 +151,23 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             }
         } catch (err: any) {
             console.error('Error fetching user profile:', err);
-            dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to fetch user profile' });
 
-            // Clear authentication if profile fetch fails
-            localStorage.removeItem('isAuthenticated');
-            localStorage.removeItem('user');
-            localStorage.removeItem('userRole');
+            // If it's an authentication error, clear auth state
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                dispatch({ type: 'LOGOUT' });
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('user');
+                localStorage.removeItem('userRole');
+
+                // Clear cookies and token
+                if (typeof window !== 'undefined') {
+                    document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                    localStorage.removeItem('authToken');
+                }
+            } else {
+                dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to fetch user profile' });
+            }
         }
     };
 
@@ -172,7 +184,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             });
 
             if (response.success && response.data) {
-                const { user } = response.data;
+                const { user, token } = response.data;
 
                 // Check if user is a player
                 if (user.role !== 'player') {
@@ -180,10 +192,14 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
                     return false;
                 }
 
-                // Store user data
+                // Store user data and token
                 localStorage.setItem('user', JSON.stringify(user));
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', user.role);
+                localStorage.setItem('authToken', token);
+
+                // Reset refresh failed flag
+                resetRefreshFailed();
 
                 // Set user in context
                 dispatch({ type: 'SET_USER', payload: user });
@@ -224,6 +240,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('user');
             localStorage.removeItem('userRole');
+            localStorage.removeItem('authToken');
         }
     };
 
