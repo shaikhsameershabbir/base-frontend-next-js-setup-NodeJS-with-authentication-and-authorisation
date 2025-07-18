@@ -104,7 +104,7 @@ export default function MarketPage() {
                                 Inactive
                             </Button>
                         </div>
-                        <Button onClick={() => { setEditMarket(null); setModalOpen(true); }} className="rounded-lg px-4 py-2 font-semibold bg-primary text-white hover:bg-primary/90 flex items-center gap-2">
+                        <Button onClick={() => { setEditMarket(null); setModalOpen(true); }} variant="outline" className="  border-border hover:bg-card/20 dark:hover:bg-card/30">
                             <Plus className="h-4 w-4" /> Create Market
                         </Button>
                     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export function MarketModal({ open, onClose, onSubmit, loading, market }) {
+export function MarketModal({ open, onClose, onSubmit, loading, market }: { open: boolean, onClose: () => void, onSubmit: (data: any) => void, loading: boolean, market: any }) {
     const [marketName, setMarketName] = useState('');
     const [openTime, setOpenTime] = useState('');
     const [closeTime, setCloseTime] = useState('');
