@@ -1,6 +1,6 @@
 # Matka SK - Complete Deployment & System Guide
 
-Comprehensive guide for deploying and managing the Matka SK admin panel and backend system with advanced authentication, authorization, and hierarchical user management.
+Comprehensive guide for deploying and managing the Matka SK admin panel and backend system with advanced authentication, authorization, hierarchical user management, market management, and transfer functionality.
 
 ## 📋 Table of Contents
 
@@ -12,6 +12,8 @@ Comprehensive guide for deploying and managing the Matka SK admin panel and back
 - [Database Setup](#database-setup)
 - [Authentication & Authorization](#authentication--authorization)
 - [User Hierarchy System](#user-hierarchy-system)
+- [Market Management](#market-management)
+- [Transfer System](#transfer-system)
 - [Environment Configuration](#environment-configuration)
 - [SSL/HTTPS Setup](#sslhttps-setup)
 - [Monitoring & Logging](#monitoring--logging)
@@ -28,11 +30,16 @@ matka-sk/
 ├── backend/                 # Node.js/Express API
 │   ├── src/
 │   │   ├── controllers/     # API controllers
+│   │   │   ├── auth/        # Authentication controllers
+│   │   │   ├── users/       # User management controllers
+│   │   │   ├── markets/     # Market management controllers
+│   │   │   └── transfers/   # Transfer controllers
 │   │   ├── models/          # MongoDB models
 │   │   ├── middlewares/     # Auth & validation
 │   │   ├── services/        # Business logic
 │   │   ├── routes/          # API routes
-│   │   └── utils/           # Utilities
+│   │   ├── utils/           # Utilities
+│   │   └── config/          # Configuration
 │   ├── scripts/             # Database scripts
 │   └── docs/                # Documentation
 └── admin/                   # Next.js Admin Panel
@@ -80,8 +87,23 @@ matka-sk/
    - Role-specific user creation
    - Balance management
    - User status management (active/inactive)
+   - Cascade delete functionality
+   - Password update capabilities
 
-5. **Security Features**
+5. **Market Management**
+   - Create and manage markets
+   - Set open and close times
+   - Market status management (active/inactive)
+   - Market assignment to users
+   - Market-based access control
+
+6. **Transfer System**
+   - Balance transfers between users
+   - Transfer history tracking
+   - Transfer approval workflow
+   - Transfer limits and validation
+
+7. **Security Features**
    - Password hashing with bcrypt
    - JWT token rotation
    - CORS configuration
@@ -192,15 +214,18 @@ MONGODB_URI=mongodb://localhost:27017/matka-sk-prod
 # JWT Configuration
 JWT_SECRET=your-super-secure-jwt-secret-key-here-minimum-32-characters
 JWT_REFRESH_SECRET=your-super-secure-refresh-secret-key-here-minimum-32-characters
-JWT_EXPIRES_IN=15m
-JWT_REFRESH_EXPIRES_IN=7d
+ACCESS_TOKEN_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
 
 # Server Configuration
-PORT=3001
+PORT=5000
 NODE_ENV=production
 
 # CORS Configuration
 FRONTEND_URL=https://your-domain.com
+
+# Cookie Configuration
+COOKIE_DOMAIN=your-domain.com
 
 # Logging Configuration
 LOG_LEVEL=info
@@ -241,7 +266,7 @@ module.exports = {
     exec_mode: 'cluster',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
+      PORT: 5000
     },
     error_file: './logs/err.log',
     out_file: './logs/out.log',
@@ -250,18 +275,14 @@ module.exports = {
     max_memory_restart: '2G',
     restart_delay: 4000,
     max_restarts: 10,
-    watch: false,
-    ignore_watch: ['node_modules', 'logs']
+    min_uptime: '10s'
   }]
 };
 ```
 
 #### Start Application
 ```bash
-# Create logs directory
-mkdir logs
-
-# Start with PM2
+# Start the application
 pm2 start ecosystem.config.js
 
 # Save PM2 configuration
@@ -301,7 +322,7 @@ server {
     limit_req zone=api burst=20 nodelay;
 
     location / {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:5000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -319,7 +340,7 @@ server {
 
     # Health check endpoint
     location /health {
-        proxy_pass http://localhost:3001/health;
+        proxy_pass http://localhost:5000/health;
         access_log off;
     }
 }
@@ -335,38 +356,60 @@ sudo systemctl restart nginx
 ## 🎨 Frontend Deployment
 
 ### 1. Build Application
-
-#### Navigate to Frontend Directory
 ```bash
 cd /var/www/matka-sk/admin
-```
 
-#### Install Dependencies
-```bash
+# Install dependencies
 npm install
-```
 
-#### Environment Configuration
-```bash
-# Create production environment file
-nano .env.production
+# Set environment variables
+cp .env.example .env.local
+nano .env.local
 ```
 
 **Production Environment Variables:**
 ```env
-NEXT_PUBLIC_API_URL=https://api.your-domain.com/api
+NEXT_PUBLIC_API_URL=https://api.your-domain.com
 NEXT_PUBLIC_APP_NAME=Matka SK Admin
-NEXT_PUBLIC_APP_VERSION=1.0.0
 ```
 
-#### Build Application
+### 2. Build and Deploy
 ```bash
+# Build the application
 npm run build
+
+# Start the application
+npm start
 ```
 
-### 2. Nginx Configuration for Frontend
+### 3. PM2 Configuration for Frontend
+```bash
+# Create ecosystem file for frontend
+nano ecosystem-frontend.config.js
+```
 
-#### Create Frontend Nginx Configuration
+**ecosystem-frontend.config.js:**
+```javascript
+module.exports = {
+  apps: [{
+    name: 'matka-sk-frontend',
+    script: 'npm',
+    args: 'start',
+    cwd: '/var/www/matka-sk/admin',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: './logs/frontend-err.log',
+    out_file: './logs/frontend-out.log',
+    log_file: './logs/frontend-combined.log',
+    time: true,
+    max_memory_restart: '1G'
+  }]
+};
+```
+
+### 4. Nginx Configuration for Frontend
 ```bash
 sudo nano /etc/nginx/sites-available/matka-sk-frontend
 ```
@@ -375,35 +418,16 @@ sudo nano /etc/nginx/sites-available/matka-sk-frontend
 ```nginx
 server {
     listen 80;
-    server_name your-domain.com www.your-domain.com;
-    root /var/www/matka-sk/admin/.next;
-    index index.html;
-
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate auth;
-    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
+    server_name your-domain.com;
 
     # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
 
-    # Cache static assets
-    location /_next/static/ {
-        alias /var/www/matka-sk/admin/.next/static/;
-        expires 365d;
-        access_log off;
-        add_header Cache-Control "public, immutable";
-    }
-
-    # API proxy
-    location /api/ {
-        proxy_pass https://api.your-domain.com;
+    location / {
+        proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -414,315 +438,207 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # Main application
-    location / {
-        try_files $uri $uri/ /_next/static/$uri /_next/static/$uri/ /index.html;
+    # Static assets caching
+    location /_next/static/ {
+        proxy_pass http://localhost:3000;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
     }
 }
 ```
 
-#### Enable Frontend Site
-```bash
-sudo ln -s /etc/nginx/sites-available/matka-sk-frontend /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
 ## 🗄️ Database Setup
 
-### 1. MongoDB Security
-
-#### Create Database User
+### MongoDB Configuration
 ```bash
-# Connect to MongoDB
-mongosh
-
-# Create admin user
-use admin
-db.createUser({
-  user: "admin",
-  pwd: "secure-password",
-  roles: ["userAdminAnyDatabase", "dbAdminAnyDatabase", "readWriteAnyDatabase"]
-})
-
-# Create application user
+# Create database user
+mongo
 use matka-sk-prod
 db.createUser({
-  user: "matka-app",
-  pwd: "app-secure-password",
+  user: "matka_user",
+  pwd: "secure_password_here",
   roles: ["readWrite"]
 })
+exit
 ```
 
-#### Configure MongoDB Authentication
-```bash
-sudo nano /etc/mongod.conf
+### Database Indexes
+```javascript
+// User collection indexes
+db.users.createIndex({ "username": 1 }, { unique: true })
+db.users.createIndex({ "parentId": 1, "role": 1 })
+db.users.createIndex({ "role": 1 })
+
+// Market collection indexes
+db.markets.createIndex({ "marketName": 1 }, { unique: true })
+db.markets.createIndex({ "isActive": 1 })
+
+// Transfer collection indexes
+db.transfers.createIndex({ "fromUserId": 1 })
+db.transfers.createIndex({ "toUserId": 1 })
+db.transfers.createIndex({ "status": 1 })
+db.transfers.createIndex({ "createdAt": -1 })
+
+// UserMarketAssignment indexes
+db.usermarketassignments.createIndex({ "userId": 1 })
+db.usermarketassignments.createIndex({ "marketId": 1 })
+db.usermarketassignments.createIndex({ "userId": 1, "marketId": 1 }, { unique: true })
 ```
-
-**Add to mongod.conf:**
-```yaml
-security:
-  authorization: enabled
-
-# Performance optimization
-storage:
-  wiredTiger:
-    engineConfig:
-      cacheSizeGB: 2
-    collectionConfig:
-      blockCompressor: snappy
-
-# Logging
-systemLog:
-  destination: file
-  logAppend: true
-  path: /var/log/mongodb/mongod.log
-  logRotate: reopen
-```
-
-#### Restart MongoDB
-```bash
-sudo systemctl restart mongod
-```
-
-### 2. Update Application Connection String
-```env
-MONGODB_URI=mongodb://matka-app:app-secure-password@localhost:27017/matka-sk-prod
-```
-
-### 3. Database Indexes
-The application automatically creates the following indexes:
-
-**Users Collection:**
-- `username` (unique)
-- `role`
-- `parentId`
-- `isActive`
-
-**UserHierarchy Collection:**
-- `userId` (unique)
-- `path` (for downline queries)
-- `parentId`
-- `role`
-- `level`
-- `isActive`
 
 ## 🔐 Authentication & Authorization
 
-### Authentication Flow
+### JWT Configuration
+- **Access Token**: 15 minutes expiration
+- **Refresh Token**: 7 days expiration
+- **Token Rotation**: Automatic refresh
+- **Blacklisting**: Revoked tokens tracked
 
-#### 1. Login Process
-```javascript
-// 1. User submits credentials
-POST /api/auth/login
-{
-  "username": "admin1",
-  "password": "admin123"
-}
+### Role Permissions Matrix
 
-// 2. Server validates credentials
-// 3. Server generates JWT tokens
-// 4. Server sets HTTP-only cookies
-// 5. Server returns user data
-{
-  "success": true,
-  "data": {
-    "user": { /* user object */ },
-    "tokenExpires": "2025-07-10T12:00:00.000Z"
-  }
-}
-```
-
-#### 2. Token Refresh
-```javascript
-// Automatic token refresh using refresh token
-POST /api/auth/refresh
-// Returns new access token
-```
-
-#### 3. Logout
-```javascript
-// Blacklists both tokens and clears cookies
-POST /api/auth/logout
-```
-
-### Authorization System
-
-#### Role Hierarchy
-```javascript
-const roleHierarchy = {
-  superadmin: ['admin', 'distributor', 'agent', 'player'],
-  admin: ['distributor', 'agent', 'player'],
-  distributor: ['agent', 'player'],
-  agent: ['player'],
-  player: []
-};
-```
-
-#### Access Control Middleware
-```javascript
-// Role-based access control
-requireRole(['admin', 'superadmin'])
-
-// Hierarchy-based access control
-setAccessibleUsers() // Sets accessibleUserIds based on hierarchy
-```
-
-### Security Features
-
-#### 1. Password Security
-- Bcrypt hashing with salt rounds: 10
-- Minimum password length: 6 characters
-- Password validation on registration
-
-#### 2. JWT Security
-- Access token expiration: 15 minutes
-- Refresh token expiration: 7 days
-- Token blacklisting on logout
-- Secure HTTP-only cookies
-
-#### 3. Rate Limiting
-- Global rate limit: 100 requests per 15 minutes
-- Login rate limit: 5 attempts per 15 minutes
-- IP-based rate limiting
-
-#### 4. Input Validation
-- Request body validation
-- SQL injection prevention
-- XSS protection
-- Input sanitization
+| Role | Users | Markets | Transfers | System |
+|------|-------|---------|-----------|---------|
+| Superadmin | All | All | All | All |
+| Admin | Downline | All | Downline | Limited |
+| Distributor | Downline | Assigned | Downline | None |
+| Agent | Downline | Assigned | Downline | None |
+| Player | Self | Assigned | Self | None |
 
 ## 👥 User Hierarchy System
 
-### Hierarchy Structure
-```
-Superadmin (Level 0)
-├── Admin (Level 1) - 5 admins under superadmin
-    ├── Distributor (Level 2) - 3 distributors per admin
-        ├── Agent (Level 3) - 3 agents per distributor
-            └── Player (Level 4) - 3 players per agent
-```
+### Hierarchy Levels
+1. **Superadmin (Level 0)**: System administrator
+2. **Admin (Level 1)**: Regional administrator
+3. **Distributor (Level 2)**: Area distributor
+4. **Agent (Level 3)**: Local agent
+5. **Player (Level 4)**: End user
 
-### Database Schema
+### Data Access Rules
+- Users can only access data from their downline
+- Hierarchical queries use efficient path-based indexing
+- Real-time downline statistics available
+- Cascade operations respect hierarchy
 
-#### UserHierarchy Collection
-```javascript
+## 🏪 Market Management
+
+### Market Features
+- **Market Creation**: Admin/Superadmin can create markets
+- **Time Management**: Set open and close times
+- **Status Control**: Activate/deactivate markets
+- **User Assignment**: Assign markets to specific users
+- **Access Control**: Users can only access assigned markets
+
+### Market Operations
+```bash
+# Create market
+POST /api/markets
 {
-  _id: ObjectId,
-  userId: ObjectId, // Reference to users._id
-  username: String,
-  role: String,
-  parentId: ObjectId,
-  parentUsername: String,
-  parentRole: String,
-  path: [ObjectId], // Full ancestor path for efficient queries
-  level: Number, // Hierarchy level (0-4)
-  downlineCount: {
-    admin: Number,
-    distributor: Number,
-    agent: Number,
-    player: Number
-  },
-  isActive: Boolean,
-  createdAt: Date,
-  updatedAt: Date
+  "marketName": "Morning Market",
+  "openTime": "2024-01-01T09:00:00.000Z",
+  "closeTime": "2024-01-01T12:00:00.000Z"
+}
+
+# Assign market to user
+POST /api/markets/assign
+{
+  "userId": "user_id",
+  "marketId": "market_id"
 }
 ```
 
-### Hierarchy Queries
+## 💰 Transfer System
 
-#### 1. Get Complete Downline
-```javascript
-// Get all users under admin's hierarchy
-const downline = await HierarchyService.getDownline(adminId, 'player');
-```
+### Transfer Features
+- **Balance Transfers**: Transfer balance between users
+- **Transfer History**: Complete audit trail
+- **Status Tracking**: Pending, approved, rejected states
+- **Validation**: Transfer limits and user validation
+- **Notifications**: Real-time transfer notifications
 
-#### 2. Get Direct Downline
-```javascript
-// Get immediate children only
-const directDownline = await HierarchyService.getDirectDownline(adminId, 'distributor');
-```
-
-#### 3. Get Downline Statistics
-```javascript
-// Get counts and balances by role
-const stats = await HierarchyService.getDownlineStats(adminId);
-```
-
-#### 4. Access Control
-```javascript
-// Check if user can access target user
-const canAccess = await HierarchyService.canAccessUser(adminId, targetUserId);
-```
-
-### API Endpoints
-
-#### User Management
-```javascript
-// Get all users accessible to current user
-GET /api/users
-
-// Get users by role under current user
-GET /api/users/player/all
-
-// Get users by role under specific user
-GET /api/users/agent/distributor123
-
-// Get specific user details
-GET /api/users/userId
-
-// Update user
-PUT /api/users/userId
-```
-
-#### Hierarchy Management
-```javascript
-// Get user's complete downline
-GET /api/hierarchy/downline?role=player&page=1&limit=20
-
-// Get user's direct downline
-GET /api/hierarchy/direct-downline?role=distributor
-
-// Get downline statistics
-GET /api/hierarchy/stats
-
-// Get user's upline
-GET /api/hierarchy/upline
-
-// Get specific user details (if in downline)
-GET /api/hierarchy/user/userId
-```
-
-## 🔐 SSL/HTTPS Setup
-
-### 1. Install Certbot
+### Transfer Operations
 ```bash
+# Create transfer
+POST /api/transfers
+{
+  "toUserId": "recipient_id",
+  "amount": 1000,
+  "description": "Payment for services"
+}
+
+# Approve transfer
+PUT /api/transfers/:transferId/approve
+
+# Reject transfer
+PUT /api/transfers/:transferId/reject
+```
+
+## ⚙️ Environment Configuration
+
+### Backend Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/matka-sk` | Yes |
+| `JWT_SECRET` | JWT signing secret | - | Yes |
+| `JWT_REFRESH_SECRET` | JWT refresh secret | - | Yes |
+| `ACCESS_TOKEN_EXPIRES_IN` | Access token expiration | `15m` | No |
+| `REFRESH_TOKEN_EXPIRES_IN` | Refresh token expiration | `7d` | No |
+| `PORT` | Server port | `5000` | No |
+| `NODE_ENV` | Environment mode | `development` | No |
+| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` | No |
+| `COOKIE_DOMAIN` | Cookie domain | `localhost` | No |
+
+### Frontend Environment Variables
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:5000` | Yes |
+| `NEXT_PUBLIC_APP_NAME` | Application name | `Matka SK Admin` | No |
+
+## 🔒 SSL/HTTPS Setup
+
+### Let's Encrypt Installation
+```bash
+# Install Certbot
 sudo apt install certbot python3-certbot-nginx -y
-```
 
-### 2. Obtain SSL Certificates
-```bash
-# For backend API
-sudo certbot --nginx -d api.your-domain.com
+# Obtain SSL certificate
+sudo certbot --nginx -d your-domain.com -d api.your-domain.com
 
-# For frontend
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
-```
-
-### 3. Auto-renewal Setup
-```bash
-# Test auto-renewal
-sudo certbot renew --dry-run
-
-# Add to crontab
+# Auto-renewal
 sudo crontab -e
-# Add this line:
-0 12 * * * /usr/bin/certbot renew --quiet
+# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+### SSL Configuration
+```nginx
+# Redirect HTTP to HTTPS
+server {
+    listen 80;
+    server_name your-domain.com api.your-domain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+# HTTPS configuration
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+    
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+    
+    # SSL security settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    
+    # HSTS
+    add_header Strict-Transport-Security "max-age=63072000" always;
+}
 ```
 
 ## 📊 Monitoring & Logging
 
-### 1. PM2 Monitoring
+### PM2 Monitoring
 ```bash
 # Monitor applications
 pm2 monit
@@ -730,503 +646,286 @@ pm2 monit
 # View logs
 pm2 logs
 
-# View specific app logs
-pm2 logs matka-sk-backend
-
-# Monitor memory and CPU usage
-pm2 show matka-sk-backend
+# Status check
+pm2 status
 ```
 
-### 2. Application Logging
+### Winston Logging
 ```javascript
-// Structured logging with Winston
-logger.info('User logged in', {
-  userId: user._id,
-  role: user.role,
-  ip: req.ip,
-  userAgent: req.get('User-Agent')
-});
+// Log levels: error, warn, info, debug
+// Log files: logs/error.log, logs/combined.log
 ```
 
-### 3. Nginx Logs
+### Health Checks
 ```bash
-# Access logs
-sudo tail -f /var/log/nginx/access.log
+# Backend health
+curl https://api.your-domain.com/health
 
-# Error logs
-sudo tail -f /var/log/nginx/error.log
-```
-
-### 4. MongoDB Monitoring
-```bash
-# MongoDB logs
-sudo tail -f /var/log/mongodb/mongod.log
-
-# Database statistics
-mongosh --eval "db.stats()"
+# Frontend health
+curl https://your-domain.com
 ```
 
 ## 💾 Backup Strategy
 
-### 1. Database Backup
+### Database Backup
 ```bash
 # Create backup script
-nano /var/www/matka-sk/backup.sh
+nano /opt/backup-mongodb.sh
 ```
 
-**backup.sh:**
+**Backup Script:**
 ```bash
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/var/backups/matka-sk"
+BACKUP_DIR="/opt/backups"
+DB_NAME="matka-sk-prod"
+
+# Create backup directory
 mkdir -p $BACKUP_DIR
 
-# MongoDB backup
-mongodump --db matka-sk-prod --out $BACKUP_DIR/mongodb_$DATE
+# Create backup
+mongodump --db $DB_NAME --out $BACKUP_DIR/backup_$DATE
 
 # Compress backup
-tar -czf $BACKUP_DIR/mongodb_$DATE.tar.gz $BACKUP_DIR/mongodb_$DATE
-rm -rf $BACKUP_DIR/mongodb_$DATE
+tar -czf $BACKUP_DIR/backup_$DATE.tar.gz -C $BACKUP_DIR backup_$DATE
+
+# Remove uncompressed backup
+rm -rf $BACKUP_DIR/backup_$DATE
 
 # Keep only last 7 days of backups
-find $BACKUP_DIR -name "mongodb_*.tar.gz" -mtime +7 -delete
+find $BACKUP_DIR -name "backup_*.tar.gz" -mtime +7 -delete
 
-echo "Backup completed: mongodb_$DATE.tar.gz"
+echo "Backup completed: backup_$DATE.tar.gz"
 ```
 
-#### Setup Automated Backups
+### Automated Backups
 ```bash
 # Make script executable
-chmod +x /var/www/matka-sk/backup.sh
+chmod +x /opt/backup-mongodb.sh
 
 # Add to crontab (daily at 2 AM)
-sudo crontab -e
-# Add this line:
-0 2 * * * /var/www/matka-sk/backup.sh
-```
-
-### 2. Application Backup
-```bash
-# Backup application files
-tar -czf /var/backups/matka-sk/app_$(date +%Y%m%d_%H%M%S).tar.gz /var/www/matka-sk
+crontab -e
+# Add: 0 2 * * * /opt/backup-mongodb.sh
 ```
 
 ## 🛡️ Security Checklist
 
-### ✅ Server Security
+### Server Security
 - [ ] Firewall configured (UFW)
-- [ ] SSH key-based authentication only
-- [ ] Fail2ban installed and configured
-- [ ] Regular system updates enabled
-- [ ] Unnecessary services disabled
-
-### ✅ Application Security
-- [ ] Strong JWT secrets configured (32+ characters)
-- [ ] Environment variables secured
-- [ ] CORS properly configured
-- [ ] Input validation implemented
-- [ ] Rate limiting configured
-- [ ] Helmet security headers enabled
-- [ ] Password hashing with bcrypt
-
-### ✅ Database Security
-- [ ] MongoDB authentication enabled
-- [ ] Strong passwords used
-- [ ] Network access restricted
-- [ ] Regular backups configured
-- [ ] Database logs monitored
-- [ ] Proper indexes created
-
-### ✅ SSL/HTTPS
+- [ ] SSH key-based authentication
+- [ ] Regular security updates
+- [ ] Fail2ban installed
 - [ ] SSL certificates installed
-- [ ] Auto-renewal configured
-- [ ] HTTP to HTTPS redirect
 - [ ] Security headers configured
-- [ ] HSTS enabled
 
-### ✅ Authentication & Authorization
-- [ ] JWT token rotation implemented
-- [ ] Refresh token system working
-- [ ] Token blacklisting enabled
-- [ ] Role-based access control tested
-- [ ] Hierarchy-based access control tested
-- [ ] Password policies enforced
+### Application Security
+- [ ] Environment variables secured
+- [ ] JWT secrets rotated
+- [ ] Rate limiting enabled
+- [ ] Input validation implemented
+- [ ] CORS properly configured
+- [ ] Helmet security headers
 
-### ✅ Monitoring
-- [ ] Application logs monitored
-- [ ] Error tracking implemented
+### Database Security
+- [ ] MongoDB authentication enabled
+- [ ] Database user with minimal privileges
+- [ ] Regular backups configured
+- [ ] Network access restricted
+- [ ] SSL/TLS enabled for MongoDB
+
+### Monitoring
+- [ ] Application monitoring (PM2)
+- [ ] Log monitoring
+- [ ] Error tracking
 - [ ] Performance monitoring
-- [ ] Uptime monitoring
-- [ ] Alert system configured
+- [ ] Security alerts
 
 ## 📚 API Documentation
 
+### Base URLs
+```
+Development: http://localhost:5000/api
+Production: https://api.your-domain.com/api
+```
+
 ### Authentication Endpoints
-
-#### Login
-```http
-POST /api/auth/login
-Content-Type: application/json
-
-{
-  "username": "admin1",
-  "password": "admin123"
-}
-```
-
-#### Refresh Token
-```http
-POST /api/auth/refresh
-```
-
-#### Logout
-```http
-POST /api/auth/logout
-```
-
-#### Logout All Sessions
-```http
-POST /api/auth/logout-all
-```
+- `POST /auth/login` - User authentication
+- `POST /auth/logout` - User logout
+- `POST /auth/refresh` - Token refresh
+- `GET /auth/profile` - Get user profile
+- `PUT /auth/profile` - Update user profile
 
 ### User Management Endpoints
+- `GET /auth/users` - Get accessible users
+- `GET /auth/users/:userId` - Get specific user
+- `PUT /auth/users/:userId` - Update user
+- `DELETE /auth/users/:userId` - Delete user (cascade)
+- `PUT /auth/users/:userId/active` - Toggle user status
+- `PUT /auth/users/:userId/password` - Update password
 
-#### Get All Users
-```http
-GET /api/users
-Authorization: Bearer <access_token>
-```
+### Market Management Endpoints
+- `GET /markets` - Get markets
+- `POST /markets` - Create market
+- `PUT /markets/:marketId` - Update market
+- `DELETE /markets/:marketId` - Delete market
+- `PUT /markets/:marketId/active` - Toggle market status
+- `POST /markets/assign` - Assign market to user
 
-#### Get Users by Role
-```http
-GET /api/users/{role}/{userId}
-Authorization: Bearer <access_token>
+### Transfer Endpoints
+- `GET /transfers` - Get transfers
+- `POST /transfers` - Create transfer
+- `PUT /transfers/:transferId/approve` - Approve transfer
+- `PUT /transfers/:transferId/reject` - Reject transfer
 
-# Examples:
-GET /api/users/player/all          # All players under current user
-GET /api/users/agent/distributor123 # All agents under distributor123
-```
-
-#### Get User by ID
-```http
-GET /api/users/{userId}
-Authorization: Bearer <access_token>
-```
-
-#### Update User
-```http
-PUT /api/users/{userId}
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "balance": 50000,
-  "isActive": true
-}
-```
-
-### Hierarchy Endpoints
-
-#### Get Downline
-```http
-GET /api/hierarchy/downline?role=player&page=1&limit=20
-Authorization: Bearer <access_token>
-```
-
-#### Get Direct Downline
-```http
-GET /api/hierarchy/direct-downline?role=distributor
-Authorization: Bearer <access_token>
-```
-
-#### Get Downline Statistics
-```http
-GET /api/hierarchy/stats
-Authorization: Bearer <access_token>
-```
-
-#### Get Upline
-```http
-GET /api/hierarchy/upline
-Authorization: Bearer <access_token>
-```
-
-### User Registration & Creation Endpoints
-
-#### Public User Registration
-```http
-POST /api/auth/register
-Content-Type: application/json
-
-{
-  "username": "newplayer",
-  "password": "player123",
-  "balance": 1000
-}
-```
-
-#### Create Admin User (Superadmin only)
-```http
-POST /api/users/create/admin
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "username": "newadmin",
-  "password": "admin123",
-  "balance": 100000
-}
-```
-
-#### Create Distributor User (Admin only)
-```http
-POST /api/users/create/distributor
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "username": "newdistributor",
-  "password": "dist123",
-  "balance": 50000
-}
-```
-
-#### Create Agent User (Distributor only)
-```http
-POST /api/users/create/agent
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "username": "newagent",
-  "password": "agent123",
-  "balance": 25000
-}
-```
-
-#### Create Player User (Agent only)
-```http
-POST /api/users/create/player
-Authorization: Bearer <access_token>
-Content-Type: application/json
-
-{
-  "username": "newplayer",
-  "password": "player123",
-  "balance": 1000
-}
-```
+### Health Check
+- `GET /health` - Server health status
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### Authentication Issues
+#### Application Won't Start
 ```bash
-# Check JWT configuration
-pm2 env matka-sk-backend | grep JWT
+# Check PM2 logs
+pm2 logs matka-sk-backend
 
-# Check token blacklist
-mongosh --eval "use matka-sk-prod; db.tokenblacklists.find()"
+# Check Node.js version
+node --version
 
-# Check user authentication
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"smasher","password":"123456"}'
+# Check MongoDB connection
+mongo --eval "db.runCommand('ping')"
 ```
 
-#### Hierarchy Issues
+#### Database Connection Issues
 ```bash
-# Check hierarchy data
-mongosh --eval "use matka-sk-prod; db.userhierarchies.find().limit(5)"
+# Check MongoDB status
+sudo systemctl status mongod
 
-# Check user relationships
-mongosh --eval "use matka-sk-prod; db.users.find({role:'admin'}).limit(3)"
-```
+# Check MongoDB logs
+sudo tail -f /var/log/mongodb/mongod.log
 
-#### PM2 Issues
-```bash
-# Check PM2 status
-pm2 status
-
-# Restart application
-pm2 restart matka-sk-backend
-
-# View detailed logs
-pm2 logs matka-sk-backend --lines 100
-
-# Check memory usage
-pm2 show matka-sk-backend
+# Test connection
+mongo mongodb://localhost:27017/matka-sk-prod
 ```
 
 #### Nginx Issues
 ```bash
-# Test Nginx configuration
+# Check Nginx configuration
 sudo nginx -t
 
 # Check Nginx status
 sudo systemctl status nginx
 
-# View error logs
+# Check Nginx logs
 sudo tail -f /var/log/nginx/error.log
 ```
 
-#### MongoDB Issues
+#### SSL Certificate Issues
 ```bash
-# Check MongoDB status
-sudo systemctl status mongod
+# Check certificate status
+sudo certbot certificates
 
-# Connect to MongoDB
-mongosh
+# Renew certificates
+sudo certbot renew --dry-run
 
-# Check database
-show dbs
-use matka-sk-prod
-show collections
-
-# Check indexes
-db.users.getIndexes()
-db.userhierarchies.getIndexes()
-```
-
-#### Application Issues
-```bash
-# Check application logs
-pm2 logs matka-sk-backend
-
-# Check environment variables
-pm2 env matka-sk-backend
-
-# Restart with fresh environment
-pm2 restart matka-sk-backend --update-env
-
-# Check health endpoint
-curl http://localhost:3001/health
+# Check certificate expiration
+openssl x509 -in /etc/letsencrypt/live/your-domain.com/cert.pem -text -noout
 ```
 
 ### Performance Optimization
 
+#### Database Optimization
+```javascript
+// Add compound indexes for common queries
+db.users.createIndex({ "parentId": 1, "role": 1, "isActive": 1 })
+db.transfers.createIndex({ "fromUserId": 1, "status": 1, "createdAt": -1 })
+```
+
+#### Application Optimization
+```javascript
+// Enable compression
+app.use(compression());
+
+// Cache static assets
+app.use(express.static('public', { maxAge: '1y' }));
+```
+
 #### Nginx Optimization
 ```nginx
-# Add to nginx.conf
-worker_processes auto;
-worker_connections 1024;
-keepalive_timeout 65;
-client_max_body_size 10M;
-
-# Gzip compression
+# Enable gzip compression
 gzip on;
 gzip_vary on;
 gzip_min_length 1024;
-gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-```
+gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
 
-#### MongoDB Optimization
-```yaml
-# Add to mongod.conf
-storage:
-  wiredTiger:
-    engineConfig:
-      cacheSizeGB: 2
-    collectionConfig:
-      blockCompressor: snappy
-
-# Index optimization
-operationProfiling:
-  mode: slowOp
-  slowOpThresholdMs: 100
-```
-
-#### Node.js Optimization
-```javascript
-// PM2 ecosystem optimization
-{
-  instances: 'max',
-  exec_mode: 'cluster',
-  max_memory_restart: '2G',
-  node_args: '--max-old-space-size=2048'
+# Cache static files
+location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
 }
 ```
 
-## 📞 Support & Maintenance
-
-### Regular Maintenance Tasks
-- [ ] **Daily**: Check application logs for errors
-- [ ] **Weekly**: Monitor database performance
-- [ ] **Weekly**: Check backup status
-- [ ] **Monthly**: Update system packages
-- [ ] **Monthly**: Review security logs
-- [ ] **Monthly**: Test authentication system
-- [ ] **Quarterly**: Test backup restoration
-- [ ] **Quarterly**: Review performance metrics
-- [ ] **Quarterly**: Update SSL certificates
-
-### Monitoring Tools
-- **PM2**: Application monitoring and process management
-- **Nginx**: Web server monitoring and access logs
-- **MongoDB**: Database monitoring and performance
-- **Uptime Robot**: External monitoring and alerts
-- **Logwatch**: Automated log analysis
-- **Prometheus + Grafana**: Advanced monitoring (optional)
-
 ### Emergency Procedures
-1. **Application Down**: 
-   - Check PM2 status: `pm2 status`
-   - Restart application: `pm2 restart matka-sk-backend`
-   - Check logs: `pm2 logs matka-sk-backend`
 
-2. **Database Issues**: 
-   - Check MongoDB status: `sudo systemctl status mongod`
-   - Check connectivity: `mongosh --eval "db.adminCommand('ping')"`
-   - Review logs: `sudo tail -f /var/log/mongodb/mongod.log`
-
-3. **Authentication Issues**:
-   - Check JWT configuration
-   - Verify token blacklist
-   - Test login endpoint
-
-4. **SSL Issues**: 
-   - Renew certificates: `sudo certbot renew`
-   - Check certificate validity: `sudo certbot certificates`
-
-5. **Security Breach**: 
-   - Review access logs
-   - Update all passwords
-   - Check for unauthorized access
-   - Review user hierarchy
-
-### Performance Monitoring
+#### Database Recovery
 ```bash
-# Monitor system resources
+# Restore from backup
+mongorestore --db matka-sk-prod /opt/backups/backup_20240101_120000/matka-sk-prod/
+```
+
+#### Application Rollback
+```bash
+# Rollback to previous version
+pm2 stop matka-sk-backend
+git checkout HEAD~1
+npm install
+pm2 start matka-sk-backend
+```
+
+#### Emergency Maintenance Mode
+```bash
+# Enable maintenance mode
+echo "Maintenance Mode" > /var/www/matka-sk/admin/public/maintenance.html
+
+# Update Nginx to serve maintenance page
+# Add to Nginx config:
+# location / {
+#     return 503;
+# }
+# error_page 503 /maintenance.html;
+```
+
+## 📞 Support
+
+### Contact Information
+- **Technical Support**: [Your Email]
+- **Documentation**: [Your Documentation URL]
+- **Issue Tracker**: [Your Issue Tracker URL]
+
+### Useful Commands
+```bash
+# Check system status
+pm2 status
+sudo systemctl status nginx mongod
+
+# View logs
+pm2 logs
+sudo tail -f /var/log/nginx/access.log
+
+# Monitor resources
 htop
-
-# Monitor MongoDB performance
-mongosh --eval "db.currentOp()"
-
-# Monitor application performance
-pm2 monit
-
-# Check disk usage
 df -h
-
-# Check memory usage
 free -h
 ```
 
-## 📄 License
-
-This deployment guide is part of the Matka SK project and is licensed under the ISC License.
-
-## 🤝 Support
-
-For technical support and questions:
-- **Documentation**: Check this guide and project README
-- **Issues**: Create GitHub issues for bugs
-- **Security**: Report security issues privately
-- **Updates**: Follow the project for updates and new features
+### Maintenance Schedule
+- **Daily**: Log rotation, health checks
+- **Weekly**: Security updates, backup verification
+- **Monthly**: Performance review, SSL certificate renewal
+- **Quarterly**: Security audit, dependency updates
 
 ---
 
-**Last Updated**: July 2025
-**Version**: 1.0.0
+**Last Updated**: January 2024
+**Version**: 2.0.0
 **Compatibility**: Node.js 18+, MongoDB 6.0+, Next.js 14 
