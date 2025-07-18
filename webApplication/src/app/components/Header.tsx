@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { Wallet, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
+import { useGlobalContext } from '@/contexts/GlobalContext';
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { state: { user } } = useGlobalContext();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -22,14 +24,14 @@ const Header = () => {
         </div>
         <div className="flex items-center">
           <div className="text-white px-3 py-1 rounded-lg flex items-center">
-            <span className="mr-1"><Wallet/></span>
-            <span className="font-bold">735</span>
+            <span className="mr-1"><Wallet /></span>
+            <span className="font-bold">{user?.balance || 0}</span>
           </div>
         </div>
       </div>
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
+      <Sidebar
+        isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         onToggle={toggleSidebar}
       />
@@ -39,4 +41,3 @@ const Header = () => {
 
 export default Header;
 
- 

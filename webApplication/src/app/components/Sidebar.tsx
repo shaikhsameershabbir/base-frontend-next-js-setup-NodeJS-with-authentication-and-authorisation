@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useGlobalContext } from '@/contexts/GlobalContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,20 +15,21 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
+  const { state: { user }, logout } = useGlobalContext();
 
-  const handleLogout = () => {
-    // Here you can add any logout logic like clearing local storage, cookies, etc.
+  const handleLogout = async () => {
+    await logout();
     router.replace('/login');
     onClose();
   };
 
   const menuItems = [
-    { icon: '/home.svg', label: 'Home', href: '/' },
-    { icon: '/bid.svg', label: 'My Bids', href: '/MyBids' },
-    { icon: '/passbook.svg', label: 'Passbook', href: '/Passbook' },
-    { icon: '/funds.svg', label: 'Funds', href: '/Funds' },
-    { icon: '/rate.svg', label: 'Game Rate', href: '/GameRate' },
-    { icon: '/chart.svg', label: 'Charts', href: '/Charts' },
+    { icon: '/home.svg', label: 'Home', href: '/home' },
+    { icon: '/bid.svg', label: 'My Bids', href: '/mybids' },
+    { icon: '/passbook.svg', label: 'Passbook', href: '/passbook' },
+    { icon: '/funds.svg', label: 'Funds', href: '/funds' },
+    { icon: '/rate.svg', label: 'Game Rate', href: '/game-rate' },
+    { icon: '/chart.svg', label: 'Charts', href: '/charts' },
   ];
 
   return (
@@ -42,9 +44,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 h-full w-64 bg-white z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* User Profile Section */}
         <div className="p-4 border-b">
@@ -53,8 +54,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <User className="w-8 h-8 text-gray-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-black">Sachin</h3>
-              <p className="text-gray-600">7777733333</p>
+              <h3 className="text-lg font-semibold text-black">{user?.username || 'User'}</h3>
+              <p className="text-gray-600">{user?.username || 'Loading...'}</p>
             </div>
           </div>
         </div>
@@ -79,7 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <span className="text-gray-800">{item.label}</span>
             </Link>
           ))}
-          
+
           {/* Logout Button */}
           <button
             onClick={handleLogout}

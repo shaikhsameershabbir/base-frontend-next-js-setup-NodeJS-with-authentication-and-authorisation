@@ -3,68 +3,34 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { authAPI } from '@/lib/api/auth';
+import { useGlobalContext } from '@/contexts/GlobalContext';
 
 export default function LoginPage() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { login, state: { loading, error: authError } } = useGlobalContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
-    try {
-      // Validate inputs
-      if (!mobileNumber.trim() || !password.trim()) {
-        setError('Please enter both mobile number and password');
-        return;
-      }
+    // Validate inputs
+    if (!mobileNumber.trim() || !password.trim()) {
+      setError('Please enter both mobile number and password');
+      return;
+    }
 
-      // Call login API
-      // console.log('------------------------------------------------->>', response.response.data);
-      const response = await authAPI.login({
-        username: mobileNumber.trim(),
-        password: password,
-        login: 'web' // Indicate this is web login
-      });
+    // Use auth context login
+    const success = await login(mobileNumber.trim(), password);
 
-      if (response.success && response.data) {
-        const { user } = response.data;
-
-        // Check if user is a player (only players should login through web app)
-        if (user.role !== 'player') {
-          setError('Access denied. This login is only for players.');
-          return;
-        }
-
-        // Store user data
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userRole', user.role);
-
-        // Redirect directly to home page (skip MPIN setup)
-        router.replace('/home');
-      } else {
-        setError(response.message || 'Login failed');
-      }
-    } catch (error: any) {
-      console.error('Login error:', error);
-
-      if (error.response?.status === 401) {
-        setError('Invalid mobile number or password');
-      } else if (error.response?.status === 403) {
-        setError('Access denied. This login is only for players.');
-      } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else {
-        setError('Login failed. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
+    if (success) {
+      // Redirect directly to home page (skip MPIN setup)
+      router.replace('/home');
+    } else {
+      // Error is handled by the auth context
+      setError(authError || 'Login failed');
     }
   };
 
@@ -84,9 +50,9 @@ export default function LoginPage() {
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
         {/* Error Message */}
-        {error && (
+        {(error || authError) && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
+            {error || authError}
           </div>
         )}
 
@@ -108,7 +74,7 @@ export default function LoginPage() {
             placeholder="Enter Mobile number"
             className="w-full pl-12 pr-4 py-4 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-black"
             required
-            disabled={isLoading}
+            disabled={loading}
           />
         </div>
 
@@ -130,17 +96,17 @@ export default function LoginPage() {
             placeholder="Enter Password"
             className="w-full pl-12 pr-4 py-4 bg-gray-100 rounded-full text-black focus:outline-none focus:ring-2 focus:ring-primary"
             required
-            disabled={isLoading}
+            disabled={loading}
           />
         </div>
 
         {/* Login Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={loading}
           className="w-full py-4 bg-primary text-white rounded-full font-semibold text-lg hover:bg-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'LOGGING IN...' : 'LOGIN'}
+          {loading ? 'LOGGING IN...' : 'LOGIN'}
         </button>
       </form>
     </div>

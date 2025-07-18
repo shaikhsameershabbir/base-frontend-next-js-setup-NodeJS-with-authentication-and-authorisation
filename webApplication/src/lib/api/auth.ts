@@ -1,63 +1,7 @@
 import apiClient from '../api-client';
+import { ApiResponse, LoginRequest, LoginResponse, UpdateProfileRequest, User } from '../type';
 
-export interface User {
-    _id: string;
-    username: string;
-    balance: number;
-    role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
-    parentId?: string;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt?: string;
-}
 
-export interface LoginRequest {
-    username: string;
-    password: string;
-    login: string;
-}
-
-export interface RegisterRequest {
-    username: string;
-    password: string;
-    balance?: number;
-    role?: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
-    parentId?: string;
-}
-
-export interface UpdateProfileRequest {
-    username?: string;
-    balance?: number;
-}
-
-export interface UpdateUserRequest {
-    username?: string;
-    balance?: number;
-    isActive?: boolean;
-}
-
-export interface PaginationInfo {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-}
-
-export interface ApiResponse<T = any> {
-    success: boolean;
-    message: string;
-    data?: T;
-}
-
-export interface LoginResponse {
-    user: User;
-    tokenExpires: number;
-}
-
-export interface UsersResponse {
-    users: User[];
-    pagination: PaginationInfo;
-}
 
 // Auth API
 export const authAPI = {
@@ -100,29 +44,6 @@ export const usersAPI = {
     },
 };
 
-// Player API (for web application)
-export const playerAPI = {
-    getActivities: async (page: number = 1, limit: number = 20): Promise<ApiResponse<{
-        activities: any[];
-        pagination: PaginationInfo;
-    }>> => {
-        const response = await apiClient.get(`/player/activities?page=${page}&limit=${limit}`);
-        return response.data;
-    },
-
-    getActivityStats: async (): Promise<ApiResponse<{ stats: any }>> => {
-        const response = await apiClient.get('/player/activities/stats');
-        return response.data;
-    },
-
-    getPublicInfo: async (): Promise<ApiResponse<{
-        isAuthenticated: boolean;
-        user: User | null;
-    }>> => {
-        const response = await apiClient.get('/player/public/info');
-        return response.data;
-    },
-};
 
 // Health check
 export const healthAPI = {
