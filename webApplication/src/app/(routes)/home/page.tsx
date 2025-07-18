@@ -11,7 +11,7 @@ import React from "react";
 export default function Home() {
     return (
         <main className="min-h-screen bg-gray-100">
-            <Header />
+     
             <div className="pt-16">
                 <Message />
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 max-h-[500px] overflow-y-auto">

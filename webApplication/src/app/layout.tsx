@@ -2,6 +2,7 @@ import './globals.css';
 import localFont from "next/font/local";
 import type { Metadata } from "next";
 import SplashScreenWrapper from './components/SplashScreenWrapper';
+import Header from './components/Header';
 
 const geistSans = localFont({
   src: [
@@ -28,6 +29,8 @@ const geistSans = localFont({
   ],
   variable: "--font-geist-sans",
 });
+
+
 
 const geistMono = localFont({
   src: [
@@ -68,9 +71,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SplashScreenWrapper>
-          {children}
-        </SplashScreenWrapper>
+        {/* <SplashScreenWrapper> */}
+        <Header />
+        {children}
+        {/* </SplashScreenWrapper> */}
       </body>
     </html>
   );

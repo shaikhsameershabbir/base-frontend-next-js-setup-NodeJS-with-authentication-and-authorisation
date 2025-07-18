@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import Header from "../components/Header";
-import BottomNav from "../components/BottomNav";
+import Header from "@/app/components/Header";
+import BottomNav from "@/app/components/BottomNav";
 import { Search } from "lucide-react";
 
 const chartSections = [
@@ -23,7 +23,7 @@ const chartSections = [
 function Page() {
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
+    
       <div className="pt-16 px-4">
         {/* Search Bar */}
         <div className="relative mb-6 mt-4">

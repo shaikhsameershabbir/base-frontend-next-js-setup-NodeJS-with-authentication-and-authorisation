@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bid, bids } from "../constant/constant";
-import BottomNav from "../components/BottomNav";
-import BidsCard from "../components/BidsCard";
-import Header from "../components/Header";
-import { Pagination } from "../constant/pagination";
+import { Bid, bids } from "@/app/constant/constant";
+import BottomNav from "@/app/components/BottomNav";
+import BidsCard from "@/app/components/BidsCard";
+import Header from "@/app/components/Header";
+import { Pagination } from "@/app/constant/pagination";
 
 const itemsPerPage = 6;
 
@@ -18,7 +18,6 @@ function Page() {
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
       <div className="pt-16">
         <h1 className="text-2xl font-bold text-center text-black">BID HISTORY</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 max-h-[750px] overflow-y-auto">
@@ -47,7 +46,7 @@ function Page() {
             </motion.div>
           </AnimatePresence>
         </div>
-        
+
         <Pagination
           currentPage={currentPage}
           onPrevClick={handlePrevClick}

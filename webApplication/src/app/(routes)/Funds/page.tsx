@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { funds } from "../constant/constant";
-import Header from "../components/Header";
-import BottomNav from "../components/BottomNav";
+import { funds } from "@/app/constant/constant";
+import Header from "@/app/components/Header";
+import BottomNav from "@/app/components/BottomNav";
 import { CirclePlus, ChevronRight, Building2, Wallet, X } from "lucide-react";
 
 function Page() {
@@ -47,7 +47,6 @@ function Page() {
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
       <div className="pt-16 px-2 md:px-4">
         <h1 className="text-2xl font-bold text-center text-black mb-6 mt-2">
           Funds

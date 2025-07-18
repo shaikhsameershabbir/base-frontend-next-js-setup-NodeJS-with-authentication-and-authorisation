@@ -1,14 +1,13 @@
 "use client";
 
 import React from "react";
-import { gameRate } from "../constant/constant";
-import Header from "../components/Header";
-import BottomNav from "../components/BottomNav";
+import { gameRate } from "@/app/constant/constant";
+import Header from "@/app/components/Header";
+import BottomNav from "@/app/components/BottomNav";
 
 function Page() {
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
       <div className="pt-16 px-2 md:px-4">
         <h1 className="text-2xl font-bold text-center text-black mb-6 mt-2">
           Game Rate

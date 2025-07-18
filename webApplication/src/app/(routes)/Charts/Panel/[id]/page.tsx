@@ -169,7 +169,6 @@ const JodiChart = () => {
 
   return (
     <main className="min-h-screen bg-gray-100 overflow-hidden">
-      <Header />
       <h1 className="text-base md:text-2xl font-bold text-center text-black mb-4 mt-2">
         Charts
       </h1>

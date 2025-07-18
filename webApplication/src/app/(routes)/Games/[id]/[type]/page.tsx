@@ -69,7 +69,6 @@ const GameTypePage = () => {
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
       <div className="pt-16 pb-16">
         <div className="p-4">
           {renderGameComponent()}

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { passbook } from "../constant/constant";
-import Header from "../components/Header";
-import BottomNav from "../components/BottomNav";
+import { passbook } from "@/app/constant/constant";
+import Header from "@/app/components/Header";
+import BottomNav from "@/app/components/BottomNav";
 import { motion, AnimatePresence } from "framer-motion";
 import { RotateCw } from "lucide-react";
-import { Pagination } from "../constant/pagination";
+import { Pagination } from "@/app/constant/pagination";
 const itemsPerPage = 5;
 
 // Define the Screen Orientation API types
@@ -71,7 +71,6 @@ function Page() {
 
   return (
     <main className="min-h-screen bg-gray-100">
-      <Header />
       <div className="pt-16 px-2 md:px-4 ">
         <div className="flex flex-col md:flex-row md:items-center md:justify-center gap-2 mb-6 mt-2 relative">
           <div className="flex items-center justify-center gap-4">
