@@ -12,9 +12,8 @@ import { Search, Loader2, CheckCircle, XCircle } from "lucide-react"
 
 interface Market {
     _id: string
-    marketName: string
-    openTime: string
-    closeTime: string
+    name: string
+    status: 'open' | 'closed' | 'suspended'
     isActive: boolean
     isAssigned?: boolean
     assignmentId?: string
@@ -98,8 +97,8 @@ export function AssignMarketModal({
     }
 
     const handleSelectAll = () => {
-        const filteredMarkets = markets.filter(market =>
-            market.marketName.toLowerCase().includes(searchTerm.toLowerCase())
+        const filteredMarkets = (markets || []).filter(market =>
+            market.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
         const unassignedMarkets = filteredMarkets.filter(market => !market.isAssigned)
         const assignedMarkets = filteredMarkets.filter(market => market.isAssigned)
@@ -161,8 +160,8 @@ export function AssignMarketModal({
         }
     }
 
-    const filteredMarkets = markets.filter(market =>
-        market.marketName.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredMarkets = (markets || []).filter(market =>
+        market.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     const unassignedMarkets = filteredMarkets.filter(market => !market.isAssigned)
@@ -255,10 +254,11 @@ export function AssignMarketModal({
                                                     <div className="flex items-center justify-between">
                                                         <div>
                                                             <div className="font-medium text-primary">
-                                                                {market.marketName}
+                                                                {market.name}
                                                             </div>
                                                             <div className="text-sm text-secondary">
-                                                                {new Date(market.openTime).toLocaleTimeString()} - {new Date(market.closeTime).toLocaleTimeString()}
+                                                                {/* Assuming status maps to isActive or similar */}
+                                                                {market.isActive ? 'Active' : 'Inactive'}
                                                             </div>
                                                         </div>
                                                         <Badge variant={market.isActive ? "default" : "secondary"}>
@@ -292,10 +292,11 @@ export function AssignMarketModal({
                                                     <div className="flex items-center justify-between">
                                                         <div>
                                                             <div className="font-medium text-primary">
-                                                                {market.marketName}
+                                                                {market.name}
                                                             </div>
                                                             <div className="text-sm text-secondary">
-                                                                {new Date(market.openTime).toLocaleTimeString()} - {new Date(market.closeTime).toLocaleTimeString()}
+                                                                {/* Assuming status maps to isActive or similar */}
+                                                                {market.isActive ? 'Active' : 'Inactive'}
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">

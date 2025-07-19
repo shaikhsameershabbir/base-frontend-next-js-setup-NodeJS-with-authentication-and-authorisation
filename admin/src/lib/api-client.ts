@@ -1,10 +1,9 @@
 "use client"
 import axios, { type AxiosInstance, AxiosError } from "axios"
-import { authAPI } from "./api-service"
 
 // Create the API client instance
 const apiClient: AxiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",
     headers: {
         "Content-Type": "application/json",
     },
@@ -13,6 +12,14 @@ const apiClient: AxiosInstance = axios.create({
 
 // Add an interceptor to set the appropriate headers
 apiClient.interceptors.request.use((config) => {
+    // Get token from localStorage
+    if (typeof window !== 'undefined') {
+        const accessToken = localStorage.getItem('accessToken')
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`
+        }
+    }
+
     // Ensure the 'credentials' option is set to 'include'
     config.withCredentials = true
     return config
@@ -58,10 +65,28 @@ apiClient.interceptors.response.use(
             isRefreshing = true
 
             try {
-                // Attempt to refresh the token
-                const refreshResponse = await authAPI.refresh()
+                // Get refresh token from localStorage
+                const refreshToken = localStorage.getItem('refreshToken')
+                if (!refreshToken) {
+                    throw new Error('No refresh token available')
+                }
 
-                if (refreshResponse.success) {
+                // Attempt to refresh the token
+                const refreshResponse = await axios.post(
+                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/auth/refresh`,
+                    { refreshToken },
+                    { withCredentials: true }
+                )
+
+                if (refreshResponse.data.success) {
+                    // Store new access token
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('accessToken', refreshResponse.data.data.accessToken)
+                    }
+
+                    // Update the original request with new token
+                    originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.accessToken}`
+
                     processQueue(null, 'refreshed')
                     return apiClient(originalRequest)
                 } else {
@@ -94,6 +119,12 @@ apiClient.interceptors.response.use(
         if (error.response?.status === 403) {
             if (typeof window !== 'undefined') {
                 alert("You don't have permission to perform this action.")
+            }
+        }
+
+        if (error.response?.status === 429) {
+            if (typeof window !== 'undefined') {
+                alert("Too many requests. Please wait a moment before trying again.")
             }
         }
 

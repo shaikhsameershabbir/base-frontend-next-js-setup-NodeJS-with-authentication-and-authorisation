@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export function MarketModal({ open, onClose, onSubmit, loading, market }: { open: boolean, onClose: () => void, onSubmit: (data: any) => void, loading: boolean, market: any }) {
     const [marketName, setMarketName] = useState('');
@@ -10,8 +12,11 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
     useEffect(() => {
         if (market) {
             setMarketName(market.marketName);
-            setOpenTime(market.openTime.slice(11, 16));
-            setCloseTime(market.closeTime.slice(11, 16));
+            // Convert existing time to HH:MM format for time input
+            const openDate = new Date(market.openTime);
+            const closeDate = new Date(market.closeTime);
+            setOpenTime(openDate.toTimeString().slice(0, 5));
+            setCloseTime(closeDate.toTimeString().slice(0, 5));
         } else {
             setMarketName('');
             setOpenTime('');
@@ -19,47 +24,85 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
         }
     }, [market]);
 
-    if (!open) return null;
+    const handleSubmit = () => {
+        if (!marketName || !openTime || !closeTime) {
+            alert('Please fill in all fields');
+            return;
+        }
 
-    // Always send full ISO date string for today with selected time
-    const today = new Date().toISOString().slice(0, 10); // e.g., "2024-07-12"
-    const openTimeISO = openTime ? new Date(`${today}T${openTime}:00.000Z`).toISOString() : '';
-    const closeTimeISO = closeTime ? new Date(`${today}T${closeTime}:00.000Z`).toISOString() : '';
+        // Create proper ISO date strings for today with the selected times
+        const today = new Date();
+        const [openHour, openMinute] = openTime.split(':').map(Number);
+        const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+
+        const openDateTime = new Date(today);
+        openDateTime.setHours(openHour, openMinute, 0, 0);
+
+        const closeDateTime = new Date(today);
+        closeDateTime.setHours(closeHour, closeMinute, 0, 0);
+
+        onSubmit({
+            marketName,
+            openTime: openDateTime.toISOString(),
+            closeTime: closeDateTime.toISOString()
+        });
+    };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-card rounded-lg p-6 w-full max-w-sm shadow-lg">
-                <h2 className="text-lg font-bold mb-4">{market ? 'Edit Market' : 'Create Market'}</h2>
-                <Input
-                    placeholder="Market Name"
-                    value={marketName}
-                    onChange={e => setMarketName(e.target.value)}
-                    className="mb-2"
-                />
-                <Input
-                    type="time"
-                    placeholder="Open Time"
-                    value={openTime}
-                    onChange={e => setOpenTime(e.target.value)}
-                    className="mb-2"
-                />
-                <Input
-                    type="time"
-                    placeholder="Close Time"
-                    value={closeTime}
-                    onChange={e => setCloseTime(e.target.value)}
-                    className="mb-4"
-                />
-                <div className="flex gap-2 justify-end">
-                    <Button onClick={onClose} variant="outline" disabled={loading}>Cancel</Button>
-                    <Button
-                        onClick={() => onSubmit({ marketName, openTime: openTimeISO, closeTime: closeTimeISO })}
-                        loading={loading}
-                    >
-                        {market ? 'Update' : 'Create'}
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-primary">
+                        {market ? 'Edit Market' : 'Create Market'}
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="marketName" className="text-sm font-medium text-primary">
+                            Market Name
+                        </Label>
+                        <Input
+                            id="marketName"
+                            placeholder="Enter market name"
+                            value={marketName}
+                            onChange={e => setMarketName(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="openTime" className="text-sm font-medium text-primary">
+                            Open Time
+                        </Label>
+                        <Input
+                            id="openTime"
+                            type="time"
+                            value={openTime}
+                            onChange={e => setOpenTime(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="closeTime" className="text-sm font-medium text-primary">
+                            Close Time
+                        </Label>
+                        <Input
+                            id="closeTime"
+                            type="time"
+                            value={closeTime}
+                            onChange={e => setCloseTime(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+                </div>
+                <div className="flex gap-3 justify-end pt-4">
+                    <Button onClick={onClose} variant="outline" disabled={loading}>
+                        Cancel
+                    </Button>
+                    <Button onClick={handleSubmit} disabled={loading || !marketName || !openTime || !closeTime}>
+                        {loading ? 'Saving...' : (market ? 'Update' : 'Create')}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 } 

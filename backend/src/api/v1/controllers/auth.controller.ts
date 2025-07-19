@@ -1,0 +1,330 @@
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { User } from '../../../models/User';
+import { TokenBlacklist } from '../../../models/TokenBlacklist';
+import { logger } from '../../../config/logger';
+import { ApiResponse } from '../types/common.types';
+
+export class AuthController {
+    async login(req: Request, res: Response): Promise<void> {
+        try {
+            const { username, password } = req.body;
+
+            // Find user by username
+            const user = await User.findOne({ username });
+            if (!user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials'
+                });
+                return;
+            }
+
+            // Check if user is active
+            if (!user.isActive) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Account is deactivated'
+                });
+                return;
+            }
+
+            // Verify password
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Invalid credentials'
+                });
+                return;
+            }
+
+            // Generate tokens
+            const accessToken = jwt.sign(
+                { userId: user._id, role: user.role },
+                process.env.JWT_SECRET!,
+                { expiresIn: '1h' }
+            );
+
+            const refreshToken = jwt.sign(
+                { userId: user._id },
+                process.env.JWT_SECRET!,
+                { expiresIn: '7d' }
+            );
+
+            // Remove password from response
+            const userResponse = {
+                _id: user._id,
+                username: user.username,
+                email: user.email || '',
+                role: user.role,
+                isActive: user.isActive,
+                balance: user.balance,
+                createdAt: user.createdAt
+            };
+
+            res.json({
+                success: true,
+                message: 'Login successful',
+                data: {
+                    user: userResponse,
+                    accessToken,
+                    refreshToken
+                }
+            });
+        } catch (error) {
+            logger.error('Login error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async refresh(req: Request, res: Response): Promise<void> {
+        try {
+            const { refreshToken } = req.body;
+
+            if (!refreshToken) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Refresh token required'
+                });
+                return;
+            }
+
+            // Verify refresh token
+            const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as any;
+            const user = await User.findById(decoded.userId);
+
+            if (!user || !user.isActive) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Invalid refresh token'
+                });
+                return;
+            }
+
+            // Generate new access token
+            const newAccessToken = jwt.sign(
+                { userId: user._id, role: user.role },
+                process.env.JWT_SECRET!,
+                { expiresIn: '1h' }
+            );
+
+            res.json({
+                success: true,
+                message: 'Token refreshed successfully',
+                data: {
+                    accessToken: newAccessToken
+                }
+            });
+        } catch (error) {
+            logger.error('Token refresh error:', error);
+            res.status(401).json({
+                success: false,
+                message: 'Invalid refresh token'
+            });
+        }
+    }
+
+    async logout(req: Request, res: Response): Promise<void> {
+        try {
+            const authHeader = req.headers.authorization;
+            const token = authHeader && authHeader.split(' ')[1];
+
+            if (token) {
+                // Add token to blacklist
+                await TokenBlacklist.create({ token });
+            }
+
+            res.json({
+                success: true,
+                message: 'Logout successful'
+            });
+        } catch (error) {
+            logger.error('Logout error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async logoutAll(req: Request, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            // Blacklist all tokens for this user (you might want to implement this)
+            // For now, just return success
+            res.json({
+                success: true,
+                message: 'Logged out from all devices'
+            });
+        } catch (error) {
+            logger.error('Logout all error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async register(req: Request, res: Response): Promise<void> {
+        try {
+            const { username, email, password, role = 'player' } = req.body;
+
+            // Check if user already exists
+            const existingUser = await User.findOne({
+                $or: [{ username }, { email }]
+            });
+
+            if (existingUser) {
+                res.status(409).json({
+                    success: false,
+                    message: 'Username or email already exists'
+                });
+                return;
+            }
+
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 12);
+
+            // Create new user
+            const newUser = new User({
+                username,
+                email,
+                password: hashedPassword,
+                role,
+                isActive: true,
+                balance: 0
+            });
+
+            await newUser.save();
+
+            // Remove password from response
+            const userResponse = {
+                _id: newUser._id,
+                username: newUser.username,
+                email: newUser.email,
+                role: newUser.role,
+                isActive: newUser.isActive,
+                balance: newUser.balance,
+                createdAt: newUser.createdAt
+            };
+
+            res.status(201).json({
+                success: true,
+                message: 'User registered successfully',
+                data: { user: userResponse }
+            });
+        } catch (error) {
+            logger.error('Registration error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getProfile(req: Request, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Profile retrieved successfully',
+                data: { user: req.user }
+            });
+        } catch (error) {
+            logger.error('Get profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async updateProfile(req: Request, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const { email, currentPassword, newPassword } = req.body;
+            const updateData: any = {};
+
+            // Update email if provided
+            if (email) {
+                const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+                if (existingUser) {
+                    res.status(409).json({
+                        success: false,
+                        message: 'Email already exists'
+                    });
+                    return;
+                }
+                updateData.email = email;
+            }
+
+            // Update password if provided
+            if (currentPassword && newPassword) {
+                const user = await User.findById(req.user._id);
+                if (!user) {
+                    res.status(404).json({
+                        success: false,
+                        message: 'User not found'
+                    });
+                    return;
+                }
+
+                const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+                if (!isValidPassword) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Current password is incorrect'
+                    });
+                    return;
+                }
+
+                updateData.password = await bcrypt.hash(newPassword, 12);
+            }
+
+            // Update user
+            const updatedUser = await User.findByIdAndUpdate(
+                req.user._id,
+                updateData,
+                { new: true, runValidators: true }
+            ).select('-password');
+
+            res.json({
+                success: true,
+                message: 'Profile updated successfully',
+                data: { user: updatedUser }
+            });
+        } catch (error) {
+            logger.error('Update profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+} 

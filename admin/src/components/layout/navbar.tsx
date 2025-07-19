@@ -39,28 +39,6 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
         }
     }
 
-    const handleLogoutAll = async () => {
-        try {
-            setIsLoggingOut(true)
-            await authAPI.logoutAll()
-
-            // Clear local storage
-            localStorage.removeItem('isAuthenticated')
-            localStorage.removeItem('user')
-
-            // Redirect to login
-            router.push("/login")
-        } catch (error) {
-            console.error("Logout all error:", error)
-            // Even if logout fails, clear local state and redirect
-            localStorage.removeItem('isAuthenticated')
-            localStorage.removeItem('user')
-            router.push("/login")
-        } finally {
-            setIsLoggingOut(false)
-        }
-    }
-
     return (
         <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="flex h-16 items-center px-4">
@@ -110,14 +88,6 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
                             >
                                 <LogOut className="mr-2 h-4 w-4" />
                                 {isLoggingOut ? "Logging out..." : "Log out"}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                                onClick={handleLogoutAll}
-                                className="text-destructive"
-                                disabled={isLoggingOut}
-                            >
-                                <LogOut className="mr-2 h-4 w-4" />
-                                {isLoggingOut ? "Logging out..." : "Log out from all devices"}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

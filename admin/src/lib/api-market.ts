@@ -1,22 +1,28 @@
-import apiClient from './api-client';
+// This file is deprecated. Market API functionality has been moved to api-service.ts
+// Please use marketsAPI from api-service.ts instead
 
+import { marketsAPI } from './api-service';
+
+// Re-export for backward compatibility
+export const marketAPI = marketsAPI;
+
+// Legacy interfaces for backward compatibility
 export interface Market {
     _id: string;
-    marketName: string;
-    openTime: string;
-    closeTime: string;
-    createdBy: string;
+    name: string;
+    status: 'open' | 'closed' | 'suspended';
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
 }
 
 export interface MarketResponse {
-    markets: Market[];
+    data: Market[];
     pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
-export const marketAPI = {
+// Legacy functions for backward compatibility
+export const legacyMarketAPI = {
     getMarkets: async (page = 1, limit = 10, search = '', status = '') => {
         const params = new URLSearchParams({
             page: page.toString(),
@@ -24,23 +30,18 @@ export const marketAPI = {
             ...(search && { search }),
             ...(status && { status }),
         });
-        const response = await apiClient.get(`/markets?${params}`);
-        return response.data;
+        return marketsAPI.getMarkets(page, limit, status);
     },
     createMarket: async (data: Partial<Market>) => {
-        const response = await apiClient.post('/markets', data);
-        return response.data;
+        return marketsAPI.createMarket(data as { name: string; status: string });
     },
     updateMarket: async (marketId: string, data: Partial<Market>) => {
-        const response = await apiClient.put(`/markets/${marketId}`, data);
-        return response.data;
+        return marketsAPI.updateMarket(marketId, data);
     },
     deleteMarket: async (marketId: string) => {
-        const response = await apiClient.delete(`/markets/${marketId}`);
-        return response.data;
+        return marketsAPI.deleteMarket(marketId);
     },
     toggleMarketActive: async (marketId: string) => {
-        const response = await apiClient.put(`/markets/${marketId}/active`);
-        return response.data;
+        return marketsAPI.updateMarketStatus(marketId, 'active');
     },
 }; 

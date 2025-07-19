@@ -143,7 +143,7 @@ export default function PointTransferPage() {
         }
     }
 
-    const filteredTransfers = transfers.filter(transfer => {
+    const filteredTransfers = (transfers || []).filter(transfer => {
         const matchesSearch = transfer.fromUser.toLowerCase().includes(searchTerm.toLowerCase()) ||
             transfer.toUser.toLowerCase().includes(searchTerm.toLowerCase()) ||
             transfer.reason.toLowerCase().includes(searchTerm.toLowerCase())

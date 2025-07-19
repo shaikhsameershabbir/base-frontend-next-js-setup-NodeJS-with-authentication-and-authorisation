@@ -45,7 +45,7 @@ export function LoginForm() {
         setError("")
 
         try {
-            const response = await authAPI.login({ username, password, login: 'panel' })
+            const response = await authAPI.login({ username, password })
 
             if (response.success && response.data) {
                 // Store authentication state

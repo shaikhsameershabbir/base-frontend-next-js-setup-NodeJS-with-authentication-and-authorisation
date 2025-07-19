@@ -89,17 +89,27 @@ export default function UsersPage() {
             setLoading(true)
             setError(null)
 
-            const response = await usersAPI.getUsersByRole(role, userId, currentPage, pagination.limit, debouncedSearchTerm)
+            // Use the new API structure - getUsers with role filtering
+            const response = await usersAPI.getUsers(currentPage, pagination.limit, debouncedSearchTerm, role)
 
             if (response.success && response.data) {
-                setUsers(response.data.users)
-                setPagination(response.data.pagination)
+                // The API returns data directly as an array, not wrapped in a data property
+                setUsers(Array.isArray(response.data) ? response.data : [])
+                // For now, set default pagination since it's not in the response
+                setPagination({
+                    page: currentPage,
+                    limit: pagination.limit,
+                    total: Array.isArray(response.data) ? response.data.length : 0,
+                    totalPages: 1
+                })
             } else {
                 setError(response.message || 'Failed to fetch users')
+                setUsers([]) // Set empty array on error
             }
         } catch (err) {
             setError('Failed to fetch users')
             console.error('Error fetching users:', err)
+            setUsers([]) // Set empty array on error
         } finally {
             setLoading(false)
         }
@@ -172,7 +182,7 @@ export default function UsersPage() {
         fetchUsers();
     };
 
-    const filteredUsers = users.filter(user => {
+    const filteredUsers = (users || []).filter(user => {
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
             (filterStatus === "inactive" && !user.isActive)

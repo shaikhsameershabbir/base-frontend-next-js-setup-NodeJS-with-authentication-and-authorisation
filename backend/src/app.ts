@@ -1,13 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/database';
 import { logger } from './config/logger';
-import routes from './routes/routes';
-import { errorHandler } from './middlewares/globalErrorHandler';
+import apiRoutes from './api/v1/routes';
+import { ErrorHandlerMiddleware } from './api/v1/middlewares/errorHandler.middleware';
+import { RateLimiterMiddleware } from './api/v1/middlewares/rateLimiter.middleware';
+import { ValidationMiddleware } from './api/v1/middlewares/validation.middleware';
 
 const app = express();
+const errorHandler = new ErrorHandlerMiddleware();
+const rateLimiter = new RateLimiterMiddleware();
+const validationMiddleware = new ValidationMiddleware();
 
 // Connect to MongoDB
 connectDB();
@@ -25,7 +29,7 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false,
 }));
 
-// CORS configuration - must come before rate limiting
+// CORS configuration
 app.use(cors({
     origin: ['http://localhost:3001', 'http://localhost:3000'],
     credentials: true,
@@ -38,22 +42,14 @@ app.use(cors({
 app.options('*', cors());
 
 // Global rate limiting
-const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: {
-        success: false,
-        message: 'Too many requests from this IP, please try again later'
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-app.use(globalLimiter);
+app.use(rateLimiter.apiLimiter);
 
 // Body parsing middleware with size limits
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Input sanitization
+app.use(validationMiddleware.sanitizeInput);
 
 // Request logging
 app.use((req, res, next) => {
@@ -71,22 +67,18 @@ app.get('/health', (req, res) => {
         status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0'
     });
 });
-
+const API_PREFIX = '/api/v1';
 // API routes
-app.use('/api', routes);
+app.use(API_PREFIX, apiRoutes);
 
 // 404 handler
-app.use('*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        message: 'Route not found'
-    });
-});
+app.use(errorHandler.handleNotFound);
 
 // Global error handler
-app.use(errorHandler);
+app.use(errorHandler.handleError);
 
 export default app;

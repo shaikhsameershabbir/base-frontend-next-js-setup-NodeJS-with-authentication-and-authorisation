@@ -1,37 +1,59 @@
-# Matka SK Admin Frontend Documentation
+# Matka SK Admin Panel
 
-A modern Next.js admin panel with role-based authentication and dynamic user interface.
+A modern, production-level admin panel built with Next.js 14, TypeScript, and Tailwind CSS, designed to manage the Matka SK backend system.
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
+- [Features](#features)
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
 - [Setup & Installation](#setup--installation)
 - [Environment Configuration](#environment-configuration)
-- [Component Architecture](#component-architecture)
-- [State Management](#state-management)
 - [API Integration](#api-integration)
-- [Routing & Navigation](#routing--navigation)
-- [Styling & Theming](#styling--theming)
-- [Role-Based Features](#role-based-features)
+- [Authentication](#authentication)
+- [Components](#components)
+- [Hooks](#hooks)
 - [Development Workflow](#development-workflow)
-- [Testing](#testing)
-- [Build & Deployment](#build--deployment)
-- [Troubleshooting](#troubleshooting)
+- [Deployment](#deployment)
 
-## 🎯 Overview
+## ✨ Features
 
-The Matka SK Admin Frontend is a modern, responsive web application built with Next.js 14 and TypeScript. It provides a comprehensive interface for managing users with different roles and permissions in a hierarchical system.
+### 🔐 Authentication & Authorization
+- **JWT Token Management**: Secure authentication with access and refresh tokens
+- **Role-Based Access Control**: Hierarchical user roles (Superadmin → Admin → Distributor → Agent → Player)
+- **Automatic Token Refresh**: Seamless token renewal without user intervention
+- **Session Management**: Secure logout and session cleanup
 
-### Key Features
-- 🔐 Role-based authentication
-- 👥 Hierarchical user management
-- 🎨 Modern, responsive UI
-- 🌙 Dark/Light theme support
-- 📱 Mobile-friendly design
-- ⚡ Real-time data updates
-- 🔒 Secure API communication
+### 👥 User Management
+- **User CRUD Operations**: Create, read, update, and delete users
+- **Role-Specific User Creation**: Create users with appropriate roles
+- **User Status Management**: Activate/deactivate users
+- **Password Management**: Update user passwords securely
+- **Market Assignments**: Assign and manage markets for users
+
+### 🏪 Market Management
+- **Market CRUD Operations**: Full market lifecycle management
+- **Market Status Control**: Open, close, or suspend markets
+- **Market Assignment**: Assign markets to users based on hierarchy
+- **Market Analytics**: View market performance and statistics
+
+### 💰 Transfer Management
+- **Balance Transfers**: Process transfers between users
+- **Transfer History**: View complete transfer history
+- **Transfer Statistics**: Analytics and reporting
+- **Child User Management**: Manage downline users
+
+### 📊 Activity Monitoring
+- **Activity Logging**: Track all user actions
+- **Activity Filtering**: Filter by user, action, and date
+- **Activity Analytics**: Comprehensive activity reporting
+
+### 🎨 Modern UI/UX
+- **Responsive Design**: Works on all device sizes
+- **Dark/Light Theme**: Toggle between themes
+- **Modern Components**: Built with shadcn/ui components
+- **Loading States**: Smooth loading indicators
+- **Error Handling**: Comprehensive error management
 
 ## 🛠️ Technology Stack
 
@@ -39,11 +61,11 @@ The Matka SK Admin Frontend is a modern, responsive web application built with N
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
+- **State Management**: React Hooks + Context
+- **HTTP Client**: Axios
+- **Authentication**: JWT with refresh tokens
 - **Icons**: Lucide React
-- **State Management**: React Hooks
-- **HTTP Client**: Fetch API
-- **Authentication**: JWT tokens
-- **Package Manager**: npm
+- **Forms**: React Hook Form + Zod validation
 
 ## 📁 Project Structure
 
@@ -51,45 +73,40 @@ The Matka SK Admin Frontend is a modern, responsive web application built with N
 admin/
 ├── src/
 │   ├── app/                    # Next.js App Router
-│   │   ├── (routes)/           # Route groups
-│   │   ├── analytics/          # Analytics page
-│   │   ├── dashboard/          # Dashboard page
-│   │   ├── login/              # Login page
-│   │   ├── markets/            # Markets pages
-│   │   ├── points/             # Points management
-│   │   ├── profile/            # User profile page
-│   │   ├── settings/           # Settings page
-│   │   ├── users/              # User management page
-│   │   ├── globals.css         # Global styles
-│   │   ├── layout.tsx          # Root layout
-│   │   └── page.tsx            # Home page
-│   ├── components/             # Reusable components
-│   │   ├── auth/               # Authentication components
-│   │   │   └── login-form.tsx  # Login form
-│   │   ├── dashboard/          # Dashboard components
-│   │   ├── layout/             # Layout components
-│   │   │   ├── admin-layout.tsx
-│   │   │   ├── navbar.tsx
-│   │   │   └── sidebar.tsx
-│   │   ├── theme/              # Theme components
-│   │   │   ├── theme-provider.tsx
-│   │   │   └── theme-switcher.tsx
-│   │   └── ui/                 # Base UI components
-│   │       ├── avatar.tsx
-│   │       ├── badge.tsx
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── input.tsx
-│   │       └── ...
-│   └── lib/                    # Utilities and services
-│       ├── api.ts              # API service
-│       └── utils.ts            # Utility functions
-├── public/                     # Static assets
-├── components.json             # shadcn/ui configuration
-├── tailwind.config.ts          # Tailwind configuration
-├── tsconfig.json               # TypeScript configuration
-├── next.config.mjs             # Next.js configuration
-└── package.json
+│   │   ├── (routes)/          # Protected routes
+│   │   ├── login/             # Authentication pages
+│   │   ├── dashboard/         # Dashboard pages
+│   │   ├── users/             # User management pages
+│   │   ├── markets/           # Market management pages
+│   │   ├── transfers/         # Transfer management pages
+│   │   ├── activities/        # Activity monitoring pages
+│   │   ├── profile/           # User profile pages
+│   │   ├── settings/          # Settings pages
+│   │   ├── layout.tsx         # Root layout
+│   │   └── globals.css        # Global styles
+│   ├── components/            # Reusable components
+│   │   ├── ui/               # shadcn/ui components
+│   │   ├── layout/           # Layout components
+│   │   ├── auth/             # Authentication components
+│   │   ├── dashboard/        # Dashboard components
+│   │   ├── modals/           # Modal components
+│   │   └── theme/            # Theme components
+│   ├── hooks/                # Custom React hooks
+│   │   ├── useAuth.ts        # Authentication hook
+│   │   ├── useUsers.ts       # User management hook
+│   │   ├── useMarkets.ts     # Market management hook
+│   │   ├── useTransfers.ts   # Transfer management hook
+│   │   └── useActivities.ts  # Activity monitoring hook
+│   └── lib/                  # Utility libraries
+│       ├── api-client.ts     # Axios client configuration
+│       ├── api-service.ts    # API service functions
+│       ├── api-market.ts     # Legacy market API (deprecated)
+│       └── api.ts            # Legacy API (deprecated)
+├── public/                   # Static assets
+├── components.json           # shadcn/ui configuration
+├── tailwind.config.ts        # Tailwind CSS configuration
+├── tsconfig.json            # TypeScript configuration
+└── package.json             # Dependencies and scripts
 ```
 
 ## 🚀 Setup & Installation
@@ -97,11 +114,11 @@ admin/
 ### Prerequisites
 - Node.js (v18 or higher)
 - npm or yarn
-- Backend server running (see backend documentation)
+- Backend API running (see backend README)
 
 ### Installation Steps
 
-1. **Navigate to admin directory**
+1. **Clone and navigate to admin directory**
    ```bash
    cd admin
    ```
@@ -123,11 +140,6 @@ admin/
    npm run dev
    ```
 
-6. **Open browser**
-   ```
-   http://localhost:3000
-   ```
-
 ### Available Scripts
 
 ```json
@@ -146,352 +158,208 @@ Create a `.env.local` file in the admin root directory:
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
 
 # Authentication
-NEXT_PUBLIC_APP_NAME=Matka SK Admin
+NEXTAUTH_SECRET=your-nextauth-secret-here
+NEXTAUTH_URL=http://localhost:3000
 
-# Optional: Analytics
-NEXT_PUBLIC_GA_ID=your-google-analytics-id
+# Development
+NODE_ENV=development
 ```
 
 ### Environment Variables Explained
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `NEXT_PUBLIC_API_URL` | Backend API base URL | `http://localhost:3001/api` | Yes |
-| `NEXT_PUBLIC_APP_NAME` | Application name | `Matka SK Admin` | No |
-| `NEXT_PUBLIC_GA_ID` | Google Analytics ID | - | No |
-
-## 🧩 Component Architecture
-
-### Component Hierarchy
-
-```
-App Layout
-├── Theme Provider
-├── Navigation
-│   ├── Navbar
-│   └── Sidebar
-└── Page Content
-    ├── Authentication Pages
-    ├── Dashboard
-    ├── User Management
-    └── Profile Management
-```
-
-### Core Components
-
-#### Authentication Components
-- **LoginForm**: Handles user authentication
-- **AuthGuard**: Protects routes from unauthorized access
-
-#### Layout Components
-- **AdminLayout**: Main application layout
-- **Navbar**: Top navigation bar
-- **Sidebar**: Side navigation menu
-
-#### UI Components
-- **Button**: Reusable button component
-- **Card**: Content container component
-- **Input**: Form input component
-- **Badge**: Status indicator component
-
-### Component Usage Examples
-
-#### Login Form
-```tsx
-import { LoginForm } from "@/components/auth/login-form"
-
-export default function LoginPage() {
-  const handleLogin = async (username: string, password: string) => {
-    // Handle login logic
-  }
-
-  return <LoginForm onLogin={handleLogin} isLoading={false} />
-}
-```
-
-#### User Card
-```tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-
-function UserCard({ user }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{user.username}</CardTitle>
-        <Badge>{user.role}</Badge>
-      </CardHeader>
-      <CardContent>
-        <p>Balance: ₹{user.balance}</p>
-      </CardContent>
-    </Card>
-  )
-}
-```
-
-## 🔄 State Management
-
-### Local State
-- **React Hooks**: useState, useEffect, useContext
-- **Form State**: Controlled components with useState
-- **Loading States**: Boolean flags for async operations
-
-### Global State
-- **Authentication**: localStorage + React Context
-- **Theme**: Context API for dark/light mode
-- **User Data**: API service with caching
-
-### State Management Patterns
-
-#### Authentication State
-```tsx
-// Store user data in localStorage
-localStorage.setItem("user", JSON.stringify(userData))
-localStorage.setItem("authToken", token)
-
-// Retrieve on app load
-const user = JSON.parse(localStorage.getItem("user") || "null")
-```
-
-#### API State Management
-```tsx
-const [users, setUsers] = useState([])
-const [loading, setLoading] = useState(true)
-
-useEffect(() => {
-  loadUsers()
-}, [])
-
-const loadUsers = async () => {
-  try {
-    setLoading(true)
-    const response = await apiService.getUsers()
-    setUsers(response.data.users)
-  } catch (error) {
-    console.error('Error loading users:', error)
-  } finally {
-    setLoading(false)
-  }
-}
-```
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:5000/api/v1` | Yes |
+| `NEXTAUTH_SECRET` | NextAuth secret key | - | Yes |
+| `NEXTAUTH_URL` | Frontend URL | `http://localhost:3000` | Yes |
+| `NODE_ENV` | Environment mode | `development` | No |
 
 ## 🔌 API Integration
 
+### API Client Configuration
+
+The admin panel uses a centralized API client (`src/lib/api-client.ts`) with:
+
+- **Automatic Token Management**: Handles access and refresh tokens
+- **Request/Response Interceptors**: Automatic error handling and token refresh
+- **TypeScript Support**: Full type safety for API calls
+- **Error Handling**: Consistent error handling across the app
+
 ### API Service Structure
 
-The application uses a centralized API service (`src/lib/api.ts`) that provides:
+```typescript
+// Example API service usage
+import { authAPI, usersAPI, marketsAPI } from '@/lib/api-service';
 
-- **Type-safe interfaces** for all API responses
-- **Automatic token management**
-- **Error handling and retry logic**
-- **Request/response interceptors**
+// Authentication
+const loginResponse = await authAPI.login({ username, password });
 
-### API Service Usage
+// User management
+const usersResponse = await usersAPI.getUsers(1, 10, 'search', 'admin');
 
-```tsx
-import { apiService } from "@/lib/api"
-
-// Login
-const response = await apiService.login(username, password)
-
-// Get users
-const usersResponse = await apiService.getUsers()
-
-// Update profile
-const profileResponse = await apiService.updateProfile(data)
+// Market management
+const marketsResponse = await marketsAPI.getMarkets(1, 10, 'open');
 ```
 
-### Error Handling
+### API Response Format
 
-```tsx
-try {
-  const response = await apiService.getUsers()
-  setUsers(response.data.users)
-} catch (error) {
-  if (error instanceof Error) {
-    alert(error.message)
-  } else {
-    alert('An unexpected error occurred')
-  }
+All API responses follow a consistent format:
+
+```typescript
+interface ApiResponse<T = any> {
+    success: boolean;
+    message: string;
+    data?: T;
+    errors?: Array<{
+        field: string;
+        message: string;
+    }>;
 }
 ```
+
+## 🔐 Authentication
 
 ### Authentication Flow
 
-1. **Login**: User submits credentials
-2. **Token Storage**: JWT token stored in localStorage
-3. **API Calls**: Token automatically included in headers
-4. **Token Refresh**: Not implemented (stateless design)
-5. **Logout**: Token removed from localStorage
+1. **Login**: User provides credentials
+2. **Token Storage**: Access and refresh tokens stored in localStorage
+3. **Automatic Refresh**: Tokens automatically refreshed before expiration
+4. **Logout**: Tokens cleared and user redirected to login
 
-## 🧭 Routing & Navigation
+### Authentication Hook
 
-### App Router Structure
+```typescript
+import { useAuth } from '@/hooks/useAuth';
 
-```
-/                    # Home/Redirect page
-/login               # Authentication page
-/dashboard           # Main dashboard
-/users               # User management
-/profile             # User profile
-/settings            # Application settings
-/analytics           # Analytics dashboard
-/markets/*           # Market management
-/points/*            # Points management
-```
-
-### Route Protection
-
-```tsx
-// Check authentication on route change
-useEffect(() => {
-  const token = localStorage.getItem("authToken")
-  if (!token) {
-    router.push("/login")
-  }
-}, [router])
-```
-
-### Dynamic Navigation
-
-Navigation items are filtered based on user role:
-
-```tsx
-const navigationItems = [
-  { href: "/dashboard", label: "Dashboard", roles: ["superadmin", "admin", "distributor"] },
-  { href: "/users", label: "Users", roles: ["superadmin", "admin", "distributor"] },
-  { href: "/profile", label: "Profile", roles: ["superadmin", "admin", "distributor", "player"] },
-]
-```
-
-## 🎨 Styling & Theming
-
-### Design System
-
-The application uses a comprehensive design system built with:
-
-- **Tailwind CSS**: Utility-first CSS framework
-- **shadcn/ui**: High-quality component library
-- **Custom CSS Variables**: For consistent theming
-- **Responsive Design**: Mobile-first approach
-
-### Color Scheme
-
-```css
-:root {
-  --primary: 222.2 84% 4.9%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96%;
-  --accent-foreground: 222.2 84% 4.9%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --radius: 0.5rem;
+function MyComponent() {
+    const { user, loading, login, logout, isAuthenticated } = useAuth();
+    
+    if (loading) return <div>Loading...</div>;
+    if (!isAuthenticated) return <div>Please log in</div>;
+    
+    return <div>Welcome, {user?.username}!</div>;
 }
 ```
 
-### Theme Support
+### Protected Routes
 
-The application supports both light and dark themes:
+Routes are automatically protected using the authentication context:
 
-```tsx
-import { ThemeProvider } from "@/components/theme/theme-provider"
+```typescript
+// In layout.tsx
+import { AuthProvider } from '@/hooks/useAuth';
 
 export default function RootLayout({ children }) {
-  return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      {children}
-    </ThemeProvider>
-  )
+    return (
+        <html>
+            <body>
+                <AuthProvider>
+                    {children}
+                </AuthProvider>
+            </body>
+        </html>
+    );
 }
 ```
 
-### Responsive Design
+## 🧩 Components
 
-```tsx
-// Mobile-first responsive classes
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {/* Content */}
-</div>
+### UI Components
+
+Built with shadcn/ui for consistency and accessibility:
+
+- **Button**: Various button styles and states
+- **Input**: Form inputs with validation
+- **Card**: Content containers
+- **Dialog**: Modal dialogs
+- **Table**: Data tables with sorting and pagination
+- **Badge**: Status indicators
+- **Avatar**: User avatars
+- **Dropdown**: Dropdown menus
+
+### Layout Components
+
+- **AdminLayout**: Main layout with sidebar and header
+- **Sidebar**: Navigation sidebar
+- **Navbar**: Top navigation bar
+- **ThemeProvider**: Theme management
+
+### Custom Components
+
+- **AddUserModal**: User creation modal
+- **EditUserModal**: User editing modal
+- **MarketModal**: Market management modal
+- **TransferModal**: Transfer processing modal
+
+## 🎣 Hooks
+
+### Custom Hooks
+
+The admin panel includes several custom hooks for state management:
+
+#### useAuth
+```typescript
+const { user, loading, login, logout, isAuthenticated } = useAuth();
 ```
 
-## 👥 Role-Based Features
-
-### Role Hierarchy
-
-```
-Superadmin → Admin → Distributor → Player
-```
-
-### Feature Access by Role
-
-#### Superadmin
-- ✅ View all users
-- ✅ Create admin accounts
-- ✅ Access all system data
-- ✅ Full system administration
-
-#### Admin
-- ✅ View distributors and players under them
-- ✅ Create distributor accounts
-- ✅ Manage player accounts
-- ✅ View hierarchy reports
-
-#### Distributor
-- ✅ View players under them
-- ✅ Create player accounts
-- ✅ Manage player balances
-- ✅ View player activities
-
-#### Player
-- ✅ View own profile
-- ✅ Update personal information
-- ✅ View own balance
-- ✅ Access player features
-
-### Dynamic UI Components
-
-```tsx
-// Show/hide components based on role
-{user.role === 'superadmin' && (
-  <Button onClick={createAdmin}>Create Admin</Button>
-)}
-
-{user.role === 'admin' && (
-  <Button onClick={createDistributor}>Create Distributor</Button>
-)}
+#### useUsers
+```typescript
+const { 
+    users, 
+    loading, 
+    error, 
+    getUsers, 
+    createUser, 
+    updateUser, 
+    deleteUser 
+} = useUsers();
 ```
 
-### Route Protection
+#### useMarkets
+```typescript
+const { 
+    markets, 
+    loading, 
+    error, 
+    getMarkets, 
+    createMarket, 
+    updateMarket 
+} = useMarkets();
+```
 
-```tsx
-// Protect routes based on role
-const allowedRoles = ['superadmin', 'admin']
-if (!allowedRoles.includes(user.role)) {
-  router.push('/profile')
-}
+#### useTransfers
+```typescript
+const { 
+    transfers, 
+    loading, 
+    error, 
+    processTransfer, 
+    getHistory 
+} = useTransfers();
+```
+
+#### useActivities
+```typescript
+const { 
+    activities, 
+    loading, 
+    error, 
+    getActivities 
+} = useActivities();
 ```
 
 ## 🔄 Development Workflow
 
-### Code Style Guidelines
-
+### Code Style
 - **TypeScript**: Strict type checking enabled
-- **ESLint**: Code linting with Next.js rules
-- **Prettier**: Code formatting (recommended)
-- **Component Structure**: Functional components with hooks
+- **ESLint**: Code linting with TypeScript rules
+- **Prettier**: Code formatting
+- **Husky**: Git hooks for pre-commit linting
 
 ### Development Commands
-
 ```bash
 # Start development server
 npm run dev
@@ -510,107 +378,64 @@ npm run lint:fix
 ```
 
 ### File Naming Conventions
-
-- **Components**: PascalCase (e.g., `UserCard.tsx`)
+- **Components**: PascalCase (e.g., `UserTable.tsx`)
+- **Hooks**: camelCase with `use` prefix (e.g., `useAuth.ts`)
 - **Pages**: kebab-case (e.g., `user-management.tsx`)
-- **Utilities**: camelCase (e.g., `apiService.ts`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `API_ENDPOINTS.ts`)
+- **API Services**: camelCase (e.g., `api-service.ts`)
 
-### Component Development
-
-```tsx
+### Component Structure
+```typescript
 // Component template
 interface ComponentProps {
-  // Define props
+    // Props interface
 }
 
 export function Component({ prop1, prop2 }: ComponentProps) {
-  // Component logic
-  return (
-    // JSX
-  )
+    // Component logic
+    return (
+        // JSX
+    );
 }
 ```
 
-## 🧪 Testing
-
-### Manual Testing
-
-#### Test Scenarios
-1. **Authentication Flow**
-   - Login with valid credentials
-   - Login with invalid credentials
-   - Logout functionality
-
-2. **Role-Based Access**
-   - Test each role's permissions
-   - Verify data access restrictions
-   - Check UI element visibility
-
-3. **User Management**
-   - View users (role-dependent)
-   - Update user information
-   - Create new users (role-dependent)
-
-4. **Responsive Design**
-   - Test on different screen sizes
-   - Verify mobile navigation
-   - Check touch interactions
-
-### Testing Tools
-
-- **Browser DevTools**: For debugging
-- **React Developer Tools**: For component inspection
-- **Network Tab**: For API request monitoring
-- **Console**: For error logging
-
-### Automated Testing
-*Not implemented - consider adding Jest/React Testing Library*
-
-## 🚀 Build & Deployment
+## 🚀 Deployment
 
 ### Production Build
 
-```bash
-# Install dependencies
-npm install
+1. **Build the application**
+   ```bash
+   npm run build
+   ```
 
-# Build application
-npm run build
+2. **Set production environment variables**
+   ```env
+   NEXT_PUBLIC_API_URL=https://your-api-domain.com/api/v1
+   NEXTAUTH_SECRET=your-production-secret
+   NEXTAUTH_URL=https://your-admin-domain.com
+   NODE_ENV=production
+   ```
 
-# Start production server
-npm start
-```
+3. **Start the server**
+   ```bash
+   npm start
+   ```
 
-### Environment Configuration
+### Vercel Deployment
 
-```env
-# Production environment
-NEXT_PUBLIC_API_URL=https://your-api-domain.com/api
-NEXT_PUBLIC_APP_NAME=Matka SK Admin
-```
+1. **Connect to Vercel**
+   ```bash
+   npx vercel
+   ```
 
-### Deployment Options
+2. **Set environment variables in Vercel dashboard**
 
-#### Vercel (Recommended)
-```bash
-# Install Vercel CLI
-npm i -g vercel
+3. **Deploy**
+   ```bash
+   npx vercel --prod
+   ```
 
-# Deploy
-vercel
-```
+### Docker Deployment
 
-#### Netlify
-```bash
-# Build command
-npm run build
-
-# Publish directory
-out/
-```
-
-#### Docker
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -622,82 +447,44 @@ EXPOSE 3000
 CMD ["npm", "start"]
 ```
 
-### Performance Optimization
-
-- **Code Splitting**: Automatic with Next.js
-- **Image Optimization**: Next.js Image component
-- **Bundle Analysis**: `@next/bundle-analyzer`
-- **Caching**: Static generation where possible
-
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### Build Errors
-```bash
-# Clear Next.js cache
-rm -rf .next
-
-# Reinstall dependencies
-rm -rf node_modules
-npm install
-```
-
 #### API Connection Issues
-- Verify backend server is running
-- Check `NEXT_PUBLIC_API_URL` environment variable
-- Ensure CORS is properly configured on backend
+- Verify `NEXT_PUBLIC_API_URL` is correct
+- Check if backend server is running
+- Ensure CORS is properly configured
 
 #### Authentication Issues
-- Clear localStorage: `localStorage.clear()`
-- Check JWT token expiration
-- Verify token format in browser devtools
+- Clear localStorage and try logging in again
+- Check if JWT tokens are valid
+- Verify backend authentication endpoints
+
+#### Build Issues
+- Clear `.next` folder and rebuild
+- Check for TypeScript errors
+- Verify all dependencies are installed
 
 #### Styling Issues
-- Check Tailwind CSS configuration
-- Verify CSS imports in `globals.css`
-- Ensure theme provider is properly configured
+- Ensure Tailwind CSS is properly configured
+- Check if shadcn/ui components are installed
+- Verify CSS imports in layout files
 
 ### Debug Mode
-
 ```bash
-# Enable Next.js debug mode
-DEBUG=* npm run dev
-
-# Enable React strict mode
-# Add to next.config.mjs
+# Enable debug logging
+NODE_ENV=development DEBUG=* npm run dev
 ```
-
-### Performance Issues
-
-- **Bundle Size**: Use bundle analyzer
-- **API Calls**: Implement caching
-- **Images**: Use Next.js Image optimization
-- **Fonts**: Use `next/font` for optimization
-
-## 📱 Browser Support
-
-- **Chrome**: 90+
-- **Firefox**: 88+
-- **Safari**: 14+
-- **Edge**: 90+
-
-## 🔒 Security Considerations
-
-- **HTTPS**: Required in production
-- **CSP**: Content Security Policy headers
-- **XSS Protection**: Input sanitization
-- **CSRF Protection**: Token-based validation
-- **Secure Headers**: Security headers configuration
 
 ## 📞 Support
 
 For issues and questions:
 1. Check this documentation
-2. Review browser console for errors
-3. Verify environment configuration
-4. Test with provided demo credentials
-5. Check backend server status
+2. Review the backend API documentation
+3. Check browser console for errors
+4. Verify environment configuration
+5. Test API endpoints directly
 
 ## 📄 License
 

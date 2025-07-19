@@ -1,6 +1,6 @@
 # Matka SK Backend API Documentation
 
-A comprehensive Node.js/Express backend with role-based authentication and hierarchical data access control.
+A production-level Node.js/Express backend with role-based authentication, hierarchical data access control, and comprehensive API versioning.
 
 ## 📋 Table of Contents
 
@@ -23,7 +23,7 @@ A comprehensive Node.js/Express backend with role-based authentication and hiera
 ## 🏗️ Architecture Overview
 
 ### System Design
-The backend implements a hierarchical role-based access control (RBAC) system with the following architecture:
+The backend implements a production-level hierarchical role-based access control (RBAC) system with API versioning:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -33,8 +33,10 @@ The backend implements a hierarchical role-based access control (RBAC) system wi
                               │
                               ▼
                        ┌─────────────────┐
-                       │   JWT Auth      │
+                       │   API v1        │
+                       │   Controllers   │
                        │   Middleware    │
+                       │   Validators    │
                        └─────────────────┘
 ```
 
@@ -43,12 +45,15 @@ The backend implements a hierarchical role-based access control (RBAC) system wi
 Superadmin (Level 0)
 ├── Admin (Level 1)
 │   ├── Distributor (Level 2)
-│   │   └── Player (Level 3)
+│   │   └── Agent (Level 3)
+│   │       └── Player (Level 4)
 │   └── Distributor (Level 2)
-│       └── Player (Level 3)
+│       └── Agent (Level 3)
+│           └── Player (Level 4)
 └── Admin (Level 1)
     └── Distributor (Level 2)
-        └── Player (Level 3)
+        └── Agent (Level 3)
+            └── Player (Level 4)
 ```
 
 ## 🛠️ Technology Stack
@@ -58,9 +63,10 @@ Superadmin (Level 0)
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT (JSON Web Tokens)
 - **Password Hashing**: bcryptjs
-- **Validation**: Built-in Express validation
+- **Validation**: express-validator
 - **Logging**: Winston
 - **CORS**: Express CORS middleware
+- **Rate Limiting**: express-rate-limit
 - **Language**: TypeScript
 - **Package Manager**: npm
 
@@ -75,19 +81,49 @@ backend/
 │   │   ├── index.ts           # Main configuration
 │   │   ├── database.ts        # Database connection
 │   │   └── logger.ts          # Winston logger setup
-│   ├── controllers/
-│   │   └── authController.ts  # Authentication & user management
-│   ├── middlewares/
-│   │   ├── auth.ts            # JWT authentication & role middleware
-│   │   └── globalErrorHandler.ts # Global error handling
-│   ├── models/
-│   │   └── User.ts            # User schema & model
-│   ├── routes/
-│   │   └── authRoutes.ts      # API route definitions
+│   ├── api/
+│   │   └── v1/
+│   │       ├── routes/        # API route definitions
+│   │       │   ├── index.ts   # Main router
+│   │       │   ├── auth.routes.ts
+│   │       │   ├── users.routes.ts
+│   │       │   ├── markets.routes.ts
+│   │       │   ├── transfers.routes.ts
+│   │       │   ├── activities.routes.ts
+│   │       │   └── player.routes.ts
+│   │       ├── controllers/   # Business logic handlers
+│   │       │   ├── auth.controller.ts
+│   │       │   ├── users.controller.ts
+│   │       │   ├── markets.controller.ts
+│   │       │   ├── transfers.controller.ts
+│   │       │   ├── activities.controller.ts
+│   │       │   └── player.controller.ts
+│   │       ├── middlewares/   # Custom middleware
+│   │       │   ├── auth.middleware.ts
+│   │       │   ├── rateLimiter.middleware.ts
+│   │       │   ├── validation.middleware.ts
+│   │       │   ├── errorHandler.middleware.ts
+│   │       │   └── playerAuth.middleware.ts
+│   │       ├── validators/    # Request validation
+│   │       │   ├── auth.validator.ts
+│   │       │   ├── users.validator.ts
+│   │       │   ├── markets.validator.ts
+│   │       │   ├── transfers.validator.ts
+│   │       │   └── player.validator.ts
+│   │       └── types/         # TypeScript definitions
+│   │           └── common.types.ts
+│   ├── models/                # Database models
+│   │   ├── User.ts
+│   │   ├── Market.ts
+│   │   ├── Transfer.ts
+│   │   ├── Activity.ts
+│   │   ├── UserMarketAssignment.ts
+│   │   ├── UserHierarchy.ts
+│   │   └── TokenBlacklist.ts
 │   ├── utils/
 │   │   ├── jwt.ts             # JWT utilities
 │   │   └── utils.ts           # General utilities
-│   └── types/                 # TypeScript type definitions
+│   └── services/              # Business logic services
 ├── scripts/
 │   ├── createAdmin.ts         # Admin user creation script
 │   ├── seedData.ts            # Database seeding script
@@ -162,18 +198,29 @@ Create a `.env` file in the backend root directory:
 MONGODB_URI=mongodb://localhost:27017/matka-sk
 
 # JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=24h
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_REFRESH_SECRET=your-super-secret-refresh-jwt-key-change-this-in-production
+ACCESS_TOKEN_EXPIRES_IN=1h
+REFRESH_TOKEN_EXPIRES_IN=7d
 
 # Server Configuration
-PORT=3001
+PORT=5000
 NODE_ENV=development
 
-# CORS Configuration
+# Frontend URL for CORS
 FRONTEND_URL=http://localhost:3000
 
-# Logging Configuration
+# Cookie Configuration
+COOKIE_DOMAIN=localhost
+
+# Security Configuration
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+LOGIN_RATE_LIMIT_MAX_REQUESTS=5
+
+# Logging
 LOG_LEVEL=info
+LOG_FILE=logs/app.log
 ```
 
 ### Environment Variables Explained
@@ -182,8 +229,10 @@ LOG_LEVEL=info
 |----------|-------------|---------|----------|
 | `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/matka-sk` | Yes |
 | `JWT_SECRET` | Secret key for JWT signing | - | Yes |
-| `JWT_EXPIRES_IN` | JWT token expiration time | `24h` | No |
-| `PORT` | Server port | `3001` | No |
+| `JWT_REFRESH_SECRET` | Secret key for refresh tokens | - | Yes |
+| `ACCESS_TOKEN_EXPIRES_IN` | Access token expiration | `1h` | No |
+| `REFRESH_TOKEN_EXPIRES_IN` | Refresh token expiration | `7d` | No |
+| `PORT` | Server port | `5000` | No |
 | `NODE_ENV` | Environment mode | `development` | No |
 | `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` | No |
 | `LOG_LEVEL` | Winston log level | `info` | No |
@@ -195,36 +244,76 @@ LOG_LEVEL=info
 ```typescript
 interface IUser {
   username: string;           // Unique username
+  email?: string;            // Optional email
   password: string;           // Hashed password
   balance: number;            // User balance
-  role: 'superadmin' | 'admin' | 'distributor' | 'player';
+  role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
   parentId?: ObjectId;        // Reference to parent user
   isActive: boolean;          // Account status
+  loginSource: string;        // Login source tracking
+  lastLogin: Date;            // Last login timestamp
   createdAt: Date;            // Account creation date
   updatedAt: Date;            // Last update date
+}
+```
+
+### Market Model
+
+```typescript
+interface IMarket {
+  name: string;               // Market name
+  status: 'open' | 'closed' | 'suspended';
+  isActive: boolean;          // Market status
+  createdAt: Date;            // Creation date
+  updatedAt: Date;            // Last update date
+}
+```
+
+### UserMarketAssignment Model
+
+```typescript
+interface IUserMarketAssignment {
+  assignedBy: ObjectId;       // Who assigned
+  assignedTo: ObjectId;       // Who received
+  marketId: ObjectId;         // Which market
+  assignedAt: Date;           // Assignment date
+  isActive: boolean;          // Assignment status
+  hierarchyLevel: 'admin' | 'distributor' | 'agent' | 'player';
+  parentAssignment?: ObjectId; // Reference to parent assignment
 }
 ```
 
 ### Database Indexes
 
 ```typescript
-// Efficient queries for role-based access
+// User indexes
 userSchema.index({ parentId: 1, role: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ username: 1 }); // Unique index
+userSchema.index({ email: 1 });
+
+// Market indexes
+marketSchema.index({ name: 1 }); // Unique
+marketSchema.index({ status: 1 });
+
+// Assignment indexes
+assignmentSchema.index({ assignedTo: 1, isActive: 1 });
+assignmentSchema.index({ marketId: 1, isActive: 1 });
 ```
 
 ## 📚 API Documentation
 
 ### Base URL
 ```
-http://localhost:3001/api
+http://localhost:5000/api/v1
 ```
+
+### API Versioning
+All endpoints are versioned with `/api/v1/` prefix for future compatibility.
 
 ### Authentication Endpoints
 
 #### POST /auth/login
-Authenticate user and return JWT token.
+Authenticate user and return JWT tokens.
 
 **Request Body:**
 ```json
@@ -243,28 +332,25 @@ Authenticate user and return JWT token.
     "user": {
       "_id": "string",
       "username": "string",
+      "email": "string",
       "balance": 1000,
       "role": "admin",
-      "parentId": "string",
       "isActive": true,
       "createdAt": "2024-01-01T00:00:00.000Z"
     },
-    "token": "jwt-token-here"
+    "accessToken": "jwt-access-token",
+    "refreshToken": "jwt-refresh-token"
   }
 }
 ```
 
-#### POST /auth/register
-Register a new user (requires authentication and proper role permissions).
+#### POST /auth/refresh
+Refresh access token using refresh token.
 
 **Request Body:**
 ```json
 {
-  "username": "string",
-  "password": "string",
-  "balance": 0,
-  "role": "player",
-  "parentId": "string"
+  "refreshToken": "string"
 }
 ```
 
@@ -272,11 +358,39 @@ Register a new user (requires authentication and proper role permissions).
 ```json
 {
   "success": true,
-  "message": "User registered successfully",
+  "message": "Token refreshed successfully",
   "data": {
-    "user": { /* user object */ },
-    "token": "jwt-token-here"
+    "accessToken": "new-jwt-access-token"
   }
+}
+```
+
+#### POST /auth/logout
+Logout user and blacklist token.
+
+**Headers:**
+```
+Authorization: Bearer <access-token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
+#### POST /auth/register
+Register a new user.
+
+**Request Body:**
+```json
+{
+  "username": "string",
+  "email": "string",
+  "password": "string",
+  "role": "player"
 }
 ```
 
@@ -285,17 +399,7 @@ Get current user's profile.
 
 **Headers:**
 ```
-Authorization: Bearer <jwt-token>
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "user": { /* user object */ }
-  }
-}
+Authorization: Bearer <access-token>
 ```
 
 #### PUT /auth/profile
@@ -303,87 +407,213 @@ Update current user's profile.
 
 **Headers:**
 ```
-Authorization: Bearer <jwt-token>
+Authorization: Bearer <access-token>
 ```
 
 **Request Body:**
 ```json
 {
-  "username": "string",
-  "balance": 1000
+  "email": "string",
+  "currentPassword": "string",
+  "newPassword": "string"
 }
 ```
 
 ### User Management Endpoints
 
-#### GET /auth/users
+#### GET /users
 Get all accessible users based on role hierarchy.
 
 **Headers:**
 ```
-Authorization: Bearer <jwt-token>
+Authorization: Bearer <access-token>
 ```
+
+**Query Parameters:**
+- `page` (number): Page number (default: 1)
+- `limit` (number): Items per page (default: 10)
+- `search` (string): Search by username or email
+- `role` (string): Filter by role
 
 **Response:**
 ```json
 {
   "success": true,
-  "data": {
-    "users": [
-      {
-        "_id": "string",
-        "username": "string",
-        "balance": 1000,
-        "role": "player",
-        "parentId": {
-          "_id": "string",
-          "username": "string",
-          "role": "distributor"
-        },
-        "isActive": true,
-        "createdAt": "2024-01-01T00:00:00.000Z",
-        "updatedAt": "2024-01-01T00:00:00.000Z"
-      }
-    ]
+  "message": "Users retrieved successfully",
+  "data": [
+    {
+      "_id": "string",
+      "username": "string",
+      "email": "string",
+      "balance": 1000,
+      "role": "player",
+      "isActive": true,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100,
+    "totalPages": 10
   }
 }
 ```
 
-#### GET /auth/users/:userId
+#### GET /users/:userId
 Get specific user by ID (with access control).
 
-**Headers:**
-```
-Authorization: Bearer <jwt-token>
-```
-
-#### PUT /auth/users/:userId
+#### PUT /users/:userId
 Update specific user (with access control).
 
-**Headers:**
-```
-Authorization: Bearer <jwt-token>
-```
+#### DELETE /users/:userId
+Delete user and downline (with access control).
+
+#### PUT /users/:userId/active
+Toggle user active status.
+
+#### PUT /users/:userId/password
+Update user password.
+
+### User Creation Endpoints
+
+#### POST /users/create
+Create new user (generic).
+
+#### POST /users/create/admin
+Create admin user (Superadmin only).
+
+#### POST /users/create/distributor
+Create distributor user (Admin only).
+
+#### POST /users/create/agent
+Create agent user (Distributor only).
+
+#### POST /users/create/player
+Create player user (Agent only).
+
+### Market Assignment Endpoints
+
+#### GET /users/:userId/available-markets
+Get available markets for assignment.
+
+#### POST /users/:userId/assign-markets
+Assign markets to user.
 
 **Request Body:**
 ```json
 {
-  "username": "string",
-  "balance": 1000,
-  "isActive": true
+  "marketIds": ["marketId1", "marketId2"]
 }
 ```
 
-### Role-Specific Registration Endpoints
+#### GET /users/:userId/assigned-markets
+Get user's assigned markets.
 
-#### POST /auth/register/admin
-Create admin user (Superadmin only).
+#### POST /users/:userId/remove-markets
+Remove market assignments.
 
-#### POST /auth/register/distributor
-Create distributor user (Admin only).
+### Market Management Endpoints
 
-#### POST /auth/register/player
-Create player user (Distributor only).
+#### GET /markets
+Get all markets.
+
+**Query Parameters:**
+- `page` (number): Page number
+- `limit` (number): Items per page
+- `status` (string): Filter by status
+
+#### GET /markets/:id
+Get market by ID.
+
+#### POST /markets
+Create new market (Admin/Superadmin only).
+
+**Request Body:**
+```json
+{
+  "name": "string",
+  "status": "open"
+}
+```
+
+#### PUT /markets/:id
+Update market (Admin/Superadmin only).
+
+#### DELETE /markets/:id
+Delete market (Admin/Superadmin only).
+
+#### PUT /markets/:id/status
+Update market status.
+
+### Transfer Endpoints
+
+#### GET /transfers/children
+Get child users for transfers.
+
+#### POST /transfers/process
+Process balance transfer.
+
+**Request Body:**
+```json
+{
+  "toUserId": "string",
+  "amount": 100,
+  "description": "string"
+}
+```
+
+#### GET /transfers/history
+Get transfer history.
+
+**Query Parameters:**
+- `page` (number): Page number
+- `limit` (number): Items per page
+- `type` (string): 'sent', 'received', or 'all'
+
+#### GET /transfers/stats
+Get transfer statistics.
+
+### Activity Endpoints
+
+#### GET /activities
+Get all activities.
+
+**Query Parameters:**
+- `page` (number): Page number
+- `limit` (number): Items per page
+- `user` (string): Filter by user ID
+- `action` (string): Filter by action
+
+#### GET /activities/:id
+Get activity by ID.
+
+#### GET /activities/user/:userId
+Get user activities.
+
+### Player Endpoints
+
+#### GET /player/profile
+Get player profile (Player authentication required).
+
+#### PUT /player/profile
+Update player profile.
+
+#### GET /player/assigned-markets
+Get player's assigned markets.
+
+#### POST /player/confirm-bid
+Confirm bid placement.
+
+**Request Body:**
+```json
+{
+  "marketId": "string",
+  "gameType": "single",
+  "numbers": [123, 456],
+  "amount": 100
+}
+```
 
 ### Error Responses
 
@@ -392,17 +622,25 @@ All endpoints return consistent error responses:
 ```json
 {
   "success": false,
-  "message": "Error description"
+  "message": "Error description",
+  "errors": [
+    {
+      "field": "username",
+      "message": "Username is required"
+    }
+  ]
 }
 ```
 
 **Common HTTP Status Codes:**
 - `200` - Success
 - `201` - Created
-- `400` - Bad Request
+- `400` - Bad Request (Validation Error)
 - `401` - Unauthorized
 - `403` - Forbidden
 - `404` - Not Found
+- `409` - Conflict (Duplicate Entry)
+- `429` - Too Many Requests (Rate Limited)
 - `500` - Internal Server Error
 
 ## 🔐 Authentication & Authorization
@@ -412,10 +650,9 @@ All endpoints return consistent error responses:
 ```typescript
 interface JWTPayload {
   userId: string;
-  username: string;
-  balance: number;
   role: string;
-  parentId?: string;
+  iat: number;
+  exp: number;
 }
 ```
 
@@ -423,81 +660,131 @@ interface JWTPayload {
 
 #### Role Hierarchy Rules
 1. **Superadmin**: Can access all users and create admins
-2. **Admin**: Can access distributors and players under them
-3. **Distributor**: Can access players under them
-4. **Player**: Can only access their own data
+2. **Admin**: Can access distributors, agents, and players under them
+3. **Distributor**: Can access agents and players under them
+4. **Agent**: Can access players under them
+5. **Player**: Can only access their own data
 
 #### Data Access Implementation
 ```typescript
 // Middleware determines accessible user IDs
-const accessibleUserIds = await getAccessibleUserIds(req.user.role, req.user.userId);
+const accessibleUserIds = await getAccessibleUserIds(req.user.role, req.user._id);
 ```
 
 ### Token Management
 
-- **Expiration**: 24 hours (configurable)
-- **Refresh**: Not implemented (stateless design)
-- **Storage**: Client-side (localStorage)
-- **Security**: HTTPS recommended in production
+- **Access Token Expiration**: 1 hour (configurable)
+- **Refresh Token Expiration**: 7 days (configurable)
+- **Token Blacklisting**: Implemented for secure logout
+- **Storage**: Client-side (localStorage/sessionStorage)
+- **Security**: HTTPS required in production
 
 ## 🔧 Middleware
 
 ### Authentication Middleware
 
 #### `authenticateToken`
-- Validates JWT token
-- Checks user existence and active status
+- Validates JWT access token
+- Checks token blacklist
+- Verifies user existence and active status
 - Adds user data to request object
 
 #### `requireRole`
 - Validates user has required role(s)
 - Used for role-specific endpoints
+- Implements role hierarchy validation
 
-#### `getAccessibleUserIds`
+#### `setAccessibleUsers`
 - Determines which users current user can access
 - Implements hierarchical data filtering
 - Adds accessible user IDs to request object
 
-### Global Error Handler
+### Rate Limiting Middleware
 
-```typescript
-// Catches all unhandled errors
-app.use(errorHandler);
-```
+#### `loginLimiter`
+- Limits login attempts to 5 per 15 minutes
+- Prevents brute force attacks
 
-**Features:**
-- Consistent error response format
-- Logging of errors
-- Development vs production error details
+#### `apiLimiter`
+- Limits general API requests to 100 per 15 minutes
+- Prevents API abuse
+
+#### `transferLimiter`
+- Limits transfer requests to 10 per minute
+- Prevents rapid transfer abuse
+
+### Validation Middleware
+
+#### `validateRequest`
+- Validates request data using express-validator
+- Returns consistent error responses
+- Logs validation errors
+
+#### `sanitizeInput`
+- Sanitizes input data
+- Removes malicious content
+- Trims whitespace
+
+### Error Handling Middleware
+
+#### `handleError`
+- Catches all unhandled errors
+- Returns consistent error format
+- Logs errors with context
+- Hides sensitive data in production
+
+#### `handleNotFound`
+- Handles 404 errors
+- Returns consistent not found response
+
+### Player Authentication Middleware
+
+#### `authenticatePlayer`
+- Validates player-specific authentication
+- Ensures user has player role
+- Used for player-only endpoints
 
 ## 🛡️ Security Features
 
 ### Password Security
-- **Hashing**: bcrypt with salt rounds (10)
-- **Validation**: Minimum 6 characters
+- **Hashing**: bcrypt with salt rounds (12)
+- **Validation**: Minimum 6 characters, complexity requirements
 - **Comparison**: Secure timing attack prevention
 
 ### JWT Security
-- **Secret**: Environment variable
-- **Expiration**: Configurable
+- **Access Token**: Short expiration (1 hour)
+- **Refresh Token**: Longer expiration (7 days)
+- **Blacklisting**: Secure logout implementation
 - **Payload**: Minimal user data
 
 ### Input Validation
-- **Username**: 3-30 characters, unique
-- **Password**: Minimum 6 characters
-- **Balance**: Non-negative numbers
-- **Role**: Enum validation
+- **Username**: 3-50 characters, alphanumeric + underscore
+- **Email**: Valid email format, optional
+- **Password**: Minimum 6 characters, complexity requirements
+- **Amount**: Positive numbers only
+- **Market Names**: 2-100 characters
 
 ### CORS Protection
 ```typescript
 app.use(cors({
   origin: process.env.FRONTEND_URL,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 ```
 
 ### Rate Limiting
-*Not implemented - consider adding for production*
+- **Login**: 5 attempts per 15 minutes
+- **API**: 100 requests per 15 minutes
+- **Transfers**: 10 requests per minute
+- **Custom handlers**: Detailed error messages
+
+### Request Logging
+- **IP Address**: Logged for security
+- **User Agent**: Tracked for analytics
+- **Timestamp**: ISO format
+- **Method & Path**: Request details
 
 ## 🔄 Development Workflow
 
@@ -506,9 +793,12 @@ app.use(cors({
 - **Formatting**: Prettier (recommended)
 - **Type Safety**: Strict TypeScript configuration
 
-### Git Hooks
-- **Pre-commit**: Lint staged files
-- **Husky**: Git hooks management
+### API Structure
+- **Versioning**: `/api/v1/` prefix
+- **Controllers**: Class-based architecture
+- **Services**: Business logic separation
+- **Validators**: Request validation
+- **Types**: TypeScript interfaces
 
 ### Development Commands
 ```bash
@@ -541,6 +831,7 @@ npm run fix-db
 | Superadmin | `superadmin` | `superadmin123` | Full access |
 | Admin | `admin` | `admin123` | Admin level |
 | Distributor | `distributor1` | `dist123` | Distributor level |
+| Agent | `agent1` | `agent123` | Agent level |
 | Player | `player1` | `player123` | Player level |
 
 #### API Testing Tools
@@ -548,8 +839,21 @@ npm run fix-db
 - **Insomnia**: Alternative API client
 - **curl**: Command line testing
 
-### Automated Testing
-*Not implemented - consider adding Jest/Mocha*
+### Health Check
+```bash
+curl http://localhost:5000/health
+```
+
+**Response:**
+```json
+{
+  "status": "OK",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "uptime": 123.456,
+  "environment": "development",
+  "version": "1.0.0"
+}
+```
 
 ## 🚀 Deployment
 
@@ -558,39 +862,40 @@ npm run fix-db
 NODE_ENV=production
 MONGODB_URI=mongodb://your-production-db
 JWT_SECRET=your-production-secret
+JWT_REFRESH_SECRET=your-production-refresh-secret
 FRONTEND_URL=https://your-frontend-domain.com
+PORT=5000
 ```
 
 ### Deployment Steps
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+1. **Set production environment variables**
 
-2. **Set production environment variables**
+2. **Install dependencies**
+   ```bash
+   npm ci --only=production
+   ```
 
 3. **Start the server**
    ```bash
    npm start
    ```
 
-### Docker Deployment (Optional)
+### PM2 Deployment
+```bash
+npm install -g pm2
+pm2 start ecosystem.config.js
+```
+
+### Docker Deployment
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY . .
-RUN npm run build
-EXPOSE 3001
+EXPOSE 5000
 CMD ["npm", "start"]
-```
-
-### PM2 Deployment
-```bash
-npm install -g pm2
-pm2 start ecosystem.config.js
 ```
 
 ## 🔧 Troubleshooting
@@ -610,16 +915,22 @@ sudo systemctl restart mongod
 - Verify `JWT_SECRET` is set
 - Check token expiration
 - Validate token format
+- Check token blacklist
 
 #### CORS Issues
 - Verify `FRONTEND_URL` is correct
 - Check browser console for CORS errors
 - Ensure credentials are included in requests
 
-#### Role Access Issues
-- Verify user role in database
-- Check parent-child relationships
-- Validate role hierarchy
+#### Rate Limiting Issues
+- Check rate limit headers in response
+- Wait for rate limit window to reset
+- Implement exponential backoff
+
+#### TypeScript Compilation Issues
+- Check for missing dependencies
+- Verify TypeScript configuration
+- Ensure proper type definitions
 
 ### Debug Mode
 ```bash
@@ -634,6 +945,20 @@ mongosh matka-sk
 
 # Check user collection
 db.users.find().pretty()
+
+# Check market assignments
+db.usermarketassignments.find().pretty()
+```
+
+### API Testing
+```bash
+# Test health endpoint
+curl http://localhost:5000/health
+
+# Test authentication
+curl -X POST http://localhost:5000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
 ```
 
 ## 📞 Support
@@ -643,6 +968,7 @@ For issues and questions:
 2. Review error logs
 3. Verify environment configuration
 4. Test with provided demo credentials
+5. Check API health endpoint
 
 ## 📄 License
 
