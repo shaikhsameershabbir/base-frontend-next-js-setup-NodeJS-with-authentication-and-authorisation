@@ -48,7 +48,7 @@ export class AuthController {
             const userResponse = {
                 _id: user._id,
                 username: user.username,
-                email: user.email || '',
+          
                 role: user.role,
                 isActive: user.isActive,
                 balance: user.balance,
@@ -202,7 +202,7 @@ export class AuthController {
             const userResponse = {
                 _id: newUser._id,
                 username: newUser.username,
-                email: newUser.email,
+              
                 role: newUser.role,
                 isActive: newUser.isActive,
                 balance: newUser.balance,

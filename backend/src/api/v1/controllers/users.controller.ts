@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {  Response } from 'express';
+import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../../../models/User';
 import { Market } from '../../../models/Market';
@@ -8,8 +8,9 @@ import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class UsersController {
-    async getUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async getUsers(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { page = 1, limit = 10, search, role } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
@@ -17,8 +18,8 @@ export class UsersController {
             const query: any = {};
 
             // Filter by accessible users
-            if (req.accessibleUserIds && req.accessibleUserIds.length > 0) {
-                query._id = { $in: req.accessibleUserIds };
+            if (authReq.accessibleUserIds && authReq.accessibleUserIds.length > 0) {
+                query._id = { $in: authReq.accessibleUserIds };
             }
 
             // Search functionality
@@ -62,12 +63,13 @@ export class UsersController {
         }
     }
 
-    async getUserById(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async getUserById(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -98,12 +100,13 @@ export class UsersController {
         }
     }
 
-    async getUsersByRole(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async getUsersByRole(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { role, userId } = req.params;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -134,15 +137,14 @@ export class UsersController {
         }
     }
 
-    async createUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async createUser(req: Request, res: Response): Promise<void> {
         try {
-            const { username, email, password, role } = req.body;
+            console.log('----------------------------->>', req.body)
+            const { username, password } = req.body;
 
             // Check if user already exists
             const existingUserQuery: any = { username };
-            if (email) {
-                existingUserQuery.$or = [{ username }, { email }];
-            }
+      
 
             const existingUser = await User.findOne(existingUserQuery);
 
@@ -159,10 +161,9 @@ export class UsersController {
 
             // Create new user
             const newUser = new User({
-                username,
-                email,
+            
                 password: hashedPassword,
-                role,
+         
                 isActive: true,
                 balance: 0
             });
@@ -173,7 +174,6 @@ export class UsersController {
             const userResponse = {
                 _id: newUser._id,
                 username: newUser.username,
-                email: newUser.email || '',
                 role: newUser.role,
                 isActive: newUser.isActive,
                 balance: newUser.balance,
@@ -194,13 +194,14 @@ export class UsersController {
         }
     }
 
-    async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async updateUser(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
             const updateData = req.body;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -240,12 +241,13 @@ export class UsersController {
         }
     }
 
-    async deleteUserAndDownline(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async deleteUserAndDownline(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -276,12 +278,13 @@ export class UsersController {
         }
     }
 
-    async toggleUserActive(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async toggleUserActive(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -315,13 +318,14 @@ export class UsersController {
         }
     }
 
-    async updateUserPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async updateUserPassword(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
             const { newPassword } = req.body;
 
             // Check if user is accessible
-            if (req.accessibleUserIds && !req.accessibleUserIds.includes(userId)) {
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
                 res.status(403).json({
                     success: false,
                     message: 'Access denied'
@@ -357,7 +361,7 @@ export class UsersController {
         }
     }
 
-    async getAvailableMarketsForAssignment(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async getAvailableMarketsForAssignment(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -387,8 +391,9 @@ export class UsersController {
         }
     }
 
-    async assignMarketsToUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async assignMarketsToUser(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
             const { marketIds } = req.body;
 
@@ -406,7 +411,7 @@ export class UsersController {
             const assignments = marketIds.map((marketId: string) => ({
                 assignedTo: userId,
                 marketId: marketId,
-                assignedBy: req.user?.userId,
+                assignedBy: authReq.user?.userId,
                 hierarchyLevel: user.role
             }));
 
@@ -425,7 +430,7 @@ export class UsersController {
         }
     }
 
-    async getAssignedMarkets(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async getAssignedMarkets(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -447,7 +452,7 @@ export class UsersController {
         }
     }
 
-    async removeMarketAssignments(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async removeMarketAssignments(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
             const { marketIds } = req.body;

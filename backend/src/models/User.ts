@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
     username: string;
-    email?: string;
     password: string;
     balance: number;
     role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
@@ -24,15 +23,6 @@ const userSchema = new Schema<IUser>({
         trim: true,
         minlength: 3,
         maxlength: 30
-    },
-    email: {
-        type: String,
-        required: false,
-        unique: true,
-        sparse: true,
-        trim: true,
-        lowercase: true,
-        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
     },
     password: {
         type: String,

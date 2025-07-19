@@ -21,7 +21,7 @@ interface UserFormData {
     username: string
     password: string
     confirmPassword: string
-    balance: string
+
     role: string
 }
 
@@ -35,7 +35,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
         username: "",
         password: "",
         confirmPassword: "",
-        balance: "100",
+  
         role: role
     })
 
@@ -73,11 +73,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             return false
         }
 
-        const balance = parseFloat(formData.balance)
-        if (isNaN(balance) || balance < 0) {
-            setError("Balance must be a positive number")
-            return false
-        }
+   
 
         return true
     }
@@ -96,7 +92,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             const userData = {
                 username: formData.username.trim(),
                 password: formData.password,
-                balance: parseFloat(formData.balance),
+  
                 role: formData.role as 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player',
                 parentId: parentId // Pass the parentId to the backend
             }
@@ -125,7 +121,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                     username: "",
                     password: "",
                     confirmPassword: "",
-                    balance: "1000",
+       
                     role: role
                 })
 
@@ -152,22 +148,13 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                 username: "",
                 password: "",
                 confirmPassword: "",
-                balance: "1000",
+
                 role: role
             })
             setError(null)
         }
     }
 
-    const getDefaultBalance = (role: string): string => {
-        switch (role) {
-            case 'admin': return '100000'
-            case 'distributor': return '50000'
-            case 'agent': return '25000'
-            case 'player': return '1000'
-            default: return '1000'
-        }
-    }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -281,26 +268,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                         </div>
                     </div>
 
-                    {/* Balance Field */}
-                    <div className="space-y-2">
-                        <Label htmlFor="balance" className="text-sm font-medium text-primary">
-                            Initial Balance (₹)
-                        </Label>
-                        <Input
-                            id="balance"
-                            type="number"
-                            placeholder="Enter initial balance"
-                            value={formData.balance}
-                            onChange={(e) => handleInputChange('balance', e.target.value)}
-                            className="bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
-                            disabled={loading}
-                            min="0"
-                            step="100"
-                        />
-                        <p className="text-xs text-muted">
-                            Default: ₹{getDefaultBalance(formData.role).toLocaleString()}
-                        </p>
-                    </div>
+          
 
                     {/* Error Message */}
                     {error && (
