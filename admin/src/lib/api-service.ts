@@ -262,6 +262,7 @@ export const usersAPI = {
     // Market assignment APIs
     getAvailableMarkets: async (userId: string): Promise<ApiResponse<{ markets: Market[] }>> => {
         const response = await apiClient.get(`/users/${userId}/available-markets`);
+        console.log(response.data)
         return response.data;
     },
 

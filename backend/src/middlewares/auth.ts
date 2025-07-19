@@ -158,6 +158,12 @@ export const setAccessibleUsers = async (req: AuthenticatedRequest, res: Respons
 
         // Attach accessible user IDs to request
         req.accessibleUserIds = accessibleUserIds;
+        console.log('------------------------>>');
+        
+        // Debug logging
+        logger.info(`User ${req.user.username} (${req.user.role}) can access ${accessibleUserIds.length} users`);
+        logger.info(`Accessible user IDs: ${accessibleUserIds.join(', ')}`);
+        
         next();
 
     } catch (error) {

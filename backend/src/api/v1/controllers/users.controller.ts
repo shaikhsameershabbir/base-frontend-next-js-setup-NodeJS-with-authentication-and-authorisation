@@ -451,7 +451,28 @@ export class UsersController {
 
     async getAvailableMarketsForAssignment(req: Request, res: Response): Promise<void> {
         try {
+            console.log('0-------------------------------------------------------------------------------------------------')
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
+
+            // Check if user is accessible
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Access denied'
+                });
+                return;
+            }
+
+            // Validate user exists
+            const user = await User.findById(userId);
+            if (!user) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
 
             // Get all markets
             const markets = await Market.find({ isActive: true });
@@ -484,6 +505,15 @@ export class UsersController {
             const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
             const { marketIds } = req.body;
+
+            // Check if user is accessible
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Access denied'
+                });
+                return;
+            }
 
             // Validate user exists
             const user = await User.findById(userId);
@@ -520,7 +550,17 @@ export class UsersController {
 
     async getAssignedMarkets(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
+
+            // Check if user is accessible
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Access denied'
+                });
+                return;
+            }
 
             const assignments = await UserMarketAssignment.find({ assignedTo: userId })
                 .populate('marketId')
@@ -542,8 +582,18 @@ export class UsersController {
 
     async removeMarketAssignments(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
             const { marketIds } = req.body;
+
+            // Check if user is accessible
+            if (authReq.accessibleUserIds && !authReq.accessibleUserIds.includes(userId)) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Access denied'
+                });
+                return;
+            }
 
             await UserMarketAssignment.deleteMany({
                 assignedTo: userId,

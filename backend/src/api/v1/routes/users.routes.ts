@@ -15,12 +15,66 @@ router.get('/',
     usersController.getUsers
 );
 
+// User creation route (for authenticated users creating other users)
+router.post('/create',
+    authMiddleware.authenticateToken,
+    usersValidator.validateUserCreation,
+    usersController.createUser
+);
+
+// Market assignment routes - allow all roles except player to assign markets
+// These must come BEFORE the /:userId routes to avoid route conflicts
+router.get('/:userId/available-markets',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
+    usersController.getAvailableMarketsForAssignment
+);
+
+router.post('/:userId/assign-markets',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
+    usersValidator.validateMarketAssignment,
+    usersController.assignMarketsToUser
+);
+
+router.get('/:userId/assigned-markets',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
+    usersController.getAssignedMarkets
+);
+
+router.post('/:userId/remove-markets',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
+    usersValidator.validateMarketRemoval,
+    usersController.removeMarketAssignments
+);
+
+router.put('/:userId/active',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    usersController.toggleUserActive
+);
+
+router.put('/:userId/password',
+    authMiddleware.authenticateToken,
+    authMiddleware.setAccessibleUsers,
+    usersValidator.validatePasswordUpdate,
+    usersController.updateUserPassword
+);
+
+// Role-specific user route - must come after the /:userId/* routes
 router.get('/:role/:userId',
     authMiddleware.authenticateToken,
     authMiddleware.setAccessibleUsers,
     usersController.getUsersByRole
 );
 
+// General user routes - must come last to avoid conflicts
 router.get('/:userId',
     authMiddleware.authenticateToken,
     authMiddleware.setAccessibleUsers,
@@ -38,49 +92,6 @@ router.delete('/:userId',
     authMiddleware.authenticateToken,
     authMiddleware.setAccessibleUsers,
     usersController.deleteUserAndDownline
-);
-
-router.put('/:userId/active',
-    authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
-    usersController.toggleUserActive
-);
-
-router.put('/:userId/password',
-    authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
-    usersValidator.validatePasswordUpdate,
-    usersController.updateUserPassword
-);
-
-// User creation route (for authenticated users creating other users)
-router.post('/create',
-    authMiddleware.authenticateToken,
-    usersValidator.validateUserCreation,
-    usersController.createUser
-);
-
-// Market assignment routes
-router.get('/:userId/available-markets',
-    authMiddleware.authenticateToken,
-    usersController.getAvailableMarketsForAssignment
-);
-
-router.post('/:userId/assign-markets',
-    authMiddleware.authenticateToken,
-    usersValidator.validateMarketAssignment,
-    usersController.assignMarketsToUser
-);
-
-router.get('/:userId/assigned-markets',
-    authMiddleware.authenticateToken,
-    usersController.getAssignedMarkets
-);
-
-router.post('/:userId/remove-markets',
-    authMiddleware.authenticateToken,
-    usersValidator.validateMarketRemoval,
-    usersController.removeMarketAssignments
 );
 
 export default router; 

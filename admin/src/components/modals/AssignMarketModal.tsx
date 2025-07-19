@@ -7,14 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { usersAPI } from "@/lib/api-service"
+import { usersAPI, Market as ApiMarket } from "@/lib/api-service"
 import { Search, Loader2, CheckCircle, XCircle } from "lucide-react"
 
-interface Market {
-    _id: string
-    name: string
-    status: 'open' | 'closed' | 'suspended'
-    isActive: boolean
+interface Market extends ApiMarket {
     isAssigned?: boolean
     assignmentId?: string
 }
@@ -58,6 +54,7 @@ export function AssignMarketModal({
             const response = await usersAPI.getAvailableMarkets(userId)
 
             if (response.success && response.data) {
+                console.log('0------------------------->>', response.data)
                 setMarkets(response.data.markets || [])
 
                 // Reset selections when loading new data
@@ -98,7 +95,7 @@ export function AssignMarketModal({
 
     const handleSelectAll = () => {
         const filteredMarkets = (markets || []).filter(market =>
-            market.name.toLowerCase().includes(searchTerm.toLowerCase())
+            market.marketName.toLowerCase().includes(searchTerm.toLowerCase())
         )
         const unassignedMarkets = filteredMarkets.filter(market => !market.isAssigned)
         const assignedMarkets = filteredMarkets.filter(market => market.isAssigned)
@@ -161,7 +158,7 @@ export function AssignMarketModal({
     }
 
     const filteredMarkets = (markets || []).filter(market =>
-        market.name.toLowerCase().includes(searchTerm.toLowerCase())
+        market.marketName.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     const unassignedMarkets = filteredMarkets.filter(market => !market.isAssigned)
@@ -254,7 +251,7 @@ export function AssignMarketModal({
                                                     <div className="flex items-center justify-between">
                                                         <div>
                                                             <div className="font-medium text-primary">
-                                                                {market.name}
+                                                                {market.marketName}
                                                             </div>
                                                             <div className="text-sm text-secondary">
                                                                 {/* Assuming status maps to isActive or similar */}
@@ -292,7 +289,7 @@ export function AssignMarketModal({
                                                     <div className="flex items-center justify-between">
                                                         <div>
                                                             <div className="font-medium text-primary">
-                                                                {market.name}
+                                                                {market.marketName}
                                                             </div>
                                                             <div className="text-sm text-secondary">
                                                                 {/* Assuming status maps to isActive or similar */}
