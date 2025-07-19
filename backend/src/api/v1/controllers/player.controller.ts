@@ -1,10 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { User } from '../../../models/User';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { logger } from '../../../config/logger';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+import bcrypt from 'bcryptjs';
 
 export class PlayerController {
-    async getProfile(req: Request, res: Response): Promise<void> {
+    async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
                 res.status(401).json({
@@ -28,7 +30,7 @@ export class PlayerController {
         }
     }
 
-    async updateProfile(req: Request, res: Response): Promise<void> {
+    async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
                 res.status(401).json({
@@ -39,11 +41,12 @@ export class PlayerController {
             }
 
             const { email, currentPassword, newPassword } = req.body;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const updateData: any = {};
 
             // Update email if provided
             if (email) {
-                const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+                const existingUser = await User.findOne({ email, _id: { $ne: req.user.userId } });
                 if (existingUser) {
                     res.status(409).json({
                         success: false,
@@ -56,7 +59,7 @@ export class PlayerController {
 
             // Update password if provided
             if (currentPassword && newPassword) {
-                const user = await User.findById(req.user._id);
+                const user = await User.findById(req.user.userId);
                 if (!user) {
                     res.status(404).json({
                         success: false,
@@ -65,7 +68,7 @@ export class PlayerController {
                     return;
                 }
 
-                const bcrypt = require('bcryptjs');
+
                 const isValidPassword = await bcrypt.compare(currentPassword, user.password);
                 if (!isValidPassword) {
                     res.status(400).json({
@@ -80,7 +83,7 @@ export class PlayerController {
 
             // Update user
             const updatedUser = await User.findByIdAndUpdate(
-                req.user._id,
+                req.user.userId,
                 updateData,
                 { new: true, runValidators: true }
             ).select('-password');
@@ -99,7 +102,7 @@ export class PlayerController {
         }
     }
 
-    async getAssignedMarkets(req: Request, res: Response): Promise<void> {
+    async getAssignedMarkets(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
                 res.status(401).json({
@@ -109,7 +112,7 @@ export class PlayerController {
                 return;
             }
 
-            const assignments = await UserMarketAssignment.find({ assignedTo: req.user._id })
+            const assignments = await UserMarketAssignment.find({ assignedTo: req.user.userId })
                 .populate('marketId')
                 .populate('assignedBy', 'username');
 
@@ -127,7 +130,7 @@ export class PlayerController {
         }
     }
 
-    async confirmBid(req: Request, res: Response): Promise<void> {
+    async confirmBid(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
                 res.status(401).json({

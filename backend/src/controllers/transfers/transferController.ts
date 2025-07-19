@@ -19,6 +19,8 @@ interface PopulatedUser {
 export const getChildUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
+        console.log('---------------------------------------------------------------------------',userId);
+        
         if (!userId) {
             res.status(401).json({ message: 'User not authenticated' });
             return;

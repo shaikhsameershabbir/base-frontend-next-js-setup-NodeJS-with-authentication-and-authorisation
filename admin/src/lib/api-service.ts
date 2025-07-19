@@ -346,32 +346,7 @@ export const marketsAPI = {
 // TRANSFERS API
 // ============================================================================
 
-export const transfersAPI = {
-    getChildren: async (): Promise<ApiResponse<{ children: User[] }>> => {
-        const response = await apiClient.get('/transfers/children');
-        return response.data;
-    },
 
-    processTransfer: async (data: { toUserId: string; amount: number; description?: string }): Promise<ApiResponse<{ transfer: Transfer }>> => {
-        const response = await apiClient.post('/transfers/process', data);
-        return response.data;
-    },
-
-    getHistory: async (page = 1, limit = 10, type = 'all'): Promise<ApiResponse<Transfer[]>> => {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            limit: limit.toString(),
-            type
-        });
-        const response = await apiClient.get(`/transfers/history?${params}`);
-        return response.data;
-    },
-
-    getStats: async (): Promise<ApiResponse<{ stats: any }>> => {
-        const response = await apiClient.get('/transfers/stats');
-        return response.data;
-    },
-};
 
 // ============================================================================
 // ACTIVITIES API

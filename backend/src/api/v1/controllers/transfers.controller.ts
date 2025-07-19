@@ -1,219 +1,359 @@
 import { Request, Response } from 'express';
 import { Transfer } from '../../../models/Transfer';
 import { User } from '../../../models/User';
-import { logger } from '../../../config/logger';
+import { UserHierarchy } from '../../../models/UserHierarchy';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+
+// Interface for populated user data
+interface PopulatedUser {
+    _id: string;
+    username: string;
+    balance: number;
+    role: string;
+    isActive: boolean;
+}
 
 export class TransfersController {
     async getChildUsers(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            console.log('---------------------------------------------------------------------------', userId);
+
+            if (!userId) {
+                res.status(401).json({ message: 'User not authenticated' });
                 return;
             }
 
-            // TODO: Implement proper hierarchy logic
-            // For now, return empty array
-            const childUsers: any[] = [];
+            // Get user's hierarchy to find direct children
+            const userHierarchy = await UserHierarchy.findOne({ userId });
+            if (!userHierarchy) {
+                res.status(404).json({ message: 'User hierarchy not found' });
+                return;
+            }
+
+            // Find direct children (users with this user as parent)
+            const childUsers = await UserHierarchy.find({ parentId: userId })
+                .populate({
+                    path: 'userId',
+                    select: 'username balance role isActive'
+                });
+
+            const formattedChildren = childUsers.map(child => ({
+                id: (child.userId as unknown as PopulatedUser)._id,
+                username: (child.userId as unknown as PopulatedUser).username,
+                balance: (child.userId as unknown as PopulatedUser).balance,
+                role: (child.userId as unknown as PopulatedUser).role,
+                isActive: (child.userId as unknown as PopulatedUser).isActive,
+                downlineCount: child.downlineCount
+            }));
 
             res.json({
                 success: true,
-                message: 'Child users retrieved successfully',
-                data: { users: childUsers }
+                data: formattedChildren
             });
         } catch (error) {
-            logger.error('Get child users error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
+            console.error('Error getting child users:', error);
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 
     async processTransfer(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
+            const authReq = req as AuthenticatedRequest;
+            const { toUserId, amount, type, reason, adminNote } = req.body;
+            const fromUserId = authReq.user?.userId;
+
+            if (!fromUserId) {
+                res.status(401).json({ message: 'User not authenticated' });
                 return;
             }
 
-            const { toUserId, amount, description } = req.body;
+            // Validate required fields
+            if (!toUserId || !amount || !type || !reason) {
+                res.status(400).json({ message: 'Missing required fields' });
+                return;
+            }
 
-            // Validate amount
             if (amount <= 0) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Amount must be greater than 0'
-                });
+                res.status(400).json({ message: 'Amount must be greater than 0' });
                 return;
             }
 
-            // Check if user has sufficient balance
-            const fromUser = await User.findById(req.user._id);
-            if (!fromUser || fromUser.balance < amount) {
-                res.status(400).json({
-                    success: false,
-                    message: 'Insufficient balance'
-                });
+            if (!['credit', 'debit'].includes(type)) {
+                res.status(400).json({ message: 'Invalid transfer type' });
                 return;
             }
 
-            // Check if recipient exists and is active
+            // Check if target user is a child of the current user
+            const childHierarchy = await UserHierarchy.findOne({
+                userId: toUserId,
+                parentId: fromUserId
+            });
+
+            if (!childHierarchy) {
+                res.status(403).json({ message: 'You can only transfer to your direct children' });
+                return;
+            }
+
+            // Get both users
+            const fromUser = await User.findById(fromUserId);
             const toUser = await User.findById(toUserId);
-            if (!toUser || !toUser.isActive) {
-                res.status(404).json({
-                    success: false,
-                    message: 'Recipient not found or inactive'
-                });
+
+            if (!fromUser || !toUser) {
+                res.status(404).json({ message: 'User not found' });
                 return;
             }
 
-            // Create transfer record
+            if (!fromUser.isActive || !toUser.isActive) {
+                res.status(400).json({ message: 'User account is inactive' });
+                return;
+            }
+
+            // Store balance before transaction
+            const fromUserBalanceBefore = fromUser.balance;
+            const toUserBalanceBefore = toUser.balance;
+
+            // Validate balance for credit transfers
+            if (type === 'credit') {
+                if (fromUser.balance < amount) {
+                    res.status(400).json({
+                        message: 'Insufficient balance',
+                        currentBalance: fromUser.balance,
+                        requiredAmount: amount
+                    });
+                    return;
+                }
+            }
+
+            // Validate balance for debit transfers
+            if (type === 'debit') {
+                if (toUser.balance < amount) {
+                    res.status(400).json({
+                        message: 'Insufficient balance in target user account',
+                        targetUserBalance: toUser.balance,
+                        requiredAmount: amount
+                    });
+                    return;
+                }
+            }
+
+            // Create transfer record with balance information
             const transfer = new Transfer({
-                fromUser: req.user._id,
+                fromUser: fromUserId,
                 toUser: toUserId,
                 amount,
-                description,
-                status: 'pending'
+                type,
+                reason,
+                adminNote,
+                processedBy: fromUserId,
+                status: 'pending',
+                fromUserBalanceBefore,
+                fromUserBalanceAfter: fromUserBalanceBefore, // Will be updated after transaction
+                toUserBalanceBefore,
+                toUserBalanceAfter: toUserBalanceBefore // Will be updated after transaction
             });
 
             await transfer.save();
 
-            // Update balances
-            fromUser.balance -= amount;
-            toUser.balance += amount;
+            // Process the transfer
+            try {
+                let fromUserBalanceAfter, toUserBalanceAfter;
 
-            await Promise.all([fromUser.save(), toUser.save()]);
+                if (type === 'credit') {
+                    // Debit from parent, credit to child
+                    fromUser.balance -= amount;
+                    toUser.balance += amount;
+                    fromUserBalanceAfter = fromUser.balance;
+                    toUserBalanceAfter = toUser.balance;
+                } else {
+                    // Credit to parent, debit from child
+                    fromUser.balance += amount;
+                    toUser.balance -= amount;
+                    fromUserBalanceAfter = fromUser.balance;
+                    toUserBalanceAfter = toUser.balance;
+                }
 
-            // Update transfer status
-            transfer.status = 'completed';
-            await transfer.save();
+                await fromUser.save();
+                await toUser.save();
 
-            res.json({
-                success: true,
-                message: 'Transfer completed successfully',
-                data: { transfer }
-            });
+                // Update transfer with final balance information
+                transfer.fromUserBalanceAfter = fromUserBalanceAfter;
+                transfer.toUserBalanceAfter = toUserBalanceAfter;
+                transfer.status = 'completed';
+                await transfer.save();
+
+                res.json({
+                    success: true,
+                    message: 'Transfer completed successfully',
+                    data: {
+                        transferId: transfer._id,
+                        fromUser: {
+                            id: fromUser._id,
+                            username: fromUser.username,
+                            balanceBefore: fromUserBalanceBefore,
+                            balanceAfter: fromUserBalanceAfter
+                        },
+                        toUser: {
+                            id: toUser._id,
+                            username: toUser.username,
+                            balanceBefore: toUserBalanceBefore,
+                            balanceAfter: toUserBalanceAfter
+                        },
+                        amount,
+                        type,
+                        reason
+                    }
+                });
+
+            } catch (transferError) {
+                // If transfer fails, mark as failed
+                transfer.status = 'failed';
+                await transfer.save();
+
+                console.error('Transfer processing error:', transferError);
+                res.status(500).json({ message: 'Transfer processing failed' });
+                return;
+            }
+
         } catch (error) {
-            logger.error('Process transfer error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
+            console.error('Error processing transfer:', error);
+            res.status(500).json({ message: 'Internal server error' });
+            return;
         }
     }
 
     async getTransferHistory(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            const { page = 1, limit = 20, status, type } = req.query;
+
+            if (!userId) {
+                res.status(401).json({ message: 'User not authenticated' });
                 return;
             }
 
-            const { page = 1, limit = 10, type = 'all' } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            let query: any = {};
+            // Build filter
+            const filter: Record<string, unknown> = {
+                $or: [
+                    { fromUser: userId },
+                    { toUser: userId }
+                ]
+            };
 
-            // Filter by transfer type
-            switch (type) {
-                case 'sent':
-                    query.fromUser = req.user._id;
-                    break;
-                case 'received':
-                    query.toUser = req.user._id;
-                    break;
-                default:
-                    query.$or = [
-                        { fromUser: req.user._id },
-                        { toUser: req.user._id }
-                    ];
+            if (status && status !== 'all') {
+                filter.status = status;
             }
 
-            const transfers = await Transfer.find(query)
+            if (type && type !== 'all') {
+                filter.type = type;
+            }
+
+            // Get transfers with pagination
+            const transfers = await Transfer.find(filter)
                 .populate('fromUser', 'username')
                 .populate('toUser', 'username')
+                .populate('processedBy', 'username')
+                .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(Number(limit))
-                .sort({ createdAt: -1 });
+                .limit(Number(limit));
 
-            const total = await Transfer.countDocuments(query);
+            // Get total count
+            const total = await Transfer.countDocuments(filter);
+
+            // Helper function to format date
+            const formatDate = (date: Date): string => {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = date.getHours();
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = (hours % 12 || 12).toString().padStart(2, '0');
+                return `${day}-${month}-${year} ${displayHours}:${minutes}:${seconds} ${ampm}`;
+            };
+
+            const formattedTransfers = transfers.map(transfer => ({
+                id: transfer._id,
+                fromUser: (transfer.fromUser as unknown as PopulatedUser).username,
+                toUser: (transfer.toUser as unknown as PopulatedUser).username,
+                amount: transfer.amount,
+                type: transfer.type,
+                status: transfer.status,
+                reason: transfer.reason,
+                adminNote: transfer.adminNote,
+                processedBy: (transfer.processedBy as unknown as PopulatedUser).username,
+                timestamp: formatDate(transfer.createdAt),
+                fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
+                fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
+                toUserBalanceBefore: transfer.toUserBalanceBefore || 0,
+                toUserBalanceAfter: transfer.toUserBalanceAfter || 0,
+                isIncoming: (transfer.toUser as unknown as PopulatedUser)._id.toString() === userId,
+                isOutgoing: (transfer.fromUser as unknown as PopulatedUser)._id.toString() === userId
+            }));
 
             res.json({
                 success: true,
-                message: 'Transfer history retrieved successfully',
-                data: transfers,
+                data: formattedTransfers,
                 pagination: {
                     page: Number(page),
                     limit: Number(limit),
                     total,
-                    totalPages: Math.ceil(total / Number(limit))
+                    pages: Math.ceil(total / Number(limit))
                 }
             });
+
         } catch (error) {
-            logger.error('Get transfer history error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
+            console.error('Error getting transfer history:', error);
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 
     async getTransferStats(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+
+            if (!userId) {
+                res.status(401).json({ message: 'User not authenticated' });
                 return;
             }
 
-            // Get transfer statistics
-            const totalSent = await Transfer.aggregate([
-                { $match: { fromUser: req.user._id, status: 'completed' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]);
-
-            const totalReceived = await Transfer.aggregate([
-                { $match: { toUser: req.user._id, status: 'completed' } },
-                { $group: { _id: null, total: { $sum: '$amount' } } }
-            ]);
-
-            const totalTransfers = await Transfer.countDocuments({
+            const filter = {
                 $or: [
-                    { fromUser: req.user._id },
-                    { toUser: req.user._id }
+                    { fromUser: userId },
+                    { toUser: userId }
                 ],
                 status: 'completed'
-            });
-
-            const stats = {
-                totalSent: totalSent[0]?.total || 0,
-                totalReceived: totalReceived[0]?.total || 0,
-                totalTransfers,
-                netAmount: (totalReceived[0]?.total || 0) - (totalSent[0]?.total || 0)
             };
+
+            const [totalTransfers, totalCredits, totalDebits, totalAmount] = await Promise.all([
+                Transfer.countDocuments(filter),
+                Transfer.countDocuments({ ...filter, type: 'credit' }),
+                Transfer.countDocuments({ ...filter, type: 'debit' }),
+                Transfer.aggregate([
+                    { $match: filter },
+                    { $group: { _id: null, total: { $sum: '$amount' } } }
+                ])
+            ]);
 
             res.json({
                 success: true,
-                message: 'Transfer statistics retrieved successfully',
-                data: { stats }
+                data: {
+                    totalTransfers,
+                    totalCredits,
+                    totalDebits,
+                    totalAmount: totalAmount[0]?.total || 0
+                }
             });
+
         } catch (error) {
-            logger.error('Get transfer stats error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
+            console.error('Error getting transfer stats:', error);
+            res.status(500).json({ message: 'Internal server error' });
         }
     }
 } 

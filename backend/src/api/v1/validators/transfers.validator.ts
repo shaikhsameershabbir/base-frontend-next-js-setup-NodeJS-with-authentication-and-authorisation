@@ -16,11 +16,25 @@ export class TransfersValidator {
             .isFloat({ min: 0.01 })
             .withMessage('Amount must be a positive number greater than 0'),
 
-        body('description')
+        body('type')
+            .trim()
+            .notEmpty()
+            .withMessage('Transfer type is required')
+            .isIn(['credit', 'debit'])
+            .withMessage('Transfer type must be either credit or debit'),
+
+        body('reason')
+            .trim()
+            .notEmpty()
+            .withMessage('Transfer reason is required')
+            .isLength({ max: 500 })
+            .withMessage('Reason must be less than 500 characters'),
+
+        body('adminNote')
             .optional()
             .trim()
-            .isLength({ max: 500 })
-            .withMessage('Description must be less than 500 characters'),
+            .isLength({ max: 1000 })
+            .withMessage('Admin note must be less than 1000 characters'),
 
         this.validationMiddleware.validateRequest
     ];

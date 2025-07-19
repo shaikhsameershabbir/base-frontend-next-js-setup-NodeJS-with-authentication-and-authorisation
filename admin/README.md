@@ -253,11 +253,11 @@ Routes are automatically protected using the authentication context:
 import { AuthProvider } from '@/hooks/useAuth';
 
 export default function RootLayout({ children }) {
-    return (
+  return (
         <html>
             <body>
                 <AuthProvider>
-                    {children}
+      {children}
                 </AuthProvider>
             </body>
         </html>
@@ -391,9 +391,9 @@ interface ComponentProps {
 }
 
 export function Component({ prop1, prop2 }: ComponentProps) {
-    // Component logic
-    return (
-        // JSX
+  // Component logic
+  return (
+    // JSX
     );
 }
 ```
@@ -403,8 +403,8 @@ export function Component({ prop1, prop2 }: ComponentProps) {
 ### Production Build
 
 1. **Build the application**
-   ```bash
-   npm run build
+```bash
+npm run build
    ```
 
 2. **Set production environment variables**
@@ -417,22 +417,22 @@ export function Component({ prop1, prop2 }: ComponentProps) {
 
 3. **Start the server**
    ```bash
-   npm start
-   ```
+npm start
+```
 
 ### Vercel Deployment
 
 1. **Connect to Vercel**
-   ```bash
+```bash
    npx vercel
    ```
 
 2. **Set environment variables in Vercel dashboard**
 
 3. **Deploy**
-   ```bash
+```bash
    npx vercel --prod
-   ```
+```
 
 ### Docker Deployment
 

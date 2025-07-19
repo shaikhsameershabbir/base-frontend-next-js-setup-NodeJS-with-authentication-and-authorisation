@@ -43,8 +43,8 @@ export interface TransferResponse {
 
 export interface TransferHistoryItem {
     id: string;
-    fromUser: string;
-    toUser: string;
+    fromUser: string | { id: string; username: string };
+    toUser: string | { id: string; username: string };
     amount: number;
     type: 'credit' | 'debit';
     status: 'pending' | 'completed' | 'failed';
@@ -86,18 +86,30 @@ export interface TransferStatsResponse {
 // Get child users under current user
 export const getChildUsers = async (): Promise<ChildUser[]> => {
     try {
-        const response = await apiClient.get('/transfers/children');
-        return response.data.data;
+        const response = await apiClient.get('/api/v1/transfers/children');
+        // Handle different possible response structures
+        const data = response.data;
+        if (Array.isArray(data)) {
+            return data;
+        }
+        if (data && Array.isArray(data.data)) {
+            return data.data;
+        }
+        if (data && data.success && Array.isArray(data.data)) {
+            return data.data;
+        }
+        console.warn('Unexpected response structure for child users:', data);
+        return [];
     } catch (error) {
         console.error('Error fetching child users:', error);
-        throw error;
+        return [];
     }
 };
 
 // Process a transfer
 export const processTransfer = async (transferData: TransferRequest): Promise<TransferResponse> => {
     try {
-        const response = await apiClient.post('/transfers/process', transferData);
+        const response = await apiClient.post('/api/v1/transfers/process', transferData);
         return response.data;
     } catch (error) {
         console.error('Error processing transfer:', error);
@@ -113,7 +125,7 @@ export const getTransferHistory = async (params?: {
     type?: string;
 }): Promise<TransferHistoryResponse> => {
     try {
-        const response = await apiClient.get('/transfers/history', { params });
+        const response = await apiClient.get('/api/v1/transfers/history', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching transfer history:', error);
@@ -124,7 +136,7 @@ export const getTransferHistory = async (params?: {
 // Get transfer statistics
 export const getTransferStats = async (): Promise<TransferStatsResponse> => {
     try {
-        const response = await apiClient.get('/transfers/stats');
+        const response = await apiClient.get('/api/v1/transfers/stats');
         return response.data;
     } catch (error) {
         console.error('Error fetching transfer stats:', error);

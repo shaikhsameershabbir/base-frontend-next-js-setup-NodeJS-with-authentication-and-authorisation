@@ -1,17 +1,20 @@
-import { Request, Response } from 'express';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import {  Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { User } from '../../../models/User';
 import { Market } from '../../../models/Market';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { logger } from '../../../config/logger';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class UsersController {
-    async getUsers(req: Request, res: Response): Promise<void> {
+    async getUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { page = 1, limit = 10, search, role } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            let query: any = {};
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const query: any = {};
 
             // Filter by accessible users
             if (req.accessibleUserIds && req.accessibleUserIds.length > 0) {
@@ -59,7 +62,7 @@ export class UsersController {
         }
     }
 
-    async getUserById(req: Request, res: Response): Promise<void> {
+    async getUserById(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -95,7 +98,7 @@ export class UsersController {
         }
     }
 
-    async getUsersByRole(req: Request, res: Response): Promise<void> {
+    async getUsersByRole(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { role, userId } = req.params;
 
@@ -131,7 +134,7 @@ export class UsersController {
         }
     }
 
-    async createUser(req: Request, res: Response): Promise<void> {
+    async createUser(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { username, email, password, role } = req.body;
 
@@ -191,7 +194,7 @@ export class UsersController {
         }
     }
 
-    async updateUser(req: Request, res: Response): Promise<void> {
+    async updateUser(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
             const updateData = req.body;
@@ -237,7 +240,7 @@ export class UsersController {
         }
     }
 
-    async deleteUserAndDownline(req: Request, res: Response): Promise<void> {
+    async deleteUserAndDownline(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -273,7 +276,7 @@ export class UsersController {
         }
     }
 
-    async toggleUserActive(req: Request, res: Response): Promise<void> {
+    async toggleUserActive(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -312,7 +315,7 @@ export class UsersController {
         }
     }
 
-    async updateUserPassword(req: Request, res: Response): Promise<void> {
+    async updateUserPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
             const { newPassword } = req.body;
@@ -354,7 +357,7 @@ export class UsersController {
         }
     }
 
-    async getAvailableMarketsForAssignment(req: Request, res: Response): Promise<void> {
+    async getAvailableMarketsForAssignment(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -384,7 +387,7 @@ export class UsersController {
         }
     }
 
-    async assignMarketsToUser(req: Request, res: Response): Promise<void> {
+    async assignMarketsToUser(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
             const { marketIds } = req.body;
@@ -403,7 +406,7 @@ export class UsersController {
             const assignments = marketIds.map((marketId: string) => ({
                 assignedTo: userId,
                 marketId: marketId,
-                assignedBy: req.user?._id,
+                assignedBy: req.user?.userId,
                 hierarchyLevel: user.role
             }));
 
@@ -422,7 +425,7 @@ export class UsersController {
         }
     }
 
-    async getAssignedMarkets(req: Request, res: Response): Promise<void> {
+    async getAssignedMarkets(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
 
@@ -444,7 +447,7 @@ export class UsersController {
         }
     }
 
-    async removeMarketAssignments(req: Request, res: Response): Promise<void> {
+    async removeMarketAssignments(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
             const { marketIds } = req.body;

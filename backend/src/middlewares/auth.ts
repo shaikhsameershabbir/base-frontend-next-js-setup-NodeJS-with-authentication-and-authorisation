@@ -4,19 +4,22 @@ import { User } from '../models/User';
 import { TokenBlacklist } from '../models/TokenBlacklist';
 import { logger } from '../config/logger';
 
-// Extend Request interface to include user
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
+// Define the user structure for authenticated requests
+interface AuthenticatedUser {
+    userId: string;
+    username: string;
+    balance: number;
+    role: string;
+    parentId?: string;
+}
+
+// Extend Request interface to include authenticated user and accessibleUserIds
+export interface AuthenticatedRequest extends Omit<Request, 'user'> {
+    user?: AuthenticatedUser;
     accessibleUserIds?: string[];
 }
 
-export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         // Extract token from cookie
         const token = extractTokenFromCookie(req.headers.cookie || '');
@@ -31,7 +34,6 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
 
         // Verify token
         const decoded = verifyAccessToken(token);
-        // console.log('--------------------------------',decoded);
 
         // Check if token is blacklisted
         const isBlacklisted = await TokenBlacklist.findOne({ tokenId: decoded.jti });
@@ -53,8 +55,14 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
             return;
         }
 
-        // Attach user info to request
-        req.user = decoded;
+        // Attach user info to request with the correct structure
+        (req as AuthenticatedRequest).user = {
+            userId: String(user._id),
+            username: user.username,
+            balance: user.balance,
+            role: user.role,
+            parentId: user.parentId ? String(user.parentId) : undefined
+        };
         next();
 
     } catch (error) {
@@ -159,6 +167,4 @@ export const setAccessibleUsers = async (req: AuthenticatedRequest, res: Respons
             message: 'Internal server error'
         });
     }
-};
-
-export type { AuthenticatedRequest }; 
+}; 

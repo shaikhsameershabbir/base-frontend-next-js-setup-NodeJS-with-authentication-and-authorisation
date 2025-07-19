@@ -1,11 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import {  Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
 
 export class PlayerAuthMiddleware {
-    async authenticatePlayer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async authenticatePlayer(req: any, res: Response, next: NextFunction): Promise<void> {
         try {
             const authHeader = req.headers.authorization;
             const token = authHeader && authHeader.split(' ')[1];
@@ -22,6 +24,7 @@ export class PlayerAuthMiddleware {
                 return;
             }
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
             const user = await User.findById(decoded.userId).select('-password');
 

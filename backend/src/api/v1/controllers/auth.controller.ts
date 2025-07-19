@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
-import { ApiResponse } from '../types/common.types';
+import { generateTokenPair, generateAccessToken } from '../../../utils/jwt';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
@@ -40,18 +41,8 @@ export class AuthController {
                 return;
             }
 
-            // Generate tokens
-            const accessToken = jwt.sign(
-                { userId: user._id, role: user.role },
-                process.env.JWT_SECRET!,
-                { expiresIn: '1h' }
-            );
-
-            const refreshToken = jwt.sign(
-                { userId: user._id },
-                process.env.JWT_SECRET!,
-                { expiresIn: '7d' }
-            );
+            // Generate tokens using the new utility function
+            const tokenPair = generateTokenPair(user, req.headers['user-agent'] || 'unknown');
 
             // Remove password from response
             const userResponse = {
@@ -61,6 +52,7 @@ export class AuthController {
                 role: user.role,
                 isActive: user.isActive,
                 balance: user.balance,
+                parentId: user.parentId,
                 createdAt: user.createdAt
             };
 
@@ -69,8 +61,8 @@ export class AuthController {
                 message: 'Login successful',
                 data: {
                     user: userResponse,
-                    accessToken,
-                    refreshToken
+                    accessToken: tokenPair.accessToken,
+                    refreshToken: tokenPair.refreshToken
                 }
             });
         } catch (error) {
@@ -95,7 +87,7 @@ export class AuthController {
             }
 
             // Verify refresh token
-            const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as any;
+            const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as { userId: string };
             const user = await User.findById(decoded.userId);
 
             if (!user || !user.isActive) {
@@ -106,12 +98,8 @@ export class AuthController {
                 return;
             }
 
-            // Generate new access token
-            const newAccessToken = jwt.sign(
-                { userId: user._id, role: user.role },
-                process.env.JWT_SECRET!,
-                { expiresIn: '1h' }
-            );
+            // Generate new access token using the utility function
+            const newAccessToken = generateAccessToken(user, req.headers['user-agent'] || 'unknown');
 
             res.json({
                 success: true,
@@ -154,7 +142,8 @@ export class AuthController {
 
     async logoutAll(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
+            const authReq = req as AuthenticatedRequest;
+            if (!authReq.user) {
                 res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -236,7 +225,8 @@ export class AuthController {
 
     async getProfile(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
+            const authReq = req as AuthenticatedRequest;
+            if (!authReq.user) {
                 res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -247,7 +237,7 @@ export class AuthController {
             res.json({
                 success: true,
                 message: 'Profile retrieved successfully',
-                data: { user: req.user }
+                data: { user: authReq.user }
             });
         } catch (error) {
             logger.error('Get profile error:', error);
@@ -260,7 +250,8 @@ export class AuthController {
 
     async updateProfile(req: Request, res: Response): Promise<void> {
         try {
-            if (!req.user) {
+            const authReq = req as AuthenticatedRequest;
+            if (!authReq.user) {
                 res.status(401).json({
                     success: false,
                     message: 'Authentication required'
@@ -269,11 +260,11 @@ export class AuthController {
             }
 
             const { email, currentPassword, newPassword } = req.body;
-            const updateData: any = {};
+            const updateData: Record<string, unknown> = {};
 
             // Update email if provided
             if (email) {
-                const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+                const existingUser = await User.findOne({ email, _id: { $ne: authReq.user.userId } });
                 if (existingUser) {
                     res.status(409).json({
                         success: false,
@@ -286,7 +277,7 @@ export class AuthController {
 
             // Update password if provided
             if (currentPassword && newPassword) {
-                const user = await User.findById(req.user._id);
+                const user = await User.findById(authReq.user.userId);
                 if (!user) {
                     res.status(404).json({
                         success: false,
@@ -309,7 +300,7 @@ export class AuthController {
 
             // Update user
             const updatedUser = await User.findByIdAndUpdate(
-                req.user._id,
+                authReq.user.userId,
                 updateData,
                 { new: true, runValidators: true }
             ).select('-password');

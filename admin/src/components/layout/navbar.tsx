@@ -41,24 +41,28 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
 
     return (
         <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <div className="flex h-16 items-center px-4">
+            <div className="flex h-16 items-center px-2 sm:px-4">
                 {/* Hamburger menu for mobile */}
-                <div className="md:hidden mr-2">
+                <div className="lg:hidden mr-2">
                     <Button variant="ghost" size="icon" onClick={onSidebarToggle}>
-                        <Menu className="h-6 w-6 text-primary" />
+                        <Menu className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                         <span className="sr-only">Open sidebar</span>
                     </Button>
                 </div>
-                <div className="flex items-center space-x-4">
-                    <h1 className="text-xl font-bold text-primary">Matka SK Admin</h1>
+
+                {/* Logo and Title */}
+                <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
+                    <h1 className="text-lg sm:text-xl font-bold text-primary truncate">Matka SK Admin</h1>
                 </div>
-                <div className="ml-auto flex items-center space-x-4">
+
+                {/* User Menu */}
+                <div className="flex items-center space-x-2 sm:space-x-4">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                                 <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="text-primary">
-                                        {user.username.charAt(0).toUpperCase()}
+                                    <AvatarFallback className="text-primary text-xs sm:text-sm">
+                                        {user.username?.charAt(0)?.toUpperCase() || 'U'}
                                     </AvatarFallback>
                                 </Avatar>
                             </Button>
@@ -66,9 +70,9 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
                         <DropdownMenuContent className="w-56" align="end" forceMount>
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none text-primary">{user.username}</p>
-                                    <p className="text-xs leading-none text-muted capitalize">{user.role}</p>
-                                    <p className="text-xs leading-none text-muted">₹{user.balance.toLocaleString()}</p>
+                                    <p className="text-sm font-medium leading-none text-primary truncate">{user.username || 'Unknown User'}</p>
+                                    <p className="text-xs leading-none text-muted capitalize">{user.role || 'Unknown Role'}</p>
+                                    <p className="text-xs leading-none text-muted">₹{(user.balance || 0).toLocaleString()}</p>
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
