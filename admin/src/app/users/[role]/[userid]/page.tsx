@@ -212,6 +212,29 @@ export default function UsersPage() {
         return userId
     }
 
+    // Check if current user can create users of the current role
+    const canCreateRole = (): boolean => {
+        if (!currentUser) {
+            return false
+        }
+
+        // Define direct parent-child relationships
+        const directParentChild: Record<string, string> = {
+            'superadmin': 'admin',
+            'admin': 'distributor',
+            'distributor': 'agent',
+            'agent': 'player'
+        }
+
+        // Case 1: userId is "all" - only show if current user is direct parent
+        if (userId === "all") {
+            return directParentChild[currentUser.role] === role
+        }
+
+        // Case 2: userId is a specific user ID - always show button, backend will validate
+        return true
+    }
+
     const filteredUsers = (users || []).filter(user => {
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
@@ -297,12 +320,14 @@ export default function UsersPage() {
                                 </div>
                             </div>
 
-                            <AddUserModal
-                                role={role}
-                                parentId={getParentId()}
-                                currentUserRole={currentUser?.role}
-                                onUserAdded={handleUserAdded}
-                            />
+                            {canCreateRole() && (
+                                <AddUserModal
+                                    role={role}
+                                    parentId={getParentId()}
+                                    currentUserRole={currentUser?.role}
+                                    onUserAdded={handleUserAdded}
+                                />
+                            )}
                         </div>
                     </CardContent>
                 </Card>
