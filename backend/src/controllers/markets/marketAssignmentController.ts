@@ -372,7 +372,7 @@ export const getAssignedMarkets = async (req: AuthenticatedRequest, res: Respons
 export const getAssignedMarketsForAuthenticatedUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const currentUser = req.user;
-        console.log('------------------------------------------------------>>')
+
         if (!currentUser) {
             res.status(401).json({
                 success: false,
@@ -388,7 +388,7 @@ export const getAssignedMarketsForAuthenticatedUser = async (req: AuthenticatedR
             assignedTo: currentUser.userId,
             isActive: true
         }).populate('marketId assignedBy');
-        console.log(assignments);
+    
 
         res.json({
             success: true,

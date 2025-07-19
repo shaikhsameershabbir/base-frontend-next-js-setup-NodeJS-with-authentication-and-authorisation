@@ -10,10 +10,10 @@ import React from "react";
 
 export default function Home() {
     const { state, getMarketStatus, getMarketStatusColor } = useMarkets();
-
+    console.log(state.markets)
     return (
-        <main className="min-h-screen bg-gray-100">
-            <div className="pt-16">
+        <main className="min-h-screen bg-gray-100 flex flex-col">
+            <div className="flex-1 pt-16">
                 <Message />
                 {state.loading ? (
                     <div className="flex justify-center items-center py-8">
@@ -28,7 +28,7 @@ export default function Home() {
                         <div className="text-lg text-muted">No markets assigned to you</div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 max-h-[500px] overflow-y-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 pb-4 h-full overflow-y-auto">
                         {state.markets.map((market, index: number) => {
                             const status = getMarketStatus(market);
                             const statusColor = getMarketStatusColor(market);
