@@ -1,10 +1,9 @@
 "use client"
 import axios, { type AxiosInstance, AxiosError } from "axios"
-import { authAPI } from "./api/auth"
 
 // Create the API client instance
 const apiClient: AxiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5555/api",
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",
     headers: {
         "Content-Type": "application/json",
     },
@@ -13,27 +12,21 @@ const apiClient: AxiosInstance = axios.create({
 
 // Add an interceptor to set the appropriate headers
 apiClient.interceptors.request.use((config) => {
-    // Ensure the 'credentials' option is set to 'include'
-    config.withCredentials = true
-
-    // Add Authorization header if user is authenticated
+    // Get token from localStorage
     if (typeof window !== 'undefined') {
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
-        if (isAuthenticated === 'true') {
-            // Get token from localStorage
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
-            }
+        const accessToken = localStorage.getItem('accessToken')
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`
         }
     }
 
+    // Ensure the 'credentials' option is set to 'include'
+    config.withCredentials = true
     return config
 })
 
 // Flag to prevent multiple refresh attempts
 let isRefreshing = false
-let refreshFailed = false
 let failedQueue: Array<{
     resolve: (value?: any) => void
     reject: (reason?: any) => void
@@ -50,35 +43,11 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = []
 }
 
-// Function to clear authentication and redirect to login
-const clearAuthAndRedirect = () => {
-    if (typeof window !== 'undefined') {
-        // Clear all storage
-        localStorage.clear();
-        sessionStorage.clear();
-
-        // Clear cookies
-        document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-        document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-        // Only redirect if not already on login page
-        if (window.location.pathname !== '/login') {
-            window.location.href = "/login";
-        }
-    }
-};
-
 // Add a response interceptor
 apiClient.interceptors.response.use(
     (response) => response, // Return the response normally if there's no error
     async (error: AxiosError) => {
         const originalRequest = error.config as any
-
-        // If refresh has already failed, don't try again
-        if (refreshFailed) {
-            clearAuthAndRedirect();
-            return Promise.reject(error);
-        }
 
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
@@ -96,15 +65,50 @@ apiClient.interceptors.response.use(
             isRefreshing = true
 
             try {
-                // Instead of trying to refresh, just redirect to login since refresh tokens are HTTP-only
-                refreshFailed = true;
-                processQueue(new Error('Session expired'), null)
-                clearAuthAndRedirect();
-                throw new Error('Session expired. Please log in again.')
+                // Get refresh token from localStorage
+                const refreshToken = localStorage.getItem('refreshToken')
+                if (!refreshToken) {
+                    throw new Error('No refresh token available')
+                }
+
+                // Attempt to refresh the token
+                const refreshResponse = await axios.post(
+                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/auth/refresh`,
+                    { refreshToken },
+                    { withCredentials: true }
+                )
+
+                if (refreshResponse.data.success) {
+                    // Store new access token
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('accessToken', refreshResponse.data.data.accessToken)
+                    }
+
+                    // Update the original request with new token
+                    originalRequest.headers.Authorization = `Bearer ${refreshResponse.data.data.accessToken}`
+
+                    processQueue(null, 'refreshed')
+                    return apiClient(originalRequest)
+                } else {
+                    processQueue(new Error('Token refresh failed'), null)
+                    // Clear all local/session storage and redirect to login
+                    if (typeof window !== 'undefined') {
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        // alert('Your session has expired. Please log in again.')
+                        window.location.href = "/login"
+                    }
+                    throw new Error('Token refresh failed')
+                }
             } catch (refreshError) {
-                refreshFailed = true;
                 processQueue(refreshError, null)
-                clearAuthAndRedirect();
+                // Clear all local/session storage and redirect to login
+                if (typeof window !== 'undefined') {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    // alert('Your session has expired. Please log in again.')
+                    window.location.href = "/login"
+                }
                 return Promise.reject(refreshError)
             } finally {
                 isRefreshing = false
@@ -114,17 +118,18 @@ apiClient.interceptors.response.use(
         // Handle other errors
         if (error.response?.status === 403) {
             if (typeof window !== 'undefined') {
-                console.warn("You don't have permission to perform this action.");
+                alert("You don't have permission to perform this action.")
+            }
+        }
+
+        if (error.response?.status === 429) {
+            if (typeof window !== 'undefined') {
+                alert("Too many requests. Please wait a moment before trying again.")
             }
         }
 
         return Promise.reject(error)
     },
 )
-
-// Function to reset refresh failed flag (call this after successful login)
-export const resetRefreshFailed = () => {
-    refreshFailed = false;
-};
 
 export default apiClient 

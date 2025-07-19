@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
-import { generateTokenPair, generateAccessToken } from '../../../utils/jwt';
+import { generateTokenPair, generateAccessToken, verifyRefreshToken } from '../../../utils/jwt';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class AuthController {
@@ -48,7 +48,7 @@ export class AuthController {
             const userResponse = {
                 _id: user._id,
                 username: user.username,
-          
+
                 role: user.role,
                 isActive: user.isActive,
                 balance: user.balance,
@@ -86,8 +86,8 @@ export class AuthController {
                 return;
             }
 
-            // Verify refresh token
-            const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET!) as { userId: string };
+            // Verify refresh token using the utility function
+            const decoded = verifyRefreshToken(refreshToken);
             const user = await User.findById(decoded.userId);
 
             if (!user || !user.isActive) {
@@ -110,6 +110,11 @@ export class AuthController {
             });
         } catch (error) {
             logger.error('Token refresh error:', error);
+            console.log('Refresh token error details:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                refreshToken: req.body.refreshToken ? 'present' : 'missing',
+                timestamp: new Date().toISOString()
+            });
             res.status(401).json({
                 success: false,
                 message: 'Invalid refresh token'
@@ -202,7 +207,7 @@ export class AuthController {
             const userResponse = {
                 _id: newUser._id,
                 username: newUser.username,
-              
+
                 role: newUser.role,
                 isActive: newUser.isActive,
                 balance: newUser.balance,
