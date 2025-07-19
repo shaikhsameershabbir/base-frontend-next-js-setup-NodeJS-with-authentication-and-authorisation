@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { User } from '../../../models/User';
 import { Market } from '../../../models/Market';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
+import { UserHierarchy } from '../../../models/UserHierarchy';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
@@ -11,7 +12,7 @@ export class UsersController {
     async getUsers(req: Request, res: Response): Promise<void> {
         try {
             const authReq = req as AuthenticatedRequest;
-            const { page = 1, limit = 10, search, role } = req.query;
+            const { page = 1, limit = 10, search, role, parentId } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,17 +23,22 @@ export class UsersController {
                 query._id = { $in: authReq.accessibleUserIds };
             }
 
+            // Filter by role if specified
+            if (role && role !== 'all') {
+                query.role = role;
+            }
+
+            // Filter by parent if specified
+            if (parentId && parentId !== 'all') {
+                query.parentId = parentId;
+            }
+
             // Search functionality
             if (search) {
                 query.$or = [
                     { username: { $regex: search, $options: 'i' } },
                     { email: { $regex: search, $options: 'i' } }
                 ];
-            }
-
-            // Filter by role
-            if (role) {
-                query.role = role;
             }
 
             const users = await User.find(query)
@@ -139,21 +145,73 @@ export class UsersController {
 
     async createUser(req: Request, res: Response): Promise<void> {
         try {
-            console.log('----------------------------->>', req.body)
-            const { username, password } = req.body;
+            const authReq = req as AuthenticatedRequest;
+            const { username, password, role, parentId } = req.body;
+
+            // Validate that user is authenticated
+            if (!authReq.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            // Define role hierarchy
+            const roleHierarchy: Record<string, string[]> = {
+                'superadmin': ['admin', 'distributor', 'agent', 'player'],
+                'admin': ['distributor', 'agent', 'player'],
+                'distributor': ['agent', 'player'],
+                'agent': ['player'],
+                'player': []
+            };
+
+            // Check if current user can create the specified role
+            const allowedRoles = roleHierarchy[authReq.user.role] || [];
+            if (!allowedRoles.includes(role)) {
+                res.status(403).json({
+                    success: false,
+                    message: `You can only create users with roles: ${allowedRoles.join(', ')}`
+                });
+                return;
+            }
 
             // Check if user already exists
-            const existingUserQuery: any = { username };
-      
-
-            const existingUser = await User.findOne(existingUserQuery);
-
+            const existingUser = await User.findOne({ username });
             if (existingUser) {
                 res.status(409).json({
                     success: false,
-                    message: 'Username or email already exists'
+                    message: 'Username already exists'
                 });
                 return;
+            }
+
+            // Determine the parent for the new user
+            let finalParentId = parentId;
+
+            // If no parentId provided, use the current user as parent
+            if (!finalParentId) {
+                finalParentId = authReq.user.userId;
+            } else {
+                // Validate that the specified parent exists and is accessible
+                const parentUser = await User.findById(finalParentId);
+                if (!parentUser) {
+                    res.status(404).json({
+                        success: false,
+                        message: 'Parent user not found'
+                    });
+                    return;
+                }
+
+                // Check if the parent's role is appropriate for the new user's role
+                const parentAllowedRoles = roleHierarchy[parentUser.role] || [];
+                if (!parentAllowedRoles.includes(role)) {
+                    res.status(403).json({
+                        success: false,
+                        message: `Cannot create ${role} under ${parentUser.role}`
+                    });
+                    return;
+                }
             }
 
             // Hash password
@@ -161,20 +219,50 @@ export class UsersController {
 
             // Create new user
             const newUser = new User({
-            
+                username,
                 password: hashedPassword,
-         
+                role,
+                parentId: finalParentId,
                 isActive: true,
                 balance: 0
             });
 
             await newUser.save();
 
+            // Create hierarchy entry
+            const levelMap = { 'superadmin': 0, 'admin': 1, 'distributor': 2, 'agent': 3, 'player': 4 };
+            const newUserLevel = levelMap[role as keyof typeof levelMap] || 4;
+
+            // Get parent hierarchy to build path
+            let parentPath: string[] = [];
+            if (finalParentId !== authReq.user.userId) {
+                const parentHierarchy = await UserHierarchy.findOne({ userId: finalParentId });
+                if (parentHierarchy) {
+                    parentPath = [...parentHierarchy.path.map(id => id.toString()), finalParentId];
+                }
+            } else {
+                // If current user is parent, get their hierarchy
+                const currentUserHierarchy = await UserHierarchy.findOne({ userId: authReq.user.userId });
+                if (currentUserHierarchy) {
+                    parentPath = [...currentUserHierarchy.path.map(id => id.toString()), authReq.user.userId];
+                }
+            }
+
+            await UserHierarchy.create({
+                userId: newUser._id,
+                parentId: finalParentId,
+                path: parentPath,
+                level: newUserLevel,
+                downlineCount: 0,
+                totalDownlineCount: 0
+            });
+
             // Remove password from response
             const userResponse = {
                 _id: newUser._id,
                 username: newUser.username,
                 role: newUser.role,
+                parentId: newUser.parentId,
                 isActive: newUser.isActive,
                 balance: newUser.balance,
                 createdAt: newUser.createdAt

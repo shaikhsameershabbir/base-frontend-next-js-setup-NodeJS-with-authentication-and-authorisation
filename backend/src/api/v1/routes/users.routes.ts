@@ -53,37 +53,9 @@ router.put('/:userId/password',
     usersController.updateUserPassword
 );
 
-// User creation routes (for authenticated users creating other users)
+// User creation route (for authenticated users creating other users)
 router.post('/create',
     authMiddleware.authenticateToken,
-    usersValidator.validateUserCreation,
-    usersController.createUser
-);
-
-router.post('/create/admin',
-    authMiddleware.authenticateToken,
-    authMiddleware.requireRole(['superadmin']),
-    usersValidator.validateUserCreation,
-    usersController.createUser
-);
-
-router.post('/create/distributor',
-    authMiddleware.authenticateToken,
-    authMiddleware.requireRole(['superadmin', 'admin']),
-    usersValidator.validateUserCreation,
-    usersController.createUser
-);
-
-router.post('/create/agent',
-    authMiddleware.authenticateToken,
-    authMiddleware.requireRole(['superadmin', 'admin', 'distributor']),
-    usersValidator.validateUserCreation,
-    usersController.createUser
-);
-
-router.post('/create/player',
-    authMiddleware.authenticateToken,
-    authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
     usersValidator.validateUserCreation,
     usersController.createUser
 );

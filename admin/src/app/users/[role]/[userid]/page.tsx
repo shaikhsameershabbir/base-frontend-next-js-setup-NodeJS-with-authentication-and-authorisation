@@ -41,6 +41,7 @@ export default function UsersPage() {
     const userId = params.userid as string
 
     const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [currentUser, setCurrentUser] = useState<UserType | null>(null)
     const [users, setUsers] = useState<UserWithStats[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -69,12 +70,22 @@ export default function UsersPage() {
     const [selectedUserForAssignment, setSelectedUserForAssignment] = useState<{ id: string; name: string; role: string } | null>(null);
 
     useEffect(() => {
-        // Check authentication
+        // Check authentication and get current user
         const auth = localStorage.getItem("isAuthenticated")
         if (!auth) {
             router.push("/login")
         } else {
             setIsAuthenticated(true)
+            // Get current user from localStorage
+            const userStr = localStorage.getItem("user")
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr)
+                    setCurrentUser(user)
+                } catch (error) {
+                    console.error("Error parsing user data:", error)
+                }
+            }
         }
     }, [router])
 
@@ -89,8 +100,17 @@ export default function UsersPage() {
             setLoading(true)
             setError(null)
 
-            // Use the new API structure - getUsers with role filtering
-            const response = await usersAPI.getUsers(currentPage, pagination.limit, debouncedSearchTerm, role)
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: currentPage.toString(),
+                limit: pagination.limit.toString(),
+                role: role,
+                ...(debouncedSearchTerm && { search: debouncedSearchTerm }),
+                ...(userId !== "all" && { parentId: userId })
+            });
+
+            // Use the updated API structure
+            const response = await usersAPI.getUsers(currentPage, pagination.limit, debouncedSearchTerm, role, userId !== "all" ? userId : "")
 
             if (response.success && response.data) {
                 // The API returns data directly as an array, not wrapped in a data property
@@ -182,6 +202,16 @@ export default function UsersPage() {
         fetchUsers();
     };
 
+    // Determine the parentId for new user creation
+    const getParentId = (): string | undefined => {
+        // If userId is "all", use current user as parent
+        if (userId === "all") {
+            return currentUser?._id
+        }
+        // If userId is a specific user ID, use that as parent
+        return userId
+    }
+
     const filteredUsers = (users || []).filter(user => {
         const matchesStatus = filterStatus === "all" ||
             (filterStatus === "active" && user.isActive) ||
@@ -222,6 +252,9 @@ export default function UsersPage() {
                     </div>
                     <p className="text-lg font-medium text-secondary">
                         Manage {getRoleDisplayName(role).toLowerCase()} accounts and permissions
+                        {userId !== "all" && (
+                            <span className="text-muted"> under selected user</span>
+                        )}
                     </p>
                 </div>
 
@@ -263,9 +296,11 @@ export default function UsersPage() {
                                     </Button>
                                 </div>
                             </div>
+
                             <AddUserModal
                                 role={role}
-                                parentId={userId}
+                                parentId={getParentId()}
+                                currentUserRole={currentUser?.role}
                                 onUserAdded={handleUserAdded}
                             />
                         </div>

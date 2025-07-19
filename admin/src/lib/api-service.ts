@@ -88,7 +88,6 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
     username: string;
-    email?: string;
     password: string;
     role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: string;
@@ -218,12 +217,13 @@ export const authAPI = {
 // ============================================================================
 
 export const usersAPI = {
-    getUsers: async (page = 1, limit = 10, search = '', role = ''): Promise<ApiResponse<User[]>> => {
+    getUsers: async (page = 1, limit = 10, search = '', role = '', parentId = ''): Promise<ApiResponse<User[]>> => {
         const params = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
             ...(search && { search }),
-            ...(role && { role })
+            ...(role && { role }),
+            ...(parentId && { parentId })
         });
         const response = await apiClient.get(`/users?${params}`);
         return response.data;
@@ -241,26 +241,6 @@ export const usersAPI = {
 
     createUser: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
         const response = await apiClient.post('/users/create', data);
-        return response.data;
-    },
-
-    createAdmin: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/users/create/admin', data);
-        return response.data;
-    },
-
-    createDistributor: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/users/create/distributor', data);
-        return response.data;
-    },
-
-    createAgent: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/users/create/agent', data);
-        return response.data;
-    },
-
-    createPlayer: async (data: RegisterRequest): Promise<ApiResponse<{ user: User }>> => {
-        const response = await apiClient.post('/users/create/player', data);
         return response.data;
     },
 

@@ -13,6 +13,7 @@ import { getRoleDisplayName, getRoleColor, getRoleIcon } from "@/app/helperFunct
 interface AddUserModalProps {
     role: string
     parentId?: string
+    currentUserRole?: string
     onUserAdded?: () => void
     trigger?: React.ReactNode
 }
@@ -21,11 +22,10 @@ interface UserFormData {
     username: string
     password: string
     confirmPassword: string
-
     role: string
 }
 
-export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserModalProps) {
+export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, trigger }: AddUserModalProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
@@ -35,9 +35,24 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
         username: "",
         password: "",
         confirmPassword: "",
-  
         role: role
     })
+
+    // Define role hierarchy for permission checking
+    const roleHierarchy: Record<string, string[]> = {
+        'superadmin': ['admin', 'distributor', 'agent', 'player'],
+        'admin': ['distributor', 'agent', 'player'],
+        'distributor': ['agent', 'player'],
+        'agent': ['player'],
+        'player': []
+    }
+
+    // Check if current user can create the specified role
+    const canCreateRole = (): boolean => {
+        if (!currentUserRole) return false
+        const allowedRoles = roleHierarchy[currentUserRole] || []
+        return allowedRoles.includes(role)
+    }
 
     const handleInputChange = (field: keyof UserFormData, value: string) => {
         setFormData(prev => ({
@@ -73,7 +88,11 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             return false
         }
 
-   
+        // Check if user has permission to create this role
+        if (!canCreateRole()) {
+            setError(`You don't have permission to create ${getRoleDisplayName(role)}`)
+            return false
+        }
 
         return true
     }
@@ -92,28 +111,12 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             const userData = {
                 username: formData.username.trim(),
                 password: formData.password,
-  
                 role: formData.role as 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player',
                 parentId: parentId // Pass the parentId to the backend
             }
 
-            let response
-            switch (formData.role) {
-                case 'admin':
-                    response = await usersAPI.createAdmin(userData)
-                    break
-                case 'distributor':
-                    response = await usersAPI.createDistributor(userData)
-                    break
-                case 'agent':
-                    response = await usersAPI.createAgent(userData)
-                    break
-                case 'player':
-                    response = await usersAPI.createPlayer(userData)
-                    break
-                default:
-                    throw new Error('Invalid role')
-            }
+            // Use the generic createUser endpoint instead of role-specific ones
+            const response = await usersAPI.createUser(userData)
 
             if (response.success) {
                 // Reset form
@@ -121,7 +124,6 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                     username: "",
                     password: "",
                     confirmPassword: "",
-       
                     role: role
                 })
 
@@ -135,7 +137,7 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
             }
         } catch (err: any) {
             console.error('Error creating user:', err)
-            setError(err.message || 'Failed to create user')
+            setError(err.response?.data?.message || err.message || 'Failed to create user')
         } finally {
             setLoading(false)
         }
@@ -148,13 +150,16 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                 username: "",
                 password: "",
                 confirmPassword: "",
-
                 role: role
             })
             setError(null)
         }
     }
 
+    // Don't render the modal if user doesn't have permission
+    if (!canCreateRole()) {
+        return null
+    }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -187,6 +192,13 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                             </div>
                         </Badge>
                     </div>
+
+                    {/* Parent Info */}
+                    {parentId && (
+                        <div className="text-sm text-muted">
+                            Will be created under the selected user
+                        </div>
+                    )}
 
                     {/* Username Field */}
                     <div className="space-y-2">
@@ -267,8 +279,6 @@ export function AddUserModal({ role, parentId, onUserAdded, trigger }: AddUserMo
                             </Button>
                         </div>
                     </div>
-
-          
 
                     {/* Error Message */}
                     {error && (
