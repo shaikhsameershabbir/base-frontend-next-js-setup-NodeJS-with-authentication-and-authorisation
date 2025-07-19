@@ -451,7 +451,6 @@ export class UsersController {
 
     async getAvailableMarketsForAssignment(req: Request, res: Response): Promise<void> {
         try {
-            console.log('0-------------------------------------------------------------------------------------------------')
             const authReq = req as AuthenticatedRequest;
             const { userId } = req.params;
 
@@ -474,22 +473,65 @@ export class UsersController {
                 return;
             }
 
-            // Get all markets
-            const markets = await Market.find({ isActive: true });
+            // Get all active markets
+            const allMarkets = await Market.find({ isActive: true });
 
-            // Get already assigned markets for this user
+            // Get markets that the target user's parent has access to
+            let parentAccessibleMarkets = allMarkets;
+
+            if (user.parentId) {
+                // Get the target user's parent
+                const targetParent = await User.findById(user.parentId);
+                if (targetParent) {
+                    if (targetParent.role === 'superadmin') {
+                        // If parent is superadmin, all markets are available
+                        parentAccessibleMarkets = allMarkets;
+                    } else {
+                        // Get markets assigned to the target user's parent
+                        const parentAssignments = await UserMarketAssignment.find({
+                            assignedTo: user.parentId
+                        });
+                        const parentMarketIds = parentAssignments.map(assignment =>
+                            (assignment.marketId as any).toString()
+                        );
+                        parentAccessibleMarkets = allMarkets.filter(market =>
+                            parentMarketIds.includes((market._id as any).toString())
+                        );
+                    }
+                }
+            } else {
+                // If no parent (should be superadmin), all markets are available
+                parentAccessibleMarkets = allMarkets;
+            }
+
+            // Get already assigned markets for the target user
             const assignedMarkets = await UserMarketAssignment.find({ assignedTo: userId });
-            const assignedMarketIds = assignedMarkets.map(assignment => (assignment.marketId as any).toString());
-
-            // Filter out already assigned markets
-            const availableMarkets = markets.filter(market =>
-                !assignedMarketIds.includes((market._id as any).toString())
+            const assignedMarketIds = assignedMarkets.map(assignment =>
+                (assignment.marketId as any).toString()
             );
+
+            // Separate assigned and unassigned markets from parent's accessible markets
+            const assignedMarketsData = parentAccessibleMarkets.filter(market =>
+                assignedMarketIds.includes((market._id as any).toString())
+            ).map(market => ({
+                ...market.toObject(),
+                isAssigned: true
+            }));
+
+            const unassignedMarketsData = parentAccessibleMarkets.filter(market =>
+                !assignedMarketIds.includes((market._id as any).toString())
+            ).map(market => ({
+                ...market.toObject(),
+                isAssigned: false
+            }));
+
+            // Combine both lists
+            const allMarketsData = [...assignedMarketsData, ...unassignedMarketsData];
 
             res.json({
                 success: true,
-                message: 'Available markets retrieved successfully',
-                data: { markets: availableMarkets }
+                message: 'Markets retrieved successfully',
+                data: { markets: allMarketsData }
             });
         } catch (error) {
             logger.error('Get available markets error:', error);

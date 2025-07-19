@@ -54,8 +54,8 @@ export function AssignMarketModal({
             const response = await usersAPI.getAvailableMarkets(userId)
 
             if (response.success && response.data) {
-                console.log('0------------------------->>', response.data)
-                setMarkets(response.data.markets || [])
+                const marketsData = response.data.markets || []
+                setMarkets(marketsData)
 
                 // Reset selections when loading new data
                 setSelectedMarkets([])
@@ -178,10 +178,10 @@ export function AssignMarketModal({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl font-bold text-primary">
                         <CheckCircle className="h-5 w-5 text-green-500" />
-                        Assign Markets to {userName}
+                        Manage Markets for {userName}
                     </DialogTitle>
                     <div className="text-sm text-secondary">
-                        Assign markets to {userName} ({userRole})
+                        Assign or unassign markets for {userName} ({userRole})
                     </div>
                 </DialogHeader>
 
@@ -203,7 +203,7 @@ export function AssignMarketModal({
                             disabled={filteredMarkets.length === 0}
                             className="whitespace-nowrap"
                         >
-                            {allUnassignedSelected && allAssignedSelected ? 'Deselect All' : 'Select All'}
+                            {allUnassignedSelected && allAssignedSelected ? 'Clear All' : 'Toggle All'}
                         </Button>
                     </div>
 
@@ -229,49 +229,14 @@ export function AssignMarketModal({
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {/* Unassigned Markets */}
-                                {unassignedMarkets.length > 0 && (
-                                    <div className="mb-4">
-                                        <h3 className="text-sm font-medium text-primary mb-2">Available Markets</h3>
-                                        {unassignedMarkets.map((market) => (
-                                            <div
-                                                key={market._id}
-                                                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-card/50 transition-colors mb-2"
-                                            >
-                                                <Checkbox
-                                                    id={market._id}
-                                                    checked={selectedMarkets.includes(market._id)}
-                                                    onCheckedChange={() => handleMarketToggle(market._id, false)}
-                                                />
-                                                <Label
-                                                    htmlFor={market._id}
-                                                    className="flex-1 cursor-pointer"
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <div className="font-medium text-primary">
-                                                                {market.marketName}
-                                                            </div>
-                                                            <div className="text-sm text-secondary">
-                                                                {/* Assuming status maps to isActive or similar */}
-                                                                {market.isActive ? 'Active' : 'Inactive'}
-                                                            </div>
-                                                        </div>
-                                                        <Badge variant={market.isActive ? "default" : "secondary"}>
-                                                            {market.isActive ? 'Active' : 'Inactive'}
-                                                        </Badge>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
+                            <div className="space-y-4">
                                 {/* Assigned Markets */}
                                 {assignedMarkets.length > 0 && (
                                     <div>
-                                        <h3 className="text-sm font-medium text-green-600 mb-2">Assigned Markets</h3>
+                                        <h3 className="text-sm font-medium text-green-600 mb-3 flex items-center gap-2">
+                                            <CheckCircle className="h-4 w-4" />
+                                            Currently Assigned ({assignedMarkets.length})
+                                        </h3>
                                         {assignedMarkets.map((market) => (
                                             <div
                                                 key={market._id}
@@ -292,8 +257,7 @@ export function AssignMarketModal({
                                                                 {market.marketName}
                                                             </div>
                                                             <div className="text-sm text-secondary">
-                                                                {/* Assuming status maps to isActive or similar */}
-                                                                {market.isActive ? 'Active' : 'Inactive'}
+                                                                {market.isActive ? 'Active Market' : 'Inactive Market'}
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -310,6 +274,60 @@ export function AssignMarketModal({
                                         ))}
                                     </div>
                                 )}
+
+                                {/* Unassigned Markets */}
+                                {unassignedMarkets.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-medium text-blue-600 mb-3 flex items-center gap-2">
+                                            <XCircle className="h-4 w-4" />
+                                            Available to Assign ({unassignedMarkets.length})
+                                        </h3>
+                                        {unassignedMarkets.map((market) => (
+                                            <div
+                                                key={market._id}
+                                                className="flex items-center gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50/20 hover:bg-blue-50/30 transition-colors mb-2"
+                                            >
+                                                <Checkbox
+                                                    id={market._id}
+                                                    checked={selectedMarkets.includes(market._id)}
+                                                    onCheckedChange={() => handleMarketToggle(market._id, false)}
+                                                />
+                                                <Label
+                                                    htmlFor={market._id}
+                                                    className="flex-1 cursor-pointer"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <div className="font-medium text-primary">
+                                                                {market.marketName}
+                                                            </div>
+                                                            <div className="text-sm text-secondary">
+                                                                {market.isActive ? 'Active Market' : 'Inactive Market'}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge className="bg-blue-500 text-white">
+                                                                Available
+                                                            </Badge>
+                                                            <Badge variant={market.isActive ? "default" : "secondary"}>
+                                                                {market.isActive ? 'Active' : 'Inactive'}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* No Markets Available */}
+                                {assignedMarkets.length === 0 && unassignedMarkets.length === 0 && (
+                                    <div className="text-center py-8">
+                                        <div className="text-muted">
+                                            No markets available for assignment
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -319,13 +337,13 @@ export function AssignMarketModal({
                         <div className="flex items-center justify-between p-3 bg-primary/10 border rounded-lg">
                             <div className="flex gap-4">
                                 {selectedMarkets.length > 0 && (
-                                    <span className="text-sm text-primary">
-                                        {selectedMarkets.length} market{selectedMarkets.length !== 1 ? 's' : ''} to assign
+                                    <span className="text-sm text-blue-600 font-medium">
+                                        +{selectedMarkets.length} market{selectedMarkets.length !== 1 ? 's' : ''} to assign
                                     </span>
                                 )}
                                 {marketsToUnassign.length > 0 && (
-                                    <span className="text-sm text-red-600">
-                                        {marketsToUnassign.length} market{marketsToUnassign.length !== 1 ? 's' : ''} will be unassigned
+                                    <span className="text-sm text-red-600 font-medium">
+                                        -{marketsToUnassign.length} market{marketsToUnassign.length !== 1 ? 's' : ''} to unassign
                                     </span>
                                 )}
                             </div>
@@ -364,7 +382,7 @@ export function AssignMarketModal({
                                 Processing...
                             </>
                         ) : (
-                            `Update ${selectedMarkets.length + marketsToUnassign.length} Market${(selectedMarkets.length + marketsToUnassign.length) !== 1 ? 's' : ''}`
+                            `Save Changes (${selectedMarkets.length + marketsToUnassign.length} Market${(selectedMarkets.length + marketsToUnassign.length) !== 1 ? 's' : ''})`
                         )}
                     </Button>
                 </div>
