@@ -37,10 +37,22 @@ export const superNavbar: NavbarItem[] = [
             }
         ],
     },
+
     {
-        title: "Markets",
-        href: "/markets",
+        title: "Markets Management",
         icon: "Home",
+        children: [
+            {
+                title: "All Markets",
+                href: "/markets",
+                icon: "ClipboardList",
+            },
+            {
+                title: "Market rank",
+                href: "/markets/rank",
+                icon: "History",
+            },
+        ],
     },
     {
         title: "Bid Management",
@@ -97,19 +109,19 @@ export const superNavbar: NavbarItem[] = [
                 title: "Total Summary",
                 href: "/reports/summary",
                 icon: "Activity",
-    },
-    {
-        title: "System",
-                icon: "Settings",
-        children: [
-            {
-                title: "Settings",
-                href: "/settings",
-                        icon: "Settings",
             },
             {
-                title: "Logs",
-                href: "/system/logs",
+                title: "System",
+                icon: "Settings",
+                children: [
+                    {
+                        title: "Settings",
+                        href: "/settings",
+                        icon: "Settings",
+                    },
+                    {
+                        title: "Logs",
+                        href: "/system/logs",
                         icon: "Activity",
                     },
                 ],
@@ -205,14 +217,14 @@ export const adminNavbar: NavbarItem[] = [
                 title: "Total Summary",
                 href: "/reports/summary",
                 icon: "Activity",
-    },
-    {
-        title: "System",
-                icon: "Settings",
-        children: [
+            },
             {
-                title: "Logs",
-                href: "/system/logs",
+                title: "System",
+                icon: "Settings",
+                children: [
+                    {
+                        title: "Logs",
+                        href: "/system/logs",
                         icon: "Activity",
                     },
                 ],
@@ -303,14 +315,14 @@ export const distributorNavbar: NavbarItem[] = [
                 title: "Total Summary",
                 href: "/reports/summary",
                 icon: "Activity",
-    },
-    {
-        title: "System",
-                icon: "Settings",
-        children: [
+            },
             {
-                title: "Logs",
-                href: "/system/logs",
+                title: "System",
+                icon: "Settings",
+                children: [
+                    {
+                        title: "Logs",
+                        href: "/system/logs",
                         icon: "Activity",
                     },
                 ],
@@ -397,14 +409,14 @@ export const agentNavbar: NavbarItem[] = [
                 title: "Total Summary",
                 href: "/reports/summary",
                 icon: "Activity",
-    },
-    {
-        title: "System",
-                icon: "Settings",
-        children: [
+            },
             {
-                title: "Logs",
-                href: "/system/logs",
+                title: "System",
+                icon: "Settings",
+                children: [
+                    {
+                        title: "Logs",
+                        href: "/system/logs",
                         icon: "Activity",
                     },
                 ],

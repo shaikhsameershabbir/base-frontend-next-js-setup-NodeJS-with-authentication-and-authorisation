@@ -20,7 +20,7 @@ const Header = () => {
           <button onClick={toggleSidebar} className="p-1">
             <Menu size={24} />
           </button>
-          <h1 className="text-xl font-bold pt-1">SK Matka Booking</h1>
+          <h1 className="text-xl font-bold pt-1">MK Booking</h1>
         </div>
         <div className="flex items-center">
           <div className="text-white px-3 py-1 rounded-lg flex items-center">
