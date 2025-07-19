@@ -86,7 +86,7 @@ export interface TransferStatsResponse {
 // Get child users under current user
 export const getChildUsers = async (): Promise<ChildUser[]> => {
     try {
-        const response = await apiClient.get('/api/v1/transfers/children');
+        const response = await apiClient.get('/transfers/children');
         // Handle different possible response structures
         const data = response.data;
         if (Array.isArray(data)) {
@@ -109,7 +109,7 @@ export const getChildUsers = async (): Promise<ChildUser[]> => {
 // Process a transfer
 export const processTransfer = async (transferData: TransferRequest): Promise<TransferResponse> => {
     try {
-        const response = await apiClient.post('/api/v1/transfers/process', transferData);
+        const response = await apiClient.post('/transfers/process', transferData);
         return response.data;
     } catch (error) {
         console.error('Error processing transfer:', error);
@@ -125,7 +125,7 @@ export const getTransferHistory = async (params?: {
     type?: string;
 }): Promise<TransferHistoryResponse> => {
     try {
-        const response = await apiClient.get('/api/v1/transfers/history', { params });
+        const response = await apiClient.get('/transfers/history', { params });
         return response.data;
     } catch (error) {
         console.error('Error fetching transfer history:', error);
@@ -136,7 +136,7 @@ export const getTransferHistory = async (params?: {
 // Get transfer statistics
 export const getTransferStats = async (): Promise<TransferStatsResponse> => {
     try {
-        const response = await apiClient.get('/api/v1/transfers/stats');
+        const response = await apiClient.get('/transfers/stats');
         return response.data;
     } catch (error) {
         console.error('Error fetching transfer stats:', error);

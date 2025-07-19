@@ -11,7 +11,7 @@ const usersValidator = new UsersValidator();
 // User management routes (with role-based access)
 router.get('/',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersController.getUsers
 );
 
@@ -26,14 +26,14 @@ router.post('/create',
 // These must come BEFORE the /:userId routes to avoid route conflicts
 router.get('/:userId/available-markets',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
     usersController.getAvailableMarketsForAssignment
 );
 
 router.post('/:userId/assign-markets',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
     usersValidator.validateMarketAssignment,
     usersController.assignMarketsToUser
@@ -41,14 +41,14 @@ router.post('/:userId/assign-markets',
 
 router.get('/:userId/assigned-markets',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
     usersController.getAssignedMarkets
 );
 
 router.post('/:userId/remove-markets',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     // authMiddleware.requireRole(['superadmin', 'admin', 'distributor', 'agent']),
     usersValidator.validateMarketRemoval,
     usersController.removeMarketAssignments
@@ -56,13 +56,13 @@ router.post('/:userId/remove-markets',
 
 router.put('/:userId/active',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersController.toggleUserActive
 );
 
 router.put('/:userId/password',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersValidator.validatePasswordUpdate,
     usersController.updateUserPassword
 );
@@ -70,27 +70,27 @@ router.put('/:userId/password',
 // Role-specific user route - must come after the /:userId/* routes
 router.get('/:role/:userId',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersController.getUsersByRole
 );
 
 // General user routes - must come last to avoid conflicts
 router.get('/:userId',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersController.getUserById
 );
 
 router.put('/:userId',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersValidator.validateUserUpdate,
     usersController.updateUser
 );
 
 router.delete('/:userId',
     authMiddleware.authenticateToken,
-    authMiddleware.setAccessibleUsers,
+
     usersController.deleteUserAndDownline
 );
 

@@ -694,10 +694,7 @@ const accessibleUserIds = await getAccessibleUserIds(req.user.role, req.user._id
 - Used for role-specific endpoints
 - Implements role hierarchy validation
 
-#### `setAccessibleUsers`
-- Determines which users current user can access
-- Implements hierarchical data filtering
-- Adds accessible user IDs to request object
+
 
 ### Rate Limiting Middleware
 

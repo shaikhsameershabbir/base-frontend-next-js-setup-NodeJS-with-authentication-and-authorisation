@@ -44,7 +44,6 @@ export default function PointTransferPage() {
                 getTransferHistory(),
                 getTransferStats()
             ])
-            console.log(childUsersData, transfersData, statsData)
             // Ensure childUsers is always an array
             const safeChildUsers = Array.isArray(childUsersData) ? childUsersData : [];
             setChildUsers(safeChildUsers)

@@ -72,7 +72,7 @@ src/api/v1/
 ### Authentication Middleware
 - `authenticateToken` - Verify JWT token
 - `requireRole` - Check user role permissions
-- `setAccessibleUsers` - Set accessible users based on hierarchy
+
 
 ### Rate Limiting
 - `loginLimiter` - Limit login attempts

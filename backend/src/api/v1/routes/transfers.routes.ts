@@ -8,25 +8,29 @@ const transfersController = new TransfersController();
 const authMiddleware = new AuthMiddleware();
 const transfersValidator = new TransfersValidator();
 
-// Balance transfer routes
+// Balance transfer routes  
 router.get('/children',
     authMiddleware.authenticateToken,
+
     transfersController.getChildUsers
 );
 
 router.post('/process',
     authMiddleware.authenticateToken,
+
     transfersValidator.validateTransfer,
     transfersController.processTransfer
 );
 
 router.get('/history',
     authMiddleware.authenticateToken,
+
     transfersController.getTransferHistory
 );
 
 router.get('/stats',
     authMiddleware.authenticateToken,
+
     transfersController.getTransferStats
 );
 

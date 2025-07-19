@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { Transfer } from '../../../models/Transfer';
 import { User } from '../../../models/User';
-import { UserHierarchy } from '../../../models/UserHierarchy';
+
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+import { UserHierarchy } from '../../../models/UserHierarchy';
 
 // Interface for populated user data
 interface PopulatedUser {
@@ -15,11 +16,9 @@ interface PopulatedUser {
 
 export class TransfersController {
     async getChildUsers(req: Request, res: Response): Promise<void> {
+        const authReq = req as AuthenticatedRequest;
         try {
-            const authReq = req as AuthenticatedRequest;
             const userId = authReq.user?.userId;
-            console.log('---------------------------------------------------------------------------', userId);
-
             if (!userId) {
                 res.status(401).json({ message: 'User not authenticated' });
                 return;
@@ -38,15 +37,16 @@ export class TransfersController {
                     path: 'userId',
                     select: 'username balance role isActive'
                 });
-
-            const formattedChildren = childUsers.map(child => ({
-                id: (child.userId as unknown as PopulatedUser)._id,
-                username: (child.userId as unknown as PopulatedUser).username,
-                balance: (child.userId as unknown as PopulatedUser).balance,
-                role: (child.userId as unknown as PopulatedUser).role,
-                isActive: (child.userId as unknown as PopulatedUser).isActive,
-                downlineCount: child.downlineCount
-            }));
+            const formattedChildren = childUsers
+                .filter(child => child.userId !== null) // Filter out null userId records
+                .map(child => ({
+                    id: (child.userId as unknown as PopulatedUser)._id,
+                    username: (child.userId as unknown as PopulatedUser).username,
+                    balance: (child.userId as unknown as PopulatedUser).balance,
+                    role: (child.userId as unknown as PopulatedUser).role,
+                    isActive: (child.userId as unknown as PopulatedUser).isActive,
+                    downlineCount: child.downlineCount
+                }));
 
             res.json({
                 success: true,
@@ -56,11 +56,11 @@ export class TransfersController {
             console.error('Error getting child users:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
-    }
+    };
 
     async processTransfer(req: Request, res: Response): Promise<void> {
+        const authReq = req as AuthenticatedRequest;
         try {
-            const authReq = req as AuthenticatedRequest;
             const { toUserId, amount, type, reason, adminNote } = req.body;
             const fromUserId = authReq.user?.userId;
 
@@ -221,11 +221,10 @@ export class TransfersController {
             res.status(500).json({ message: 'Internal server error' });
             return;
         }
-    }
-
+    };
     async getTransferHistory(req: Request, res: Response): Promise<void> {
+        const authReq = req as AuthenticatedRequest;
         try {
-            const authReq = req as AuthenticatedRequest;
             const userId = authReq.user?.userId;
             const { page = 1, limit = 20, status, type } = req.query;
 
@@ -311,11 +310,11 @@ export class TransfersController {
             console.error('Error getting transfer history:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
-    }
+    };
 
     async getTransferStats(req: Request, res: Response): Promise<void> {
+        const authReq = req as AuthenticatedRequest;
         try {
-            const authReq = req as AuthenticatedRequest;
             const userId = authReq.user?.userId;
 
             if (!userId) {
@@ -355,5 +354,5 @@ export class TransfersController {
             console.error('Error getting transfer stats:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
-    }
+    };
 } 
