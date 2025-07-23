@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import { PlayerController } from '../controllers/player.controller';
 import { PlayerAuthMiddleware } from '../middlewares/playerAuth.middleware';
 import { PlayerValidator } from '../validators/player.validator';
@@ -11,26 +11,26 @@ const playerValidator = new PlayerValidator();
 // Player-specific routes (require player authentication)
 router.get('/profile',
     playerAuthMiddleware.authenticatePlayer,
-    playerController.getProfile
+    playerController.getProfile as unknown as RequestHandler
 );
 
 router.put('/profile',
     playerAuthMiddleware.authenticatePlayer,
     playerValidator.validateProfileUpdate,
-    playerController.updateProfile
+    playerController.updateProfile as unknown as RequestHandler
 );
 
 // Get player's assigned markets
 router.get('/assigned-markets',
     playerAuthMiddleware.authenticatePlayer,
-    playerController.getAssignedMarkets
+    playerController.getAssignedMarkets as unknown as RequestHandler
 );
 
 // Bid confirmation routes
 router.post('/confirm-bid',
     playerAuthMiddleware.authenticatePlayer,
     playerValidator.validateBidConfirmation,
-    playerController.confirmBid
+    playerController.confirmBid as unknown as RequestHandler
 );
 
 export default router; 

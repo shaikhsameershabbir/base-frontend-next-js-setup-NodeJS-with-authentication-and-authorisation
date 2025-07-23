@@ -1,13 +1,13 @@
-import {  Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
+import { AuthenticatedRequest, AuthenticatedUser } from './auth.middleware';
 
 export class PlayerAuthMiddleware {
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async authenticatePlayer(req: any, res: Response, next: NextFunction): Promise<void> {
+
+    async authenticatePlayer(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const authHeader = req.headers.authorization;
             const token = authHeader && authHeader.split(' ')[1];
@@ -44,7 +44,15 @@ export class PlayerAuthMiddleware {
                 return;
             }
 
-            req.user = user;
+            // Set user with the correct structure matching AuthenticatedUser
+            (req as AuthenticatedRequest).user = {
+                userId: String(user._id),
+                username: user.username,
+                balance: user.balance,
+                role: user.role,
+                parentId: user.parentId ? String(user.parentId) : undefined
+            };
+
             next();
         } catch (error) {
             logger.error('Player authentication error:', error);
