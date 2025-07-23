@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useGlobalContext } from '@/contexts/GlobalContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,12 +15,11 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const router = useRouter();
-  const { state: { user }, logout } = useGlobalContext();
+  const { state: { user }, logout } = useAuthContext();
 
   const handleLogout = async () => {
     await logout();
-    router.replace('/login');
-    onClose();
+    router.replace('/');
   };
 
   const menuItems = [

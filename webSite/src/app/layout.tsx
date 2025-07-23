@@ -2,9 +2,8 @@
 import './globals.css';
 import type { Metadata } from "next";
 
-import { GlobalProvider } from '@/contexts/GlobalContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { MarketsProvider } from '@/contexts/MarketsContext';
-import Header from './components/Header';
 
 export const metadata: Metadata = {
   title: "MK Matka Booking",
@@ -19,14 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased font-sans">
-        <GlobalProvider>
+        <AuthProvider>
           <MarketsProvider>
-            {/* <SplashScreenWrapper> */}
-            <Header />
             {children}
-            {/* </SplashScreenWrapper> */}
           </MarketsProvider>
-        </GlobalProvider>
+        </AuthProvider>
       </body>
     </html>
   );

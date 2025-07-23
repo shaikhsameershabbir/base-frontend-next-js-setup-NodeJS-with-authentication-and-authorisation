@@ -27,13 +27,13 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
             localStorage.removeItem('user')
 
             // Redirect to login
-            router.push("/login")
+            router.push("/")
         } catch (error) {
             console.error("Logout error:", error)
             // Even if logout fails, clear local state and redirect
             localStorage.removeItem('isAuthenticated')
             localStorage.removeItem('user')
-            router.push("/login")
+            router.push("/")
         } finally {
             setIsLoggingOut(false)
         }

@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
 import React, { useState } from 'react';
 import { Wallet, Menu } from 'lucide-react';
 import Sidebar from './Sidebar';
-import { useGlobalContext } from '@/contexts/GlobalContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { state: { user } } = useGlobalContext();
+  const { state: { user } } = useAuthContext();
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);

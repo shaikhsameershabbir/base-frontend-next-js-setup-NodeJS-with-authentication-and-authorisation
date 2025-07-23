@@ -96,7 +96,7 @@ apiClient.interceptors.response.use(
                         localStorage.clear();
                         sessionStorage.clear();
                         // alert('Your session has expired. Please log in again.')
-                        window.location.href = "/login"
+                        window.location.href = "/"
                     }
                     throw new Error('Token refresh failed')
                 }
@@ -107,7 +107,7 @@ apiClient.interceptors.response.use(
                     localStorage.clear();
                     sessionStorage.clear();
                     // alert('Your session has expired. Please log in again.')
-                    window.location.href = "/login"
+                    window.location.href = "/"
                 }
                 return Promise.reject(refreshError)
             } finally {

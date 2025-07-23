@@ -11,7 +11,7 @@ const rateLimiterMiddleware = new RateLimiterMiddleware();
 const authValidator = new AuthValidator();
 
 // Public routes with rate limiting
-router.post('/login',
+router.post('/',
     rateLimiterMiddleware.loginLimiter,
     authValidator.validateLogin,
     authController.login

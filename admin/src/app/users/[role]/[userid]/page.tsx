@@ -73,7 +73,7 @@ export default function UsersPage() {
         // Check authentication and get current user
         const auth = localStorage.getItem("isAuthenticated")
         if (!auth) {
-            router.push("/login")
+            router.push("/")
         } else {
             setIsAuthenticated(true)
             // Get current user from localStorage

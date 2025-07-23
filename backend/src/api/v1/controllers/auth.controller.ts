@@ -17,7 +17,7 @@ export class AuthController {
             if (!user) {
                 res.status(401).json({
                     success: false,
-                    message: 'Invalid credentials'
+                    message: 'Invalid username or password'
                 });
                 return;
             }
@@ -26,7 +26,7 @@ export class AuthController {
             if (!user.isActive) {
                 res.status(401).json({
                     success: false,
-                    message: 'Account is deactivated'
+                    message: 'Your account has been deactivated. Please contact support.'
                 });
                 return;
             }
@@ -45,7 +45,7 @@ export class AuthController {
             if (!isValidPassword) {
                 res.status(401).json({
                     success: false,
-                    message: 'Invalid credentials'
+                    message: 'Invalid username or password'
                 });
                 return;
             }
@@ -62,7 +62,6 @@ export class AuthController {
             const userResponse = {
                 _id: user._id,
                 username: user.username,
-
                 role: user.role,
                 isActive: user.isActive,
                 balance: user.balance,
@@ -83,7 +82,7 @@ export class AuthController {
             logger.error('Login error:', error);
             res.status(500).json({
                 success: false,
-                message: 'Internal server error'
+                message: 'Login failed. Please try again later.'
             });
         }
     }
@@ -124,11 +123,7 @@ export class AuthController {
             });
         } catch (error) {
             logger.error('Token refresh error:', error);
-            console.log('Refresh token error details:', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                refreshToken: req.body.refreshToken ? 'present' : 'missing',
-                timestamp: new Date().toISOString()
-            });
+
             res.status(401).json({
                 success: false,
                 message: 'Invalid refresh token'
@@ -221,7 +216,6 @@ export class AuthController {
             const userResponse = {
                 _id: newUser._id,
                 username: newUser.username,
-
                 role: newUser.role,
                 isActive: newUser.isActive,
                 balance: newUser.balance,

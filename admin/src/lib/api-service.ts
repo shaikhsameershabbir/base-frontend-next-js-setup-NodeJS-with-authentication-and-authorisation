@@ -157,7 +157,7 @@ export interface ActivitiesResponse {
 
 export const authAPI = {
     login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-        const response = await apiClient.post('/auth/login', credentials);
+        const response = await apiClient.post('/auth/', credentials);
 
         // Store tokens in localStorage
         if (response.data.success && typeof window !== 'undefined') {

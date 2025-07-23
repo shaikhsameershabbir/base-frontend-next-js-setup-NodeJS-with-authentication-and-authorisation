@@ -29,7 +29,7 @@ export default function PointTransferPage() {
         // Check authentication
         const auth = localStorage.getItem("isAuthenticated")
         if (!auth) {
-            router.push("/login")
+            router.push("/")
         } else {
             setIsAuthenticated(true)
             loadData()

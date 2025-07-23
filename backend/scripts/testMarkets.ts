@@ -8,7 +8,7 @@ async function testMarketsAPI() {
 
         // Test 1: Login as a player
         console.log('1. Logging in as a player...');
-        const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        const loginResponse = await axios.post(`${API_BASE_URL}/api/auth/`, {
             username: 'player1',
             password: 'password123',
             login: 'web'

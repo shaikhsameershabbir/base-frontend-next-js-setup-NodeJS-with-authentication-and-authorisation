@@ -11,14 +11,14 @@ export const authAPI = {
             ...credentials,
             loginSource: credentials.loginSource || 'web'
         };
-        const response = await apiClient.post('/auth/login', loginData);
-        
+        const response = await apiClient.post('/auth/', loginData);
+
         // Store tokens in localStorage if login is successful
         if (response.data.success && typeof window !== 'undefined') {
             localStorage.setItem('accessToken', response.data.data.accessToken);
             localStorage.setItem('refreshToken', response.data.data.refreshToken);
         }
-        
+
         return response.data;
     },
 

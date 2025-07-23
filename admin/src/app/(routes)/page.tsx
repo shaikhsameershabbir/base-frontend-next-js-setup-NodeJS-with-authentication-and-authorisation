@@ -13,7 +13,7 @@ export default function HomePage() {
     if (isAuthenticated) {
       router.push("/dashboard")
     } else {
-      router.push("/login")
+      router.push("/")
     }
   }, [router])
 

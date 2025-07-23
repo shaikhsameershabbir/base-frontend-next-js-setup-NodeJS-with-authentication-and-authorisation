@@ -25,7 +25,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 const storedUser = localStorage.getItem('user')
 
                 if (!isAuthenticated || !storedUser) {
-                    router.push('/login')
+                    router.push('/')
                     return
                 }
 
@@ -39,14 +39,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     // Clear invalid authentication state
                     localStorage.removeItem('isAuthenticated')
                     localStorage.removeItem('user')
-                    router.push('/login')
+                    router.push('/')
                 }
             } catch (error) {
                 console.error('Authentication check failed:', error)
                 // Clear authentication state on error
                 localStorage.removeItem('isAuthenticated')
                 localStorage.removeItem('user')
-                router.push('/login')
+                router.push('/')
             } finally {
                 setIsLoading(false)
             }
