@@ -211,6 +211,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      */
     const fetchUserProfile = async (): Promise<void> => {
         try {
+            console.log('🔄 Fetching user profile from server...');
             // Start loading
             dispatch({ type: 'SET_LOADING', payload: true });
 
@@ -218,29 +219,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const response = await authAPI.getProfile();
 
             if (response.success && response.data) {
+                console.log('✅ User profile fetched successfully');
                 // If successful, set the user data
                 dispatch({ type: 'SET_USER', payload: response.data.user });
             } else {
                 throw new Error(response.message || 'Failed to fetch user profile');
             }
         } catch (err: any) {
-            console.error('Error fetching user profile:', err);
+            console.error('❌ Error fetching user profile:', err);
 
             // If it's an authentication error (401/403), user is not logged in
             if (err.response?.status === 401 || err.response?.status === 403) {
+                console.log('🚫 Authentication error, clearing user data');
                 // Clear all authentication data
                 dispatch({ type: 'LOGOUT' });
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('user');
                 localStorage.removeItem('userRole');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
 
                 // Clear cookies and tokens
                 if (typeof window !== 'undefined') {
                     document.cookie = 'authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-                    localStorage.removeItem('authToken');
                 }
             } else {
+                console.log('⚠️ Other error occurred:', err.message);
                 // For other errors, show the error message
                 dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to fetch user profile' });
             }
@@ -322,7 +327,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('user');
             localStorage.removeItem('userRole');
-            localStorage.removeItem('authToken');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
         }
     };
 
@@ -359,12 +365,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      */
     useEffect(() => {
         const initializeAuth = async () => {
+            console.log('🔐 Initializing authentication...');
+
             // Check if user was logged in before
             const isAuth = localStorage.getItem('isAuthenticated');
             const userData = localStorage.getItem('user');
+            const accessToken = localStorage.getItem('accessToken');
 
-            if (isAuth && userData) {
+            console.log('📊 Stored auth data:', { isAuth, hasUserData: !!userData, hasToken: !!accessToken });
+
+            if (isAuth && userData && accessToken) {
                 try {
+                    console.log('🔄 Found stored auth data, attempting to restore session...');
+
                     // Parse stored user data
                     const parsedUser = JSON.parse(userData);
 
@@ -374,15 +387,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     // Get fresh data from server (in case data changed)
                     await fetchUserProfile();
                 } catch (err) {
-                    console.error('Error parsing user data:', err);
+                    console.error('❌ Error parsing user data:', err);
                     // If stored data is corrupted, clear it
                     localStorage.removeItem('isAuthenticated');
                     localStorage.removeItem('user');
                     localStorage.removeItem('userRole');
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
                     dispatch({ type: 'SET_LOADING', payload: false });
                 }
             } else {
+                console.log('🚫 No stored auth data found, user is not logged in');
                 // No stored data, user is not logged in
+                // Clear any partial data
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('user');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
                 dispatch({ type: 'SET_LOADING', payload: false });
             }
         };

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
@@ -137,8 +138,20 @@ export class AuthController {
             const token = authHeader && authHeader.split(' ')[1];
 
             if (token) {
-                // Add token to blacklist
-                await TokenBlacklist.create({ token });
+                try {
+                    // Decode the token to get user info and expiration
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+
+                    // Add token to blacklist with required fields
+                    await TokenBlacklist.create({
+                        tokenId: decoded.jti || token, // Use JWT ID or token as fallback
+                        userId: decoded.userId,
+                        expiresAt: new Date(decoded.exp * 1000) // Convert timestamp to Date
+                    });
+                } catch (tokenError) {
+                    // If token is invalid, we can't blacklist it, but still allow logout
+                    logger.warn('Invalid token during logout:', tokenError);
+                }
             }
 
             res.json({

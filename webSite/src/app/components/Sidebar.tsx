@@ -18,8 +18,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { state: { user }, logout } = useAuthContext();
 
   const handleLogout = async () => {
-    await logout();
-    router.replace('/');
+    try {
+      await logout();
+      // Clear any remaining data
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+      // Redirect to root page (which will handle routing to login)
+      router.replace('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear local data and redirect
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+      router.replace('/');
+    }
   };
 
   const menuItems = [
