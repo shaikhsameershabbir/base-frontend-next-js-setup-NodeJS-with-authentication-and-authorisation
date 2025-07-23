@@ -1,10 +1,7 @@
 'use client';
-
 import React from 'react';
 import { useParams } from 'next/navigation';
 import BottomNav from '@/app/components/BottomNav';
-import Header from '@/app/components/Header';
-
 // Import game type components
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';

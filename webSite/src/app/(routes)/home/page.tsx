@@ -2,6 +2,7 @@
 
 import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
+import Header from "@/app/components/Header";
 import Message from "@/app/components/Message";
 import { useMarkets } from "@/contexts/MarketsContext";
 import React from "react";
@@ -9,7 +10,7 @@ import React from "react";
 
 export default function Home() {
     const { state, getMarketStatus, getMarketStatusColor } = useMarkets();
-
+    console.log(state.markets)
     return (
         <main className="min-h-screen bg-gray-100 flex flex-col">
             <div className="flex-1 pt-16">

@@ -7,7 +7,6 @@ import BottomNav from "@/app/components/BottomNav";
 import Header from "@/app/components/Header";
 
 const gameTypes = [
-  { id: "all-in-one", name: "All in One", icon: "/bid.svg" },
   { id: "single", name: "Single", icon: "/Game/single_panna.png" },
   { id: "jodi-digits", name: "Jodi DIGITS", icon: "/Game/sp_dp_tp.png" },
   { id: "single-panna", name: "Single Panna", icon: "/Game/single_panna.png" },
@@ -35,12 +34,15 @@ const GamePage = () => {
     .join(" ");
 
   const handleGameTypeClick = (typeId: string) => {
-    router.push(`/games/${params.id}/${typeId}`);
+    router.push(`/Games/${params.id}/${typeId}`);
   };
 
   return (
     <>
-    <div className="flex flex-col h-screen bg-gray-100 pt-16">
+ 
+    <div className="flex flex-col h-screen pt-16 bg-gray-100"
+  
+    >
       <div className="flex-1 overflow-y-auto p-4">
         {/* Game Types Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
