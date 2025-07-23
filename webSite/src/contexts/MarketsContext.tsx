@@ -36,15 +36,17 @@ interface MarketsState {
     loading: boolean;
     error: string | null;
     lastFetched: number | null;
+    hasTriedFetch: boolean; // Flag to prevent infinite retries
 }
 
 // Action types
 type MarketsAction =
     | { type: 'FETCH_MARKETS_START' }
     | { type: 'FETCH_MARKETS_SUCCESS'; payload: { assignments: MarketAssignment[] } }
-    | { type: 'FETCH_MARKETS_ERROR'; payload: string }
+    | { type: 'FETCH_MARKETS_ERROR'; payload: string | null }
     | { type: 'CLEAR_MARKETS_ERROR' }
-    | { type: 'REFRESH_MARKETS' };
+    | { type: 'REFRESH_MARKETS' }
+    | { type: 'SET_HAS_TRIED_FETCH' };
 
 // Initial state
 const initialState: MarketsState = {
@@ -53,6 +55,7 @@ const initialState: MarketsState = {
     loading: false,
     error: null,
     lastFetched: null,
+    hasTriedFetch: false,
 };
 
 // Reducer
@@ -88,6 +91,12 @@ function marketsReducer(state: MarketsState, action: MarketsAction): MarketsStat
             return {
                 ...state,
                 lastFetched: null, // This will trigger a refetch
+                hasTriedFetch: false, // Reset the flag
+            };
+        case 'SET_HAS_TRIED_FETCH':
+            return {
+                ...state,
+                hasTriedFetch: true,
             };
         default:
             return state;
@@ -119,6 +128,7 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
     const fetchMarkets = async () => {
         try {
             dispatch({ type: 'FETCH_MARKETS_START' });
+            dispatch({ type: 'SET_HAS_TRIED_FETCH' });
 
             const response = await marketsAPI.getAssignedMarkets();
 
@@ -136,11 +146,12 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
         } catch (error: any) {
             console.error('Error fetching markets:', error);
 
-            // If it's an authentication error, don't show error message
+            // If it's an authentication error, don't show error message and don't retry
             if (error.response?.status === 401 || error.response?.status === 403) {
+                // Don't set error for auth issues, just stop loading
                 dispatch({
                     type: 'FETCH_MARKETS_ERROR',
-                    payload: 'Authentication required. Please log in.'
+                    payload: null
                 });
             } else {
                 dispatch({
@@ -200,10 +211,12 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
 
     // Auto-fetch markets when component mounts or when lastFetched is null
     useEffect(() => {
-        if (state.lastFetched === null) {
+        // Only fetch markets if user is authenticated and we haven't tried yet
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        if (state.lastFetched === null && !state.hasTriedFetch && isAuthenticated) {
             fetchMarkets();
         }
-    }, [state.lastFetched]);
+    }, [state.lastFetched, state.hasTriedFetch]);
 
     const value: MarketsContextType = {
         state,

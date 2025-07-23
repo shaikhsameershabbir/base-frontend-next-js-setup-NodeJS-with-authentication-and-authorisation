@@ -12,7 +12,7 @@ export interface User {
 export interface LoginRequest {
     username: string;
     password: string;
-    login: string;
+    loginSource?: string;
 }
 
 export interface UpdateProfileRequest {
@@ -27,6 +27,6 @@ export interface ApiResponse<T = any> {
 }
 export interface LoginResponse {
     user: User;
-    token: string;
-    tokenExpires: number;
+    accessToken: string;
+    refreshToken: string;
 }

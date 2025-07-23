@@ -6,7 +6,19 @@ import { ApiResponse, LoginRequest, LoginResponse, UpdateProfileRequest, User } 
 // Auth API
 export const authAPI = {
     login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-        const response = await apiClient.post('/auth/login', credentials);
+        // Add loginSource for web application
+        const loginData = {
+            ...credentials,
+            loginSource: credentials.loginSource || 'web'
+        };
+        const response = await apiClient.post('/auth/login', loginData);
+        
+        // Store tokens in localStorage if login is successful
+        if (response.data.success && typeof window !== 'undefined') {
+            localStorage.setItem('accessToken', response.data.data.accessToken);
+            localStorage.setItem('refreshToken', response.data.data.refreshToken);
+        }
+        
         return response.data;
     },
 

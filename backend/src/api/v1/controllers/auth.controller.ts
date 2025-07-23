@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
@@ -10,7 +10,7 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
-            const { username, password } = req.body;
+            const { username, password, loginSource = 'unknown' } = req.body;
 
             // Find user by username
             const user = await User.findOne({ username });
@@ -31,6 +31,15 @@ export class AuthController {
                 return;
             }
 
+            // For web application, only allow player role
+            if (loginSource === 'web' && user.role !== 'player') {
+                res.status(403).json({
+                    success: false,
+                    message: 'Access denied. This application is only for players.'
+                });
+                return;
+            }
+
             // Verify password
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
@@ -40,6 +49,11 @@ export class AuthController {
                 });
                 return;
             }
+
+            // Update login source and last login time
+            user.loginSource = loginSource;
+            user.lastLogin = new Date();
+            await user.save();
 
             // Generate tokens using the new utility function
             const tokenPair = generateTokenPair(user, req.headers['user-agent'] || 'unknown');

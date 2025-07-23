@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import { authAPI } from '@/lib/api/auth';
-import { resetRefreshFailed } from '@/lib/api-client';
 
 // Types
 interface User {
@@ -180,11 +179,11 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             const response = await authAPI.login({
                 username,
                 password,
-                login: 'web'
+                loginSource: 'web'
             });
 
             if (response.success && response.data) {
-                const { user, token } = response.data;
+                const { user, accessToken, refreshToken } = response.data;
 
                 // Check if user is a player
                 if (user.role !== 'player') {
@@ -192,14 +191,12 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
                     return false;
                 }
 
-                // Store user data and token
+                // Store user data and tokens
                 localStorage.setItem('user', JSON.stringify(user));
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('userRole', user.role);
-                localStorage.setItem('authToken', token);
-
-                // Reset refresh failed flag
-                resetRefreshFailed();
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('refreshToken', refreshToken);
 
                 // Set user in context
                 dispatch({ type: 'SET_USER', payload: user });
