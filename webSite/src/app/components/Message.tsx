@@ -9,10 +9,11 @@ const MessageSection = () => {
       <a
         href="https://new-mk.vercel.app/"
         target="_blank"
+        title="Click to check Market results !"
         rel="noopener noreferrer"
         className="text-xl font-bold text-red-600 hover:text-red-700 transition-colors text-center animate-pulse"
       >
-       Click Here To See {messages[0]?.message || "Contact us on WhatsApp"}
+        matkaresult.online
       </a>
       <span className="zi text-2xl md:text-2xl">&#128072;</span>
     </div>

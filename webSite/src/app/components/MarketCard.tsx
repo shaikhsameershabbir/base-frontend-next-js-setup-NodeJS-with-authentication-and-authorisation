@@ -31,7 +31,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-4 mx-2">
+    <div className="bg-white rounded-xl  p-4 mb-4 mx-2">
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
@@ -60,10 +60,6 @@ const MarketCard: React.FC<MarketCardProps> = ({
           </div>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="w-8 h-8">
-            <CalendarDays className="w-8 h-8 text-black" />
-          </div>
-          &ensp;
           <div className="flex flex-col items-center">
             <button
               onClick={handlePlayClick}
