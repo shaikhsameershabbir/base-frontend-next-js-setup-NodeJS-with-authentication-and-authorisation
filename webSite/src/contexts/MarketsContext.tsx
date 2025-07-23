@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { marketsAPI } from '@/lib/api/auth';
+import { useAuthContext } from './AuthContext';
 
 // Market types
 export interface Market {
@@ -46,7 +47,8 @@ type MarketsAction =
     | { type: 'FETCH_MARKETS_ERROR'; payload: string | null }
     | { type: 'CLEAR_MARKETS_ERROR' }
     | { type: 'REFRESH_MARKETS' }
-    | { type: 'SET_HAS_TRIED_FETCH' };
+    | { type: 'SET_HAS_TRIED_FETCH' }
+    | { type: 'RESET_MARKETS' };
 
 // Initial state
 const initialState: MarketsState = {
@@ -98,6 +100,10 @@ function marketsReducer(state: MarketsState, action: MarketsAction): MarketsStat
                 ...state,
                 hasTriedFetch: true,
             };
+        case 'RESET_MARKETS':
+            return {
+                ...initialState,
+            };
         default:
             return state;
     }
@@ -123,6 +129,7 @@ interface MarketsProviderProps {
 
 export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) => {
     const [state, dispatch] = useReducer(marketsReducer, initialState);
+    const { state: authState } = useAuthContext();
 
     // Fetch markets from server
     const fetchMarkets = async () => {
@@ -209,14 +216,25 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
         }
     };
 
-    // Auto-fetch markets when component mounts or when lastFetched is null
+    // Auto-fetch markets when authentication state changes
     useEffect(() => {
-        // Only fetch markets if user is authenticated and we haven't tried yet
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
-        if (state.lastFetched === null && !state.hasTriedFetch && isAuthenticated) {
+        // If user is authenticated and we haven't fetched markets yet
+        if (authState.isAuthenticated && authState.user && !state.hasTriedFetch) {
             fetchMarkets();
         }
-    }, [state.lastFetched, state.hasTriedFetch]);
+        
+        // If user logs out, reset markets state
+        if (!authState.isAuthenticated) {
+            dispatch({ type: 'RESET_MARKETS' });
+        }
+    }, [authState.isAuthenticated, authState.user, state.hasTriedFetch]);
+
+    // Also fetch markets when lastFetched is null (for manual refresh)
+    useEffect(() => {
+        if (authState.isAuthenticated && authState.user && state.lastFetched === null && !state.hasTriedFetch) {
+            fetchMarkets();
+        }
+    }, [state.lastFetched, authState.isAuthenticated, authState.user, state.hasTriedFetch]);
 
     const value: MarketsContextType = {
         state,
