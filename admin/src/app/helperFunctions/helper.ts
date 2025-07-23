@@ -34,20 +34,22 @@ export function getRoleColor(role: string): string {
     }
 }
 
-export function getRoleIcon(role: string) {
+import React from "react";
+
+export function getRoleIcon(role: string): React.ReactNode {
     switch (role) {
         case 'superadmin':
-            return <Crown className="h-3 w-3" />
+            return <Crown className="h-3 w-3" />;
         case 'admin':
-            return <Shield className="h-3 w-3" />
+            return <Shield className="h-3 w-3" />;
         case 'distributor':
-            return <Target className="h-3 w-3" />
+            return <Target className="h-3 w-3" />;
         case 'agent':
-            return <Users className="h-3 w-3" />
+            return <Users className="h-3 w-3" />;
         case 'player':
-            return <UserIcon className="h-3 w-3" />
+            return <UserIcon className="h-3 w-3" />;
         default:
-            return <UserIcon className="h-3 w-3" />
+            return <UserIcon className="h-3 w-3" />;
     }
 }
 

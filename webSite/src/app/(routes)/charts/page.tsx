@@ -22,17 +22,17 @@ const chartSections = [
 
 function Page() {
   return (
-    <main className="min-h-screen bg-gray-100">
-    
+    <main className="min-h-screen bg-gray-50">
+
       <div className="pt-16 px-4">
         {/* Search Bar */}
         <div className="relative mb-6 mt-4">
-          <div className="relative flex items-center border-2 border-gray-300 rounded-lg bg-white">
-            <Search className="absolute left-3 text-gray-400" size={20} />
+          <div className="relative flex items-center border-2 border-gray-300 rounded-lg bg-white shadow-sm">
+            <Search className="absolute left-3 text-gray-500" size={20} />
             <input
               type="text"
               placeholder="Search chart"
-              className="w-full pl-12 pr-4 py-3 text-gray-700 bg-transparent outline-none"
+              className="w-full pl-12 pr-4 py-3 text-gray-800 bg-transparent outline-none placeholder-gray-500"
             />
           </div>
         </div>
@@ -43,10 +43,10 @@ function Page() {
             {chartSections.map((section, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow overflow-hidden rounded-t-xl rounded-b-xl"
+                className="bg-white rounded-lg shadow-md overflow-hidden rounded-t-xl rounded-b-xl border border-gray-200"
               >
                 {/* Section Title */}
-                <div className="bg-primary py-4 rounded-t-xl">
+                <div className="bg-orange-500 py-4 rounded-t-xl">
                   <h2 className="text-xl font-semibold text-white text-center">
                     {section.title}
                   </h2>
@@ -56,13 +56,13 @@ function Page() {
                 <div className="flex gap-4 p-4">
                   <a
                     href={`/Charts/Jodi/${section.id}`}
-                    className="flex-1 bg-primary text-white font-semibold py-3 px-6 rounded-full hover:bg-orange-600 transition-colors text-center"
+                    className="flex-1 bg-orange-500 text-white font-semibold py-3 px-6 rounded-full hover:bg-orange-600 transition-colors text-center shadow-sm"
                   >
                     Jodi Chart
                   </a>
                   <a
                     href={`/Charts/Panel/${section.id}`}
-                    className="flex-1 bg-primary text-white font-semibold py-3 px-6 rounded-full hover:bg-orange-600 transition-colors text-center"
+                    className="flex-1 bg-orange-500 text-white font-semibold py-3 px-6 rounded-full hover:bg-orange-600 transition-colors text-center shadow-sm"
                   >
                     Panel Chart
                   </a>
@@ -74,7 +74,7 @@ function Page() {
       </div>
 
       <div className="hidden md:block">
-        <BottomNav />
+        {/* <BottomNav /> */}
       </div>
     </main>
   );

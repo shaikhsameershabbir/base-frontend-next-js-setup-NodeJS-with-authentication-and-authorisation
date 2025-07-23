@@ -1,66 +1,10 @@
 
 import './globals.css';
-import localFont from "next/font/local";
 import type { Metadata } from "next";
-import SplashScreenWrapper from './components/SplashScreenWrapper';
-import Header from './components/Header';
+
 import { GlobalProvider } from '@/contexts/GlobalContext';
 import { MarketsProvider } from '@/contexts/MarketsContext';
-
-const geistSans = localFont({
-  src: [
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-sans/Geist-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-sans/Geist-Medium.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-sans/Geist-SemiBold.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-sans/Geist-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-geist-sans",
-});
-
-
-
-const geistMono = localFont({
-  src: [
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Medium.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-mono/GeistMono-SemiBold.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-geist-mono",
-});
-
+import Header from './components/Header';
 
 export const metadata: Metadata = {
   title: "MK Matka Booking",
@@ -74,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="antialiased font-sans">
         <GlobalProvider>
           <MarketsProvider>
             {/* <SplashScreenWrapper> */}
