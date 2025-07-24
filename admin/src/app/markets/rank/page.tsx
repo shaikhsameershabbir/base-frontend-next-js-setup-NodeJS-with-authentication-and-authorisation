@@ -21,7 +21,8 @@ import {
   Clock,
   Edit,
   Save,
-  X
+  X,
+  Star
 } from 'lucide-react';
 
 export default function MarketRankPage() {
@@ -34,6 +35,7 @@ export default function MarketRankPage() {
   const [editingRank, setEditingRank] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [updatingRank, setUpdatingRank] = useState<string | null>(null);
+  const [updatingGolden, setUpdatingGolden] = useState<string | null>(null);
 
   // Fetch admins with their assigned markets
   const fetchAdmins = async () => {
@@ -106,6 +108,30 @@ export default function MarketRankPage() {
       console.error('Error updating market rank:', error);
     } finally {
       setUpdatingRank(null);
+    }
+  };
+
+  // Update market golden status
+  const handleUpdateGoldenStatus = async (marketRankId: string, isGolden: boolean) => {
+    if (!selectedAdmin) return;
+
+    // Find the market rank to get the actual market ID
+    const marketRank = marketRanks.find(rank => rank._id === marketRankId);
+    if (!marketRank) return;
+
+    const marketId = typeof marketRank.marketId === 'string' ? marketRank.marketId : (marketRank.marketId as any)._id;
+
+    setUpdatingGolden(marketRankId);
+    try {
+      const response = await marketsAPI.updateMarketGoldenStatus(selectedAdmin, marketId, isGolden);
+      if (response.success) {
+        // Refresh the ranks
+        fetchMarketRanks(pagination.page);
+      }
+    } catch (error) {
+      console.error('Error updating market golden status:', error);
+    } finally {
+      setUpdatingGolden(null);
     }
   };
 
@@ -264,7 +290,7 @@ export default function MarketRankPage() {
               ) : (
                 <>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[800px]">
+                    <table className="w-full min-w-[900px]">
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Rank</th>
@@ -272,6 +298,7 @@ export default function MarketRankPage() {
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Open Time</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Close Time</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
+                          <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
                         </tr>
                       </thead>
@@ -358,6 +385,25 @@ export default function MarketRankPage() {
                                   </>
                                 )}
                               </Badge>
+                            </td>
+                            <td className="py-3 sm:py-4 px-2 sm:px-4">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`hover:bg-muted/40 h-8 w-8 sm:h-9 sm:w-9 ${marketRank.isGolden
+                                  ? 'text-yellow-500 hover:text-yellow-600'
+                                  : 'text-gray-400 hover:text-gray-600'
+                                  }`}
+                                onClick={() => handleUpdateGoldenStatus(marketRank._id, !marketRank.isGolden)}
+                                disabled={updatingGolden === marketRank._id}
+                                title={marketRank.isGolden ? 'Remove Golden Status' : 'Make Golden'}
+                              >
+                                {updatingGolden === marketRank._id ? (
+                                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                                ) : (
+                                  <Star className={`h-3 w-3 sm:h-4 sm:w-4 ${marketRank.isGolden ? 'fill-current' : ''}`} />
+                                )}
+                              </Button>
                             </td>
                             <td className="py-3 sm:py-4 px-2 sm:px-4">
                               <Button
