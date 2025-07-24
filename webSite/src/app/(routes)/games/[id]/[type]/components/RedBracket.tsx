@@ -30,7 +30,7 @@ const RedBracket: React.FC<RedBracket> = ({ gameId }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
+    <div className="w-full max-w-7xl mx-auto px-4 p-4 bg-white rounded-xl">
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 md:items-end">
         <div className="w-full md:flex-1 flex flex-col">
           <label className="block text-sm font-medium text-gray-700 mb-2">

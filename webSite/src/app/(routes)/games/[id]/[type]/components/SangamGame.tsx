@@ -6,13 +6,14 @@ interface SangamGame {
 
 const SangamGame: React.FC<SangamGame> = ({ gameId }) => {
   const [selectedGameType, setSelectedGameType] = useState<string>('');
-  const [bidDigits, setBidDigits] = useState<string>('');
+  const [bidDigits, setBidDigits] = useState<string>(''); 
+  const [bidDigits2, setBidDigits2] = useState<string>(''); 
   const [points, setPoints] = useState<string>('');
   const [bids, setBids] = useState<Array<{digit: string; points: string; gameType: string}>>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGameType || !bidDigits || !points) {
+    if (!selectedGameType || !bidDigits || !bidDigits2 || !points) {
       alert('Please fill in all fields');
       return;
     }
@@ -26,12 +27,13 @@ const SangamGame: React.FC<SangamGame> = ({ gameId }) => {
 
     // Clear the form
     setBidDigits('');
+    setBidDigits2('');
     setPoints('');
     setSelectedGameType('');
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
+    <div className="w-full max-w-7xl mx-auto px-4 bg-white rounded-xl p-4">
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 md:items-end">
        <div className="w-full md:flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -52,8 +54,8 @@ const SangamGame: React.FC<SangamGame> = ({ gameId }) => {
           </label>
           <input
             type="text"
-            value={bidDigits}
-            onChange={(e) => setBidDigits(e.target.value)}
+            value={bidDigits2}
+            onChange={(e) => setBidDigits2(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black"
             placeholder="Enter Bid Digits"
           />

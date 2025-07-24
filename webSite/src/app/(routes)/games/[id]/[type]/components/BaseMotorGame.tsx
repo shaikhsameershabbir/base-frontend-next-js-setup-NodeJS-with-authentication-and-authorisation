@@ -32,7 +32,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ gameId, gameType }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
+    <div className="w-full max-w-7xl mx-auto px-4 bg-white rounded-xl p-4">
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 md:items-end">
         <div className="w-full md:flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -43,8 +43,8 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ gameId, gameType }) => {
             onChange={(e) => setSelectedGameType(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black"
           >
-            <option value="single">OPEN</option>
-            <option value="jodi">CLOSE</option>
+            <option value="OPEN">OPEN</option>
+            <option value="CLOSE">CLOSE</option>
           </select>
         </div>
 
@@ -85,9 +85,9 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ gameId, gameType }) => {
 
       {/* Bids Table */}
       <div className="mt-6 bg-white rounded-lg shadow overflow-x-auto">
-        <table className="min-w-full">
-          <thead>
-            <tr className="bg-gray-50">
+        <table className="min-w-full border-1 border-black">
+          <thead> 
+            <tr className="bg-gray-80">
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Digit
               </th>

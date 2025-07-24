@@ -34,7 +34,7 @@ const GamePage = () => {
     .join(" ");
 
   const handleGameTypeClick = (typeId: string) => {
-    router.push(`/Games/${params.id}/${typeId}`);
+    router.push(`/games/${params.id}/${typeId}`);
   };
 
   return (

@@ -1,134 +1,209 @@
-"use client";
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
 
-interface SubRangeType {
-  [key: string]: string[];
-}
-
-interface SinglePannaProps {
+interface SingleGameProps {
   gameId: string;
 }
 
-const SinglePanna = ({ gameId }: SinglePannaProps) => {
-  const [selectedGameType, setSelectedGameType] = useState<"open" | "close">("open");
-  const [selectedNumber, setSelectedNumber] = useState<number>(0);
-  const [amounts, setAmounts] = useState<{ [key: string]: string }>({});
+const JodiGame: React.FC<SingleGameProps> = ({ gameId }) => {
+  // Store each digit's value as a number (sum of all clicks/inputs)
+  const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
+  const [total, setTotal] = useState<number>(0);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [selectedRange, setSelectedRange] = useState<number | null>(null);
 
-  const subRanges: SubRangeType = {
-    "0": ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09"],
-    "1": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19"],
-    "2": ["20", "21", "22", "23", "24", "25", "26", "27", "28", "29"],
-    "3": ["30", "31", "32", "33", "34", "35", "36", "37", "38", "39"],
-    "4": ["40", "41", "42", "43", "44", "45", "46", "47", "48", "49"],
-    "5": ["50", "51", "52", "53", "54", "55", "56", "57", "58", "59"],
-    "6": ["60", "61", "62", "63", "64", "65", "66", "67", "68", "69"],
-    "7": ["70", "71", "72", "73", "74", "75", "76", "77", "78", "79"],
-    "8": ["80", "81", "82", "83", "84", "85", "86", "87", "88", "89"],
-    "9": ["90", "91", "92", "93", "94", "95", "96", "97", "98", "99"],
+  // Calculate total whenever amounts change
+  useEffect(() => {
+    const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
+    setTotal(sum);
+  }, [amounts]);
+
+  // When an amount is selected, just set selectedAmount (do not clear digit inputs)
+  const handleAmountSelect = (amt: number) => {
+    setSelectedAmount(amt);
   };
 
-  const handleAmountChange = (number: string, value: string) => {
-    setAmounts(prev => ({
-      ...prev,
-      [number]: value
-    }));
+  // When a digit input is focused, if no amount is selected, show alert
+  const handleDigitInputFocus = () => {
+    if (selectedAmount === null) {
+      window.alert('Please select an amount first.');
+    }
   };
 
-  const calculateTotal = () => {
-    return Object.values(amounts).reduce((sum, amount) => {
-      return sum + (parseInt(amount) || 0);
-    }, 0);
+  // When a digit input is clicked, if amount is selected, add that amount to the digit's value
+  const handleDigitInputClick = (digit: number) => {
+    if (selectedAmount !== null) {
+      setAmounts(prev => ({
+        ...prev,
+        [digit]: (prev[digit] || 0) + selectedAmount
+      }));
+    }
   };
+
+  // Allow manual input: user can type any number, but only if amount is selected
+  // If no amount is selected, show alert and do not update
+  const handleAmountChange = (digit: number, value: string) => {
+    if (selectedAmount === null) {
+      window.alert('Please select an amount first.');
+      return;
+    }
+    // Only allow positive integers or empty string
+    const num = parseInt(value, 10);
+    if (value === '' || (Number.isInteger(num) && num >= 0)) {
+      setAmounts(prev => ({
+        ...prev,
+        [digit]: value === '' ? 0 : num
+      }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you would handle the bid submission
+    console.log({
+      gameId,
+      type: 'jodi',
+      amounts,
+      total
+    });
+  };
+
+  const handleReset = () => {
+    setAmounts({});
+    setSelectedAmount(null);
+    setSelectedRange(null);
+  };
+
+  // Amount options for mapping
+  const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
+
+  // Range options for 0-99 (10 ranges)
+  const rangeOptions = Array.from({ length: 10 }).map((_, idx) => {
+    const start = idx * 10;
+    const end = start + 9;
+    return { start, end, label: `${start} to ${end}` };
+  });
+
+  // Digits to show: all 0-99 by default, or just the selected range if set
+  const digitsToShow =
+    typeof selectedRange === "number"
+      ? Array.from({ length: 10 }).map((_, i) => selectedRange + i)
+      : Array.from({ length: 100 }).map((_, i) => i);
 
   return (
-    <div className="p-4 pb-32">
-      <div className="flex flex-col space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black">Select Game Type:</h2>
-          <button
-            onClick={() => setSelectedGameType("close")}
-            className="absolute right-4 top-4 bg-gray-200 hover:bg-gray-300 text-black font-bold py-2 px-4 rounded"
-          >
-            CLOSE
-          </button>
-          <div className="flex justify-start gap-4 mb-4 ">
-          <button
-            className={`px-4 py-2 rounded-md text-black ${
-              selectedGameType === "open"
-                ? "bg-primary text-white"
-                : "bg-gray-200"
-            }`}
-            onClick={() => setSelectedGameType("open")}
-          >
-            Open
-          </button>
-          <button
-            className={`px-4 py-2 rounded-md text-black ${
-              selectedGameType === "close"
-                ? "bg-primary text-white"
-                : "bg-gray-200"
-            }`}
-            onClick={() => setSelectedGameType("close")}
-          >
-            Close
-          </button>
-        </div>
-        </div>
+    <form
+      className="w-full max-w-7xl mx-auto px-2 sm:px-4 pb-4 pt-3 shadow-2xl bg-white rounded-xl"
+      onSubmit={handleSubmit}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <input
+          type="date"
+          className="border-2 border-black px-3 py-2 text-black w-full sm:w-auto text-center justify-center"
+          value={new Date().toISOString().split('T')[0]}
+          readOnly
+        />
+        <select className="border-2 border-black px-3 py-2 text-black w-full sm:w-auto">
+          <option>TIME BAZAR Open</option>
+          <option>TIME BAZAR Close</option>
+        </select>
+      </div>
 
-        
-
-        <div className="grid grid-cols-10 sm:grid-cols-10 gap-1 mb-4= text-black text-center justify-center">
-          {[...Array(10)].map((_, index) => (
+      <div className="mb-6 rounded-sm">
+        <h2 className="text-lg sm:text-xl font-bold text-black">Select Amount</h2>
+        <div className="grid grid-cols-4 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-4">
+          {amountOptions.map((amt) => (
             <button
-              key={index}
-              className={`p-2 sm:p-2 text-lg sm:text-xl font-bold rounded-md border ${
-                selectedNumber === index
-                  ? "bg-primary text-white"
-                  : "bg-white border-primay"
-              }`}
-              onClick={() => setSelectedNumber(index)}
+              key={amt}
+              type="button"
+              className={`px-3 py-2 border-2 border-black text-black font-semibold text-sm w-full ${selectedAmount === amt ? 'bg-primary text-white' : ''}`}
+              onClick={() => handleAmountSelect(amt)}
             >
-              {index}
+              ₹ {amt}
             </button>
           ))}
         </div>
+        {selectedAmount === null && (
+          <div className="text-red-500 text-xs mt-2">* Please select an amount before entering digits</div>
+        )}
+      </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-          {subRanges[selectedNumber.toString()].map((number) => (
-            <div
-              key={number}
-              className="flex border border-black rounded-md overflow-hidden"
+      <div>
+        <div className="flex flex-row items-center justify-between mb-2">
+          <h2 className="text-lg sm:text-xl font-bold text-black">Select Digits</h2>
+          {/* Range Selector Button */}
+          <div>
+            <select
+              className="border-2 border-black px-3 py-2 text-black w-full sm:w-auto"
+              value={typeof selectedRange === "number" ? selectedRange : ""}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                setSelectedRange(isNaN(val) ? null : val);
+              }}
             >
-              <div className="bg-primary text-white p-2 sm:p-4 text-base sm:text-xl font-bold min-w-[60px] sm:min-w-[100px] flex items-center justify-center">
-                {number}
-              </div>
+              <option value="">All Numbers</option>
+              {rangeOptions.map((range, idx) => (
+                <option key={idx} value={range.start}>
+                  {range.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {/* Show input fields for all numbers or selected range */}
+        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2 mt-4">
+          {digitsToShow.map((digit) => (
+            <div key={digit} className="flex flex-col items-center">
+              <span className="text-base font-semibold text-black mb-1">{digit}</span>
               <input
-                type="number"
-                placeholder="Amount"
-                className="flex-1 p-2 sm:p-4 outline-none text-black w-full"
+                type="text"
+                value={amounts[digit] === 0 || amounts[digit] === undefined ? '' : amounts[digit]}
+                onFocus={handleDigitInputFocus}
+                onClick={() => handleDigitInputClick(digit)}
+                onChange={(e) => handleAmountChange(digit, e.target.value)}
+                className={`border-2 border-black px-3 py-2 text-black w-full text-center justify-center font-bold ${
+                  amounts[digit] && amounts[digit] > 0 ? 'bg-secondary bg-opacity-20' : ''
+                }`}
                 min={0}
-                value={amounts[number] || ""}
-                onChange={(e) => handleAmountChange(number, e.target.value)}
+                inputMode="numeric"
+                readOnly={selectedAmount === null}
+                style={{
+                  ...(selectedAmount === null
+                    ? { backgroundColor: '#f3f3f3', cursor: 'not-allowed' }
+                    : {}),
+                }}
               />
             </div>
           ))}
         </div>
-
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-20">
-          <div className="flex justify-between items-center">
-            <div className="text-xl font-bold text-black">
-              Total Amount
-              <br />
-              ₹ {calculateTotal()}
-            </div>
-            <button className="bg-primary text-white font-bold py-3 px-6 rounded-md">
-              Submit Bid
-            </button>
-          </div>
-        </div>
+        {/* If no range selected, show a message */}
+        {typeof selectedRange !== "number" && (
+          <div className="text-gray-500 text-sm mt-2">* Showing all numbers. Select a range to filter.</div>
+        )}
       </div>
-    </div>
+
+      <div className="flex-1 flex items-center justify-center mx-2 pt-4">
+        <span className="text-2xl sm:text-2xl font-semibold text-black">
+          Total: ₹ {total}
+        </span>
+      </div>
+
+      <div className="flex flex-row items-center justify-between gap-3 mt-3">
+        <button
+          type="button"
+          className="px-6 py-3 border-2 border-black text-black font-semibold text-sm w-auto"
+          onClick={handleReset}
+        >
+          Reset
+        </button>
+        
+        <button
+          type="submit"
+          className="px-6 py-3 bg-primary text-white font-semibold text-sm w-auto"
+        >
+          Submit
+        </button>
+      </div>
+    </form>
   );
 };
 
-export default SinglePanna;
+export default JodiGame;

@@ -31,7 +31,7 @@ const FamilyPanel: React.FC<FamilyPanel> = ({ gameId }) => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4">
+    <div className="w-full max-w-7xl mx-auto px-4 bg-white rounded-xl p-4">
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-0 md:flex md:gap-4 md:items-end">
         <div className="w-full md:flex-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -42,8 +42,8 @@ const FamilyPanel: React.FC<FamilyPanel> = ({ gameId }) => {
             onChange={(e) => setSelectedGameType(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black"
           >
-            <option value="single">OPEN</option>
-            <option value="jodi">CLOSE</option>
+            <option value="OPEN">OPEN</option>
+            <option value="CLOSE">CLOSE</option>
           </select>
         </div>
 
