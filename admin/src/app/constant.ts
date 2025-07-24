@@ -50,7 +50,7 @@ export const superNavbar: NavbarItem[] = [
             {
                 title: "Market rank",
                 href: "/markets/rank",
-                icon: "History",
+                icon: "Award",
             },
         ],
     },

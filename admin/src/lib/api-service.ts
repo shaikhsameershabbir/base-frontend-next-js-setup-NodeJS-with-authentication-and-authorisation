@@ -23,10 +23,26 @@ export interface Market {
     marketName: string;
     openTime: string;
     closeTime: string;
-    createdBy: string;
     isActive: boolean;
+    createdBy?: string;
+    createdAt: string;
+    updatedAt?: string;
+}
+
+export interface MarketRank {
+    _id: string;
+    marketName: string;
+    marketId: string | Market;
+    rank: number;
+    userId: string;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface AdminWithMarkets {
+    _id: string;
+    username: string;
+    markets: Market[];
 }
 
 export interface UserMarketAssignment {
@@ -321,6 +337,26 @@ export const marketsAPI = {
         const response = await apiClient.put(`/markets/${marketId}/status`, { isActive });
         return response.data;
     },
+
+    // Market ranking methods
+    getAdminsWithMarkets: async () => {
+        const response = await apiClient.get('/markets/ranks/admins');
+        return response.data;
+    },
+
+    getMarketRanks: async (userId: string, page = 1, limit = 10) => {
+        const response = await apiClient.get(`/markets/ranks/${userId}`, {
+            params: { page, limit }
+        });
+        return response.data;
+    },
+
+    updateMarketRank: async (userId: string, marketId: string, rank: number) => {
+        const response = await apiClient.put(`/markets/ranks/${userId}/${marketId}`, {
+            rank
+        });
+        return response.data;
+    }
 };
 
 // ============================================================================

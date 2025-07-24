@@ -47,4 +47,21 @@ router.put('/:id/status',
     marketsController.updateMarketStatus
 );
 
+// Market ranking routes
+router.get('/ranks/admins',
+    authMiddleware.authenticateToken,
+    authMiddleware.requireRole(['superadmin', 'admin']),
+    marketsController.getAdminsWithMarkets
+);
+
+router.get('/ranks/:userId',
+    authMiddleware.authenticateToken,
+    marketsController.getMarketRanks
+);
+
+router.put('/ranks/:userId/:marketId',
+    authMiddleware.authenticateToken,
+    marketsController.updateMarketRank
+);
+
 export default router; 
