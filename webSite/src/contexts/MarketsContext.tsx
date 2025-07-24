@@ -11,6 +11,8 @@ export interface Market {
     openTime: string;
     closeTime: string;
     isActive: boolean;
+    isGolden?: boolean;
+    rank?: number;
     isAssigned: boolean;
     assignmentId?: string;
 }
@@ -23,6 +25,8 @@ export interface MarketAssignment {
     };
     assignedTo: string;
     marketId: Market;
+    marketData?: Market & { rank?: number };
+    rank?: number;
     hierarchyLevel: string;
     parentAssignment?: string;
     isActive: boolean;
@@ -75,7 +79,21 @@ function marketsReducer(state: MarketsState, action: MarketsAction): MarketsStat
                 loading: false,
                 error: null,
                 assignments: action.payload.assignments,
-                markets: action.payload.assignments.map(assignment => assignment.marketId),
+                markets: action.payload.assignments.map(assignment => {
+                    // Use marketData if available, otherwise fall back to marketId
+                    if (assignment.marketData) {
+                        return {
+                            ...assignment.marketData,
+                            isAssigned: true,
+                            assignmentId: assignment._id
+                        };
+                    }
+                    return {
+                        ...assignment.marketId,
+                        isAssigned: true,
+                        assignmentId: assignment._id
+                    };
+                }),
                 lastFetched: Date.now(),
             };
         case 'FETCH_MARKETS_ERROR':

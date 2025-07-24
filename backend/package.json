@@ -15,6 +15,8 @@
     "cleanup-all": "ts-node scripts/cleanupAll.ts",
     "test-ranks": "ts-node scripts/testMarketRanks.ts",
     "test-reordering": "ts-node scripts/testRankReordering.ts",
+    "test-player-markets": "ts-node scripts/testPlayerMarkets.ts",
+    "test-player-api": "ts-node scripts/testPlayerAPI.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "husky install",

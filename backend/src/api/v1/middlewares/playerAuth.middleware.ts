@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../../models/User';
 import { TokenBlacklist } from '../../../models/TokenBlacklist';
 import { logger } from '../../../config/logger';
-import { AuthenticatedRequest, AuthenticatedUser } from './auth.middleware';
+import { AuthenticatedRequest } from './auth.middleware';
 
 export class PlayerAuthMiddleware {
 

@@ -12,8 +12,8 @@ export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
             const { username, password, loginSource = 'unknown' } = req.body;
-
             // Find user by username
+            console.log(username, password)
             const user = await User.findOne({ username });
             if (!user) {
                 res.status(401).json({

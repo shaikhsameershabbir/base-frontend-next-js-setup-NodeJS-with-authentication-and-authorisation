@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { CalendarDays, PlayCircle } from "lucide-react";
+import { CalendarDays, PlayCircle, Star, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface MarketCardProps {
@@ -12,6 +12,8 @@ interface MarketCardProps {
     openTime: string;
     closeTime: string;
     isActive: boolean;
+    isGolden?: boolean;
+    rank?: number;
   };
   status?: string;
   statusColor?: string;
@@ -31,10 +33,21 @@ const MarketCard: React.FC<MarketCardProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-xl  p-4 mb-4 mx-2">
+    <div className={`rounded-xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
+            {market.isGolden && (
+              <Star className="w-6 h-6 text-yellow-500 fill-current" />
+            )}
+            {market.rank && (
+              <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-2 py-1 rounded-full text-sm font-bold">
+                <Hash className="w-3 h-3" />
+                {market.rank}
+              </div>
+            )}
+          </div>
           <p className={`${statusColor} text-sm mt-1 font-bold`}>{status}</p>
           <div className="flex gap-4 mt-2">
             <div>

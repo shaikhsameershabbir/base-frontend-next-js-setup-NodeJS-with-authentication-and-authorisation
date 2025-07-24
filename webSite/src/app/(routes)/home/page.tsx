@@ -48,19 +48,27 @@ export default function Home() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 pb-20">
-                        {state.markets.map((market, index: number) => {
-                            const status = getMarketStatus(market);
-                            const statusColor = getMarketStatusColor(market);
+                        {state.markets
+                            .sort((a, b) => {
+                                // Sort by rank (null ranks go to the end)
+                                if (a.rank === undefined && b.rank === undefined) return 0;
+                                if (a.rank === undefined) return 1;
+                                if (b.rank === undefined) return -1;
+                                return a.rank - b.rank;
+                            })
+                            .map((market, index: number) => {
+                                const status = getMarketStatus(market);
+                                const statusColor = getMarketStatusColor(market);
 
-                            return (
-                                <MarketCard
-                                    key={market._id}
-                                    market={market}
-                                    status={status}
-                                    statusColor={statusColor}
-                                />
-                            );
-                        })}
+                                return (
+                                    <MarketCard
+                                        key={market._id}
+                                        market={market}
+                                        status={status}
+                                        statusColor={statusColor}
+                                    />
+                                );
+                            })}
                     </div>
                 )}
             </div>
