@@ -64,10 +64,4 @@ router.put('/ranks/:userId/:marketId',
     marketsController.updateMarketRank
 );
 
-// Market golden status routes
-router.put('/ranks/:userId/:marketId/golden',
-    authMiddleware.authenticateToken,
-    marketsController.updateMarketGoldenStatus
-);
-
 export default router; 

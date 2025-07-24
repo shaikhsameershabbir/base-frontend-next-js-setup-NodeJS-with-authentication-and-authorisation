@@ -553,79 +553,9 @@ export class MarketsController {
                 logger.error('Rank reordering failed:', error);
                 throw error;
             }
+
         } catch (error) {
             logger.error('Update market rank error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
-        }
-    }
-
-    async updateMarketGoldenStatus(req: Request, res: Response): Promise<void> {
-        try {
-            const { userId, marketId } = req.params;
-            const { isGolden } = req.body;
-
-            if (typeof isGolden !== 'boolean') {
-                res.status(400).json({
-                    success: false,
-                    message: 'isGolden must be a boolean value'
-                });
-                return;
-            }
-
-            // Check if user has access to this market
-            const assignment = await UserMarketAssignment.findOne({
-                assignedTo: userId,
-                marketId: marketId,
-                isActive: true
-            });
-
-            if (!assignment) {
-                res.status(403).json({
-                    success: false,
-                    message: 'User does not have access to this market'
-                });
-                return;
-            }
-
-            // Get the market details
-            const market = await Market.findById(marketId);
-            if (!market) {
-                res.status(404).json({
-                    success: false,
-                    message: 'Market not found'
-                });
-                return;
-            }
-
-            // Update or create the market rank with golden status
-            const updatedRank = await MarketRank.findOneAndUpdate(
-                { userId: userId, marketId: marketId },
-                {
-                    marketName: market.marketName,
-                    isGolden: isGolden,
-                    userId: userId,
-                    marketId: marketId
-                },
-                { upsert: true, new: true }
-            ).populate({
-                path: 'marketId',
-                model: 'Market',
-                select: 'marketName openTime closeTime isActive'
-            });
-
-            logger.info(`Updated golden status for market ${market.marketName} to ${isGolden} for user ${userId}`);
-
-            res.json({
-                success: true,
-                message: `Market golden status updated successfully`,
-                data: updatedRank
-            });
-
-        } catch (error) {
-            logger.error('Update market golden status error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Internal server error'

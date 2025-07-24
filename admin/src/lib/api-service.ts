@@ -35,7 +35,6 @@ export interface MarketRank {
     marketId: string | Market;
     rank: number;
     userId: string;
-    isGolden: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -355,13 +354,6 @@ export const marketsAPI = {
     updateMarketRank: async (userId: string, marketId: string, rank: number) => {
         const response = await apiClient.put(`/markets/ranks/${userId}/${marketId}`, {
             rank
-        });
-        return response.data;
-    },
-
-    updateMarketGoldenStatus: async (userId: string, marketId: string, isGolden: boolean) => {
-        const response = await apiClient.put(`/markets/ranks/${userId}/${marketId}/golden`, {
-            isGolden
         });
         return response.data;
     }

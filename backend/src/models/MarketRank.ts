@@ -5,7 +5,6 @@ export interface IMarketRank extends Document {
     marketId: ObjectId;
     rank: number;
     userId: ObjectId;
-    isGolden: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -30,10 +29,6 @@ const marketRankSchema = new Schema<IMarketRank>({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
-    },
-    isGolden: {
-        type: Boolean,
-        default: false
     }
 }, { timestamps: true });
 

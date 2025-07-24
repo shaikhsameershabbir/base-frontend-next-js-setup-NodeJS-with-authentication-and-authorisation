@@ -222,7 +222,7 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
         if (authState.isAuthenticated && authState.user && !state.hasTriedFetch) {
             fetchMarkets();
         }
-        
+
         // If user logs out, reset markets state
         if (!authState.isAuthenticated) {
             dispatch({ type: 'RESET_MARKETS' });
