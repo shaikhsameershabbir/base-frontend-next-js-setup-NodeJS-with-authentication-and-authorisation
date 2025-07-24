@@ -199,6 +199,49 @@ export class MarketsController {
         }
     }
 
+    async toggleGoldenStatus(req: Request, res: Response): Promise<void> {
+        try {
+            const { id } = req.params;
+            const { isGolden } = req.body;
+
+            if (typeof isGolden !== 'boolean') {
+                res.status(400).json({
+                    success: false,
+                    message: 'isGolden must be a boolean value'
+                });
+                return;
+            }
+
+            const updatedMarket = await Market.findByIdAndUpdate(
+                id,
+                { isGolden },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedMarket) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Market not found'
+                });
+                return;
+            }
+
+            logger.info(`Market ${updatedMarket.marketName} golden status updated to: ${isGolden}`);
+
+            res.json({
+                success: true,
+                message: `Market ${isGolden ? 'marked as golden' : 'unmarked as golden'} successfully`,
+                data: { market: updatedMarket }
+            });
+        } catch (error) {
+            logger.error('Toggle golden status error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
     async getMarketRanks(req: Request, res: Response): Promise<void> {
         try {
             const { userId } = req.params;
@@ -226,7 +269,7 @@ export class MarketsController {
                 .populate({
                     path: 'marketId',
                     model: 'Market',
-                    select: 'marketName openTime closeTime isActive'
+                    select: 'marketName openTime closeTime isActive isGolden'
                 })
                 .sort({ rank: 1 })
                 .skip(skip)
@@ -348,7 +391,7 @@ export class MarketsController {
                     .populate({
                         path: 'marketId',
                         model: 'Market',
-                        select: 'marketName openTime closeTime isActive'
+                        select: 'marketName openTime closeTime isActive isGolden'
                     })
                     .sort({ rank: 1 })
                     .skip(skip)
@@ -450,7 +493,7 @@ export class MarketsController {
                 ).populate({
                     path: 'marketId',
                     model: 'Market',
-                    select: 'marketName openTime closeTime isActive'
+                    select: 'marketName openTime closeTime isActive isGolden'
                 });
 
                 res.json({
@@ -540,7 +583,7 @@ export class MarketsController {
                 }).populate({
                     path: 'marketId',
                     model: 'Market',
-                    select: 'marketName openTime closeTime isActive'
+                    select: 'marketName openTime closeTime isActive isGolden'
                 });
 
                 res.json({

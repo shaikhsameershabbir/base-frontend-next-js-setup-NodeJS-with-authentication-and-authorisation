@@ -5,6 +5,7 @@ export interface IMarket extends Document {
     openTime: string;
     closeTime: string;
     isActive: boolean;
+    isGolden: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +28,10 @@ const marketSchema = new Schema<IMarket>({
     isActive: {
         type: Boolean,
         default: true
+    },
+    isGolden: {
+        type: Boolean,
+        default: false
     },
 }, { timestamps: true });
 

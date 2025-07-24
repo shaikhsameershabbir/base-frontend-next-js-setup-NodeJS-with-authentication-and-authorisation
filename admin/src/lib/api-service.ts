@@ -24,6 +24,7 @@ export interface Market {
     openTime: string;
     closeTime: string;
     isActive: boolean;
+    isGolden: boolean;
     createdBy?: string;
     createdAt: string;
     updatedAt?: string;
@@ -335,6 +336,11 @@ export const marketsAPI = {
 
     updateMarketStatus: async (marketId: string, isActive: boolean): Promise<ApiResponse<{ market: Market }>> => {
         const response = await apiClient.put(`/markets/${marketId}/status`, { isActive });
+        return response.data;
+    },
+
+    toggleGoldenStatus: async (marketId: string, isGolden: boolean): Promise<ApiResponse<{ market: Market }>> => {
+        const response = await apiClient.put(`/markets/${marketId}/golden`, { isGolden });
         return response.data;
     },
 

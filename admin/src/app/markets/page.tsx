@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, CheckCircle, XCircle, Loader2, Store, Clock, User, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, CheckCircle, XCircle, Loader2, Store, Clock, User, Search, Star } from 'lucide-react';
 import { MarketModal } from '@/components/modals/MarketModal';
 import { AdminLayout } from '@/components/layout/admin-layout';
 
@@ -102,6 +102,22 @@ export default function MarketPage() {
         }
     };
 
+    const handleToggleGolden = async (id: string) => {
+        setActionLoadingId(id);
+        try {
+            // Find the current market to get its current isGolden status
+            const currentMarket = markets.find(m => m._id === id);
+            if (currentMarket) {
+                await marketsAPI.toggleGoldenStatus(id, !currentMarket.isGolden);
+                fetchMarkets(pagination.page);
+            }
+        } catch (error) {
+            console.error('Error toggling golden status:', error);
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
     const formatTime = (timeString: string) => {
         try {
             const date = new Date(timeString);
@@ -159,8 +175,8 @@ export default function MarketPage() {
                                 onClick={() => setStatusFilter('all')}
                                 size="sm"
                                 className={`rounded-lg px-3 py-2 text-sm font-medium ${statusFilter === 'all'
-                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-none'
-                                        : 'border border-border'
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-none'
+                                    : 'border border-border'
                                     }`}
                             >
                                 All ({markets.length})
@@ -170,8 +186,8 @@ export default function MarketPage() {
                                 onClick={() => setStatusFilter('active')}
                                 size="sm"
                                 className={`rounded-lg px-3 py-2 text-sm font-medium ${statusFilter === 'active'
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-none'
-                                        : 'border border-border'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-none'
+                                    : 'border border-border'
                                     }`}
                             >
                                 Active ({markets.filter(m => m.isActive).length})
@@ -181,8 +197,8 @@ export default function MarketPage() {
                                 onClick={() => setStatusFilter('inactive')}
                                 size="sm"
                                 className={`rounded-lg px-3 py-2 text-sm font-medium ${statusFilter === 'inactive'
-                                        ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-none'
-                                        : 'border border-border'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-none'
+                                    : 'border border-border'
                                     }`}
                             >
                                 Inactive ({markets.filter(m => !m.isActive).length})
@@ -241,6 +257,7 @@ export default function MarketPage() {
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Close Time</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden md:table-cell">Created By</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
+                                            <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
                                         </tr>
                                     </thead>
@@ -270,8 +287,8 @@ export default function MarketPage() {
                                                 </td>
                                                 <td className="py-3 sm:py-4 px-2 sm:px-4">
                                                     <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${market.isActive
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                                            : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                        : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                                                         }`}>
                                                         {market.isActive ? <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" /> : <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
                                                         <span className="hidden sm:inline">{market.isActive ? 'Active' : 'Inactive'}</span>
@@ -290,6 +307,32 @@ export default function MarketPage() {
                                                                 <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
                                                             ) : (
                                                                 <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                                                            )}
+                                                        </Button>
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 sm:py-4 px-2 sm:px-4">
+                                                    <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${market.isGolden
+                                                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                                                        }`}>
+                                                        {market.isGolden ? <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-current" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
+                                                        <span className="hidden sm:inline">{market.isGolden ? 'Golden' : 'Regular'}</span>
+                                                        <span className="sm:hidden">{market.isGolden ? 'Gold' : 'Reg'}</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
+                                                            onClick={() => handleToggleGolden(market._id)}
+                                                            disabled={actionLoadingId === market._id}
+                                                            title={market.isGolden ? 'Remove Golden' : 'Make Golden'}
+                                                        >
+                                                            {actionLoadingId === market._id ? (
+                                                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
+                                                            ) : market.isGolden ? (
+                                                                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                                                            ) : (
+                                                                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
                                                             )}
                                                         </Button>
                                                     </span>

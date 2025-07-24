@@ -21,7 +21,8 @@ import {
   Clock,
   Edit,
   Save,
-  X
+  X,
+  Star
 } from 'lucide-react';
 
 export default function MarketRankPage() {
@@ -272,6 +273,7 @@ export default function MarketRankPage() {
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Open Time</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Close Time</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
+                          <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
                           <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
                         </tr>
                       </thead>
@@ -355,6 +357,24 @@ export default function MarketRankPage() {
                                   <>
                                     <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                     Inactive
+                                  </>
+                                )}
+                              </Badge>
+                            </td>
+                            <td className="py-3 sm:py-4 px-2 sm:px-4">
+                              <Badge className={`text-xs ${marketRank.marketId && typeof marketRank.marketId === 'object' && 'isGolden' in marketRank.marketId && (marketRank.marketId as any).isGolden
+                                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                                }`}>
+                                {marketRank.marketId && typeof marketRank.marketId === 'object' && 'isGolden' in marketRank.marketId && (marketRank.marketId as any).isGolden ? (
+                                  <>
+                                    <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1 fill-current" />
+                                    Golden
+                                  </>
+                                ) : (
+                                  <>
+                                    <Star className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                    Regular
                                   </>
                                 )}
                               </Badge>
