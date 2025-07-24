@@ -28,7 +28,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
 
   const handlePlayClick = () => {
     // Convert market name to URL-friendly format and navigate
-    const gameId = market.marketName.toLowerCase().replace(/\s+/g, '-');
+    const gameId = market._id.toLowerCase().replace(/\s+/g, '-');
     router.push(`/games/${gameId}`);
   };
 
