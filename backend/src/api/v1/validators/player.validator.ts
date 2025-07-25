@@ -56,7 +56,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel', 'cycle_panna'])
             .withMessage('Invalid game type'),
 
         body('betType')
@@ -97,7 +97,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel', 'cycle_panna'])
             .withMessage('Invalid game type'),
 
         body('numbers')

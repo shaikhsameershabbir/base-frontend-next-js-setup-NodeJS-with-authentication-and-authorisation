@@ -65,7 +65,7 @@ const GameTypePage = () => {
       case 'red-bracket':
         return <RedBracket marketId={gameId} marketName={marketName} />;
       case 'cycle-panna':
-        return <CyclePanna gameId={gameId} />;
+        return <CyclePanna marketId={gameId} marketName={marketName} />;
       case 'family-panel':
         return <FamilyPanel marketId={gameId} marketName={marketName} />;
       case 'half-sangam-a':
