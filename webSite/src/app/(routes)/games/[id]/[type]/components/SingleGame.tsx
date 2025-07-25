@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 interface SingleGameProps {
   gameId: string;
@@ -23,38 +25,88 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
     setSelectedAmount(amt);
   };
 
-  // When a digit input is focused, if no amount is selected, show alert
-  const handleDigitInputFocus = () => {
+  // When a digit is clicked, if amount is selected, add that amount to the digit's value
+  const handleDigitClick = (digit: number, isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      window.alert('Please select an amount first.');
-    }
-  };
-
-  // When a digit input is clicked, if amount is selected, add that amount to the digit's value
-  const handleDigitInputClick = (digit: number) => {
-    if (selectedAmount !== null) {
-      setAmounts(prev => ({
-        ...prev,
-        [digit]: prev[digit] + selectedAmount
-      }));
-    }
-  };
-
-  // Allow manual input: user can type any number, but only if amount is selected
-  // If no amount is selected, show alert and do not update
-  const handleAmountChange = (digit: number, value: string) => {
-    if (selectedAmount === null) {
-      window.alert('Please select an amount first.');
+      toast.warning('Please select an amount first.');
       return;
     }
-    // Only allow positive integers or empty string
-    const num = parseInt(value, 10);
-    if (value === '' || (Number.isInteger(num) && num >= 0)) {
-      setAmounts(prev => ({
-        ...prev,
-        [digit]: value === '' ? 0 : num
-      }));
+
+    setAmounts(prev => ({
+      ...prev,
+      [digit]: isRightClick
+        ? Math.max(0, prev[digit] - selectedAmount)
+        : prev[digit] + selectedAmount
+    }));
+  };
+
+  // Handle Even/Odd selection
+  const handleEvenOddSelect = (type: 'even' | 'odd', isRightClick: boolean = false) => {
+    if (selectedAmount === null) {
+      toast.warning('Please select an amount first.');
+      return;
     }
+
+    const newAmounts = { ...amounts };
+    if (type === 'even') {
+      // Set amount for even digits (0, 2, 4, 6, 8)
+      [0, 2, 4, 6, 8].forEach(digit => {
+        newAmounts[digit] = isRightClick
+          ? Math.max(0, newAmounts[digit] - selectedAmount)
+          : newAmounts[digit] + selectedAmount;
+      });
+    } else {
+      // Set amount for odd digits (1, 3, 5, 7, 9)
+      [1, 3, 5, 7, 9].forEach(digit => {
+        newAmounts[digit] = isRightClick
+          ? Math.max(0, newAmounts[digit] - selectedAmount)
+          : newAmounts[digit] + selectedAmount;
+      });
+    }
+    setAmounts(newAmounts);
+  };
+
+  // Handle right click events
+  const handleRightClick = (e: React.MouseEvent, action: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    action();
+  };
+
+  // Handle mobile long press for subtract functionality
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState<boolean>(false);
+
+  const handleTouchStart = (action: () => void, subtractAction: () => void) => {
+    const timer = setTimeout(() => {
+      setIsLongPressing(true);
+      subtractAction();
+      toast.info('Long press to subtract amount');
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handleClick = (action: () => void) => {
+    // Only execute if not a long press
+    if (!isLongPressing) {
+      action();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
+  };
+
+  const handleTouchMove = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setIsLongPressing(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,94 +131,203 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
   const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
   return (
-    <form
-      className="w-full max-w-7xl mx-auto px-2 sm:px-4 pb-4 pt-3 shadow-2xl bg-white rounded-xl"
-      onSubmit={handleSubmit}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <input
-          type="date"
-          className="border-2 border-black px-3 py-2 text-black w-full sm:w-auto text-center justify-center"
-          value={new Date().toISOString().split('T')[0]}
-          readOnly
-        />
-        <select className="border-2 border-black px-3 py-2 text-black w-full sm:w-auto">
-          <option>TIME BAZAR Open</option>
-          <option>TIME BAZAR Close</option>
-        </select>
-      </div>
-
-      <div className="mb-6 rounded-sm">
-        <h2 className="text-lg sm:text-xl font-bold text-black">Select Amount</h2>
-        <div className="grid grid-cols-4 xs:grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 mt-4">
-          {amountOptions.map((amt) => (
-            <button
-              key={amt}
-              type="button"
-              className={`px-3 py-2 border-2 border-black text-black font-semibold text-sm w-full ${selectedAmount === amt ? 'bg-primary text-white' : ''}`}
-              onClick={() => handleAmountSelect(amt)}
-            >
-              ₹ {amt}
-            </button>
-          ))}
-        </div>
-        {selectedAmount === null && (
-          <div className="text-red-500 text-xs mt-2">* Please select an amount before entering digits</div>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-lg sm:text-xl font-bold text-black">Select Digits</h2>
-        <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 mt-4">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center">
-              <span className="text-base font-semibold text-black mb-1">{i}</span>
-              <input
-                type="text"
-                value={amounts[i] === 0 ? '' : amounts[i]}
-                onFocus={handleDigitInputFocus}
-                onClick={() => handleDigitInputClick(i)}
-                onChange={(e) => handleAmountChange(i, e.target.value)}
-                className={`border-2 border-black px-3 py-2 text-black w-full text-center justify-center font-bold ${
-                  amounts[i] && amounts[i] > 0 ? 'bg-secondary bg-opacity-20' : ''
-                }`}
-                min={0}
-                inputMode="numeric"
-                readOnly={selectedAmount === null}
-                style={{
-                  ...(selectedAmount === null
-                    ? { backgroundColor: '#f3f3f3', cursor: 'not-allowed' }
-                    : {}),
-                }}
-              />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
+      <div className="max-w-4xl mx-auto">
+        {/* Compact Header */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-lg font-bold text-gray-800">TIME BAZAR</span>
+              <span className="text-sm text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">OPEN</span>
             </div>
-          ))}
+            <div className="text-right">
+              <div className="text-sm text-gray-600">Date</div>
+              <div className="text-lg font-bold text-gray-800">
+                {new Date().toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric'
+                })}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-        <div className="flex-1 flex items-center justify-center mx-2 pt-4">
-          <span className="text-2xl sm:text-2xl font-semibold text-black">
-            Total: ₹ {total}
-          </span>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Compact Amount Selection */}
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
+              </div>
 
-      <div className="flex flex-row items-center justify-between gap-3 mt-3">
-        <button
-          type="button"
-          className="px-6 py-3 border-2 border-black text-black font-semibold text-sm w-auto"
-          onClick={handleReset}
-        >
-          Reset
-        </button>
-        
-        <button
-          type="submit"
-          className="px-6 py-3 bg-primary text-white font-semibold text-sm w-auto"
-        >
-          Submit
-        </button>
+              <div className="grid grid-cols-4 gap-3">
+                {amountOptions.map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      }`}
+                    onClick={() => handleAmountSelect(amt)}
+                  >
+                    <div className="text-base font-bold">{amt}</div>
+                    {selectedAmount === amt && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Compact Total Display */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-sm opacity-90 mb-1">Total Amount</div>
+                <div className="text-2xl font-bold">₹{total.toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Digits Selection */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <h2 className="text-base font-bold text-gray-800">Select Digits</h2>
+              </div>
+              <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                💡 Tap: Add | Long press: Subtract
+              </div>
+            </div>
+
+            {/* Even/Odd Quick Selection */}
+            <div className="flex gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => handleClick(() => handleEvenOddSelect('even'))}
+                onContextMenu={(e) => handleRightClick(e, () => handleEvenOddSelect('even', true))}
+                onTouchStart={() => handleTouchStart(
+                  () => handleEvenOddSelect('even'),
+                  () => handleEvenOddSelect('even', true)
+                )}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+                disabled={selectedAmount === null}
+                title={`Click/Tap: Add ${selectedAmount || 0} to all even digits, Right click/Long press: Subtract ${selectedAmount || 0} from all even digits`}
+                className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
+              >
+                Even (0,2,4,6,8)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleClick(() => handleEvenOddSelect('odd'))}
+                onContextMenu={(e) => handleRightClick(e, () => handleEvenOddSelect('odd', true))}
+                onTouchStart={() => handleTouchStart(
+                  () => handleEvenOddSelect('odd'),
+                  () => handleEvenOddSelect('odd', true)
+                )}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+                disabled={selectedAmount === null}
+                title={`Click/Tap: Add ${selectedAmount || 0} to all odd digits, Right click/Long press: Subtract ${selectedAmount || 0} from all odd digits`}
+                className="flex-1 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
+              >
+                Odd (1,3,5,7,9)
+              </button>
+            </div>
+
+            {/* Optimized Digits Grid - More compact for desktop */}
+            <div className="grid grid-cols-5 lg:grid-cols-10 gap-3">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="group">
+                  <div className="text-center mb-2">
+                    <span className="text-sm font-bold text-gray-600">{i}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleClick(() => handleDigitClick(i))}
+                    onContextMenu={(e) => handleRightClick(e, () => handleDigitClick(i, true))}
+                    onTouchStart={() => handleTouchStart(
+                      () => handleDigitClick(i),
+                      () => handleDigitClick(i, true)
+                    )}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchMove={handleTouchMove}
+                    disabled={selectedAmount === null}
+                    title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
+                    className={`w-full aspect-square rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[i] && amounts[i] > 0
+                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
+                        : selectedAmount === null
+                          ? 'bg-gray-100 border-gray-200 text-gray-400'
+                          : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                      } ${isLongPressing ? 'scale-95' : ''}`}
+                  >
+                    <div className="flex flex-col items-center justify-center h-full">
+                      {amounts[i] > 0 ? (
+                        <span className="text-sm font-bold">{amounts[i]}</span>
+                      ) : (
+                        <svg className="w-5 h-5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Compact Action Buttons */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Reset
+              </div>
+            </button>
+
+            <button
+              type="submit"
+              disabled={total === 0}
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Submit
+              </div>
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+    </div>
   );
 };
 

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
-  const [mobileNumber, setMobileNumber] = useState('');
+  const [username, setusername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
@@ -47,13 +47,13 @@ export default function LoginPage() {
     setError('');
 
     // Validate inputs
-    if (!mobileNumber.trim() || !password.trim()) {
+    if (!username.trim() || !password.trim()) {
       setError('Please enter both mobile number and password');
       return;
     }
 
     // Use auth context login
-    const success = await login(mobileNumber.trim(), password);
+    const success = await login(username.trim(), password);
 
     if (success) {
       // Redirect directly to home page (skip MPIN setup)
@@ -98,9 +98,9 @@ export default function LoginPage() {
             />
           </div>
           <input
-            type="tel"
-            value={mobileNumber}
-            onChange={(e) => setMobileNumber(e.target.value)}
+            type="text"
+            value={username}
+            onChange={(e) => setusername(e.target.value)}
             placeholder="Enter Mobile number"
             className="w-full pl-12 pr-4 py-4 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary text-black"
             required
