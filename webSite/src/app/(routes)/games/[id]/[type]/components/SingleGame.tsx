@@ -18,7 +18,6 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   });
   const [total, setTotal] = useState<number>(0);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -153,15 +152,23 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     setIsLongPressing(false);
   };
 
-  // Check if betting is allowed for the selected bet type
-  const isBettingAllowedForType = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
+  // Automatically determine the current bet type based on market status
+  const getCurrentBetType = (): 'open' | 'close' | null => {
+    if (!marketStatus) return null;
 
-    if (betType === 'open') {
-      return marketStatus.status === 'open_betting';
-    } else {
-      return marketStatus.status === 'close_betting';
+    if (marketStatus.status === 'open_betting') {
+      return 'open';
+    } else if (marketStatus.status === 'close_betting') {
+      return 'close';
     }
+
+    return null;
+  };
+
+  // Check if betting is currently allowed
+  const isBettingAllowed = (): boolean => {
+    const currentBetType = getCurrentBetType();
+    return currentBetType !== null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,7 +191,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     }
 
     // Frontend time validation
-    if (!isBettingAllowedForType(selectedBetType)) {
+    if (!isBettingAllowed()) {
       const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
@@ -193,11 +200,18 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     setIsSubmitting(true);
 
     try {
+      // Get the current bet type
+      const currentBetType = getCurrentBetType();
+      if (!currentBetType) {
+        toast.error('No betting type available at this time');
+        return;
+      }
+
       // Call the bet API
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'single',
-        betType: selectedBetType,
+        betType: currentBetType,
         numbers: amounts,
         amount: total
       });
@@ -243,109 +257,22 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
-              <span className={`text-sm font-semibold px-2 py-1 rounded-full ${marketStatus?.status === 'open_betting'
-                  ? 'text-green-600 bg-green-50'
-                  : marketStatus?.status === 'close_betting'
-                    ? 'text-blue-600 bg-blue-50'
-                    : marketStatus?.status === 'no_betting'
-                      ? 'text-yellow-600 bg-yellow-50'
-                      : marketStatus?.status === 'closing_soon'
-                        ? 'text-orange-600 bg-orange-50'
-                        : 'text-red-600 bg-red-50'
-                }`}>
-                {marketStatus?.status === 'open_betting' ? 'OPEN BETTING' :
-                  marketStatus?.status === 'close_betting' ? 'CLOSE BETTING' :
-                    marketStatus?.status === 'no_betting' ? 'NO BETTING' :
-                      marketStatus?.status === 'closing_soon' ? 'CLOSING SOON' :
-                        'CLOSED'}
-              </span>
+
+              {getCurrentBetType() && (
+                <span className={`text-xs font-semibold px-2 py-1 rounded-full items-end justify-end ${getCurrentBetType() === 'open'
+                  ? 'text-green-700 bg-green-100'
+                  : 'text-blue-700 bg-blue-100'
+                  }`}>
+                  {getCurrentBetType()?.toUpperCase()}
+                </span>
+              )}
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600">Current Time (IST)</div>
-              <div className="text-lg font-bold text-gray-800">
-                {currentTime || new Date().toLocaleString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'Asia/Kolkata'
-                })}
-              </div>
-            </div>
+
           </div>
-          {marketStatus?.message && (
-            <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
-              {marketStatus.message}
-            </div>
-          )}
+
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Bet Type Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Select Bet Type</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedBetType('open')}
-                disabled={!isBettingAllowedForType('open')}
-                className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'open'
-                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg scale-105'
-                  : isBettingAllowedForType('open')
-                    ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-green-300 hover:shadow-md'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
-                  }`}
-              >
-                <div className="text-base font-bold">OPEN</div>
-                {selectedBetType === 'open' && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-                {!isBettingAllowedForType('open') && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedBetType('close')}
-                disabled={!isBettingAllowedForType('close')}
-                className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'close'
-                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg scale-105'
-                  : isBettingAllowedForType('close')
-                    ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-red-300 hover:shadow-md'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
-                  }`}
-              >
-                <div className="text-base font-bold">CLOSE</div>
-                {selectedBetType === 'close' && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-                {!isBettingAllowedForType('close') && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Compact Amount Selection */}
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
@@ -394,9 +321,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Select Digits</h2>
               </div>
-              <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                💡 Tap: Add | Long press: Subtract
-              </div>
+          
             </div>
 
             {/* Even/Odd Quick Selection */}
