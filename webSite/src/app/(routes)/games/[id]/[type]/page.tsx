@@ -52,9 +52,9 @@ const GameTypePage = () => {
       case 'jodi-digits':
         return <JodiGame marketId={gameId} marketName={marketName} />;
       case 'single-panna':
-        return <SinglePanna gameId={gameId} />;
+        return <SinglePanna marketId={gameId} marketName={marketName} />;
       case 'double-panna':
-        return <DoublePanna gameId={gameId} />;
+        return <DoublePanna marketId={gameId} marketName={marketName} />;
       case 'triple-panna':
         return <TriplePanna gameId={gameId} />;
       case 'sp-motor':

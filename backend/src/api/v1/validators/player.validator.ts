@@ -50,7 +50,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'panna', 'sangam'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'panna', 'sangam'])
             .withMessage('Invalid game type'),
 
         body('betType')
@@ -91,7 +91,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'panna', 'sangam'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'panna', 'sangam'])
             .withMessage('Invalid game type'),
 
         body('numbers')
