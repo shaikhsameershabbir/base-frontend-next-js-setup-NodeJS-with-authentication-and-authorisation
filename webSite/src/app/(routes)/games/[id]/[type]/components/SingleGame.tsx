@@ -7,7 +7,7 @@ interface SingleGameProps {
 }
 
 const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
-  const { state: { user } } = useAuthContext();
+  const { state: { user }, updateBalance } = useAuthContext();
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({
@@ -133,6 +133,10 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
       total,
       userBalance: user.balance
     });
+
+    // Update user balance after successful bet placement
+    const newBalance = user.balance - total;
+    updateBalance(newBalance);
 
     toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
   };
