@@ -514,33 +514,69 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
             ) : (
               // Half Sangam - Panna and digit inputs
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter Panna (3 digits)
-                  </label>
-                  <input
-                    type="text"
-                    value={pannaInput}
-                    onChange={(e) => handlePannaInputChange(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                    placeholder="Enter 3 digits (e.g., 123)"
-                    maxLength={3}
-                  />
-                </div>
+                {selectedSangamType === 'half_close' ? (
+                  // Half Sangam Close - Digit first, then Panna
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Enter Digit (0-9)
+                      </label>
+                      <input
+                        type="text"
+                        value={digitInput}
+                        onChange={(e) => handleDigitInputChange(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        placeholder="Enter digit 0-9"
+                        maxLength={1}
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Enter Digit (0-9)
-                  </label>
-                  <input
-                    type="text"
-                    value={digitInput}
-                    onChange={(e) => handleDigitInputChange(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                    placeholder="Enter digit 0-9"
-                    maxLength={1}
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Enter Panna (3 digits)
+                      </label>
+                      <input
+                        type="text"
+                        value={pannaInput}
+                        onChange={(e) => handlePannaInputChange(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        placeholder="Enter 3 digits (e.g., 123)"
+                        maxLength={3}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  // Half Sangam Open - Panna first, then Digit
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Enter Panna (3 digits)
+                      </label>
+                      <input
+                        type="text"
+                        value={pannaInput}
+                        onChange={(e) => handlePannaInputChange(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        placeholder="Enter 3 digits (e.g., 123)"
+                        maxLength={3}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Enter Digit (0-9)
+                      </label>
+                      <input
+                        type="text"
+                        value={digitInput}
+                        onChange={(e) => handleDigitInputChange(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        placeholder="Enter digit 0-9"
+                        maxLength={1}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
