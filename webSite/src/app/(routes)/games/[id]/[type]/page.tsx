@@ -50,7 +50,7 @@ const GameTypePage = () => {
       case 'single':
         return <SingleGame marketId={gameId} marketName={marketName} />;
       case 'jodi-digits':
-        return <JodiGame gameId={gameId} />;
+        return <JodiGame marketId={gameId} marketName={marketName} />;
       case 'single-panna':
         return <SinglePanna gameId={gameId} />;
       case 'double-panna':
