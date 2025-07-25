@@ -11,6 +11,8 @@ interface SangamGameProps {
   marketName?: string;
 }
 
+type SangamType = 'half_open' | 'half_close' | 'full';
+
 const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
 
@@ -22,9 +24,12 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   const [currentTime, setCurrentTime] = useState<string>('');
 
   // SangamGame specific state
+  const [selectedSangamType, setSelectedSangamType] = useState<SangamType>('half_open');
   const [pannaInput, setPannaInput] = useState<string>('');
   const [digitInput, setDigitInput] = useState<string>('');
+  const [secondPannaInput, setSecondPannaInput] = useState<string>('');
   const [filteredPannas, setFilteredPannas] = useState<number[]>([]);
+  const [filteredSecondPannas, setFilteredSecondPannas] = useState<number[]>([]);
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
   const [total, setTotal] = useState<number>(0);
 
@@ -97,6 +102,33 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     }
   }, [pannaInput]);
 
+  // Filter second panna numbers for full sangam
+  useEffect(() => {
+    if (secondPannaInput && secondPannaInput.length > 0) {
+      const inputStr = secondPannaInput.toString();
+      const allPannas = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
+
+      const filtered = allPannas.filter(panna => {
+        const pannaStr = panna.toString().padStart(3, '0');
+        return pannaStr.startsWith(inputStr);
+      });
+
+      setFilteredSecondPannas(filtered);
+    } else {
+      setFilteredSecondPannas([]);
+    }
+  }, [secondPannaInput]);
+
+  // Calculate sum of digits for full sangam
+  const calculateDigitSum = (number: number): number => {
+    return number.toString().split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+  };
+
+  // Get last digit of sum
+  const getLastDigit = (sum: number): number => {
+    return sum % 10;
+  };
+
   // When an amount is selected
   const handleAmountSelect = (amt: number) => {
     setSelectedAmount(amt);
@@ -111,6 +143,15 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     }
   };
 
+  // Handle second panna input change for full sangam
+  const handleSecondPannaInputChange = (value: string) => {
+    // Only allow numbers and limit to 3 digits
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue.length <= 3) {
+      setSecondPannaInput(numericValue);
+    }
+  };
+
   // Handle digit input change
   const handleDigitInputChange = (value: string) => {
     // Only allow single digit 0-9
@@ -120,11 +161,18 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     }
   };
 
-  // Handle panna selection
+  // Handle panna selection for half sangam
   const handlePannaSelect = (panna: number) => {
-    if (!digitInput) {
-      toast.error('Please enter a digit (0-9) first');
-      return;
+    if (selectedSangamType === 'half_open') {
+      if (!digitInput) {
+        toast.error('Please enter a digit (0-9) first');
+        return;
+      }
+    } else if (selectedSangamType === 'half_close') {
+      if (!digitInput) {
+        toast.error('Please enter a digit (0-9) first');
+        return;
+      }
     }
 
     if (selectedAmount === null) {
@@ -132,7 +180,43 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
       return;
     }
 
-    const sangamKey = `${panna}X${digitInput}`;
+    let sangamKey = '';
+    if (selectedSangamType === 'half_open') {
+      sangamKey = `${panna}X${digitInput}`;
+    } else if (selectedSangamType === 'half_close') {
+      sangamKey = `${digitInput}X${panna}`;
+    }
+
+    setAmounts(prev => ({
+      ...prev,
+      [sangamKey]: (prev[sangamKey] || 0) + selectedAmount
+    }));
+  };
+
+  // Handle first panna selection for full sangam
+  const handleFirstPannaSelect = (panna: number) => {
+    setPannaInput(panna.toString());
+  };
+
+  // Handle second panna selection for full sangam
+  const handleSecondPannaSelect = (panna: number) => {
+    setSecondPannaInput(panna.toString());
+  };
+
+  // Handle full sangam selection
+  const handleFullSangamSelect = (firstPanna: number, secondPanna: number) => {
+    if (selectedAmount === null) {
+      toast.error('Please select an amount first');
+      return;
+    }
+
+    const firstSum = calculateDigitSum(firstPanna);
+    const secondSum = calculateDigitSum(secondPanna);
+    const firstLastDigit = getLastDigit(firstSum);
+    const secondLastDigit = getLastDigit(secondSum);
+
+    const sangamKey = `${firstPanna}-${firstLastDigit}${secondLastDigit}-${secondPanna}`;
+
     setAmounts(prev => ({
       ...prev,
       [sangamKey]: (prev[sangamKey] || 0) + selectedAmount
@@ -223,7 +307,9 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
         // Reset the form
         setPannaInput('');
         setDigitInput('');
+        setSecondPannaInput('');
         setFilteredPannas([]);
+        setFilteredSecondPannas([]);
         setAmounts({});
         setSelectedAmount(null);
       } else {
@@ -240,7 +326,9 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   const handleReset = () => {
     setPannaInput('');
     setDigitInput('');
+    setSecondPannaInput('');
     setFilteredPannas([]);
+    setFilteredSecondPannas([]);
     setAmounts({});
     setSelectedAmount(null);
   };
@@ -318,6 +406,73 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
             </div>
           </div>
 
+          {/* Sangam Type Selection */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <h2 className="text-base font-bold text-gray-800">Select Sangam Type</h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSangamType('half_open');
+                  setPannaInput('');
+                  setDigitInput('');
+                  setSecondPannaInput('');
+                  setFilteredPannas([]);
+                  setFilteredSecondPannas([]);
+                }}
+                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_open'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-500 shadow-lg'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50'
+                  }`}
+              >
+                <div className="text-sm font-bold">Half Sangam Open</div>
+                <div className="text-xs opacity-75">123X6</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSangamType('half_close');
+                  setPannaInput('');
+                  setDigitInput('');
+                  setSecondPannaInput('');
+                  setFilteredPannas([]);
+                  setFilteredSecondPannas([]);
+                }}
+                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_close'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500 shadow-lg'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
+              >
+                <div className="text-sm font-bold">Half Sangam Close</div>
+                <div className="text-xs opacity-75">4X123</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSangamType('full');
+                  setPannaInput('');
+                  setDigitInput('');
+                  setSecondPannaInput('');
+                  setFilteredPannas([]);
+                  setFilteredSecondPannas([]);
+                }}
+                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'full'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-500 shadow-lg'
+                  : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
+                  }`}
+              >
+                <div className="text-sm font-bold">Full Sangam</div>
+                <div className="text-xs opacity-75">123-64-112</div>
+              </button>
+            </div>
+          </div>
+
           {/* Input Section */}
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
@@ -325,38 +480,72 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
               <h2 className="text-base font-bold text-gray-800">Sangam Input</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter Panna (3 digits)
-                </label>
-                <input
-                  type="text"
-                  value={pannaInput}
-                  onChange={(e) => handlePannaInputChange(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                  placeholder="Enter 3 digits (e.g., 123)"
-                  maxLength={3}
-                />
-              </div>
+            {selectedSangamType === 'full' ? (
+              // Full Sangam - Two panna inputs
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    First Panna (3 digits)
+                  </label>
+                  <input
+                    type="text"
+                    value={pannaInput}
+                    onChange={(e) => handlePannaInputChange(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    placeholder="Enter 3 digits (e.g., 123)"
+                    maxLength={3}
+                  />
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter Digit (0-9)
-                </label>
-                <input
-                  type="text"
-                  value={digitInput}
-                  onChange={(e) => handleDigitInputChange(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                  placeholder="Enter digit 0-9"
-                  maxLength={1}
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Second Panna (3 digits)
+                  </label>
+                  <input
+                    type="text"
+                    value={secondPannaInput}
+                    onChange={(e) => handleSecondPannaInputChange(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    placeholder="Enter 3 digits (e.g., 112)"
+                    maxLength={3}
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              // Half Sangam - Panna and digit inputs
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter Panna (3 digits)
+                  </label>
+                  <input
+                    type="text"
+                    value={pannaInput}
+                    onChange={(e) => handlePannaInputChange(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    placeholder="Enter 3 digits (e.g., 123)"
+                    maxLength={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter Digit (0-9)
+                  </label>
+                  <input
+                    type="text"
+                    value={digitInput}
+                    onChange={(e) => handleDigitInputChange(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    placeholder="Enter digit 0-9"
+                    maxLength={1}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Filtered Panna Options */}
-            {pannaInput && filteredPannas.length > 0 && (
+            {pannaInput && filteredPannas.length > 0 && selectedSangamType !== 'full' && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Available Pannas ({filteredPannas.length} found)
@@ -378,6 +567,87 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 </div>
               </div>
             )}
+
+            {/* First Panna Suggestions for Full Sangam */}
+            {selectedSangamType === 'full' && pannaInput && filteredPannas.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  First Panna Suggestions ({filteredPannas.length} found)
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                  {filteredPannas.map((panna) => (
+                    <button
+                      key={panna}
+                      type="button"
+                      onClick={() => handleFirstPannaSelect(panna)}
+                      className="w-full aspect-square rounded-md border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <span className="text-xs font-bold">{panna}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Second Panna Suggestions for Full Sangam */}
+            {selectedSangamType === 'full' && secondPannaInput && filteredSecondPannas.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Second Panna Suggestions ({filteredSecondPannas.length} found)
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                  {filteredSecondPannas.map((panna) => (
+                    <button
+                      key={panna}
+                      type="button"
+                      onClick={() => handleSecondPannaSelect(panna)}
+                      className="w-full aspect-square rounded-md border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
+                    >
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <span className="text-xs font-bold">{panna}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Full Sangam Panna Options */}
+            {selectedSangamType === 'full' && pannaInput && secondPannaInput && filteredPannas.length > 0 && filteredSecondPannas.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Sangam Combinations
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {filteredPannas.slice(0, 3).map((firstPanna) =>
+                    filteredSecondPannas.slice(0, 3).map((secondPanna) => {
+                      const firstSum = calculateDigitSum(firstPanna);
+                      const secondSum = calculateDigitSum(secondPanna);
+                      const firstLastDigit = getLastDigit(firstSum);
+                      const secondLastDigit = getLastDigit(secondSum);
+                      const sangamKey = `${firstPanna}-${firstLastDigit}${secondLastDigit}-${secondPanna}`;
+
+                      return (
+                        <button
+                          key={`${firstPanna}-${secondPanna}`}
+                          type="button"
+                          onClick={() => handleFullSangamSelect(firstPanna, secondPanna)}
+                          disabled={selectedAmount === null || !isSangamAllowed()}
+                          className="p-3 rounded-lg border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                        >
+                          <div className="text-sm font-bold">{sangamKey}</div>
+                          <div className="text-xs text-gray-500">
+                            {firstPanna}({firstSum}) + {secondPanna}({secondSum})
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Selected Sangam Bets */}
@@ -388,7 +658,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 <h2 className="text-base font-bold text-gray-800">Selected Sangam Bets ({sangamBets.length})</h2>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {sangamBets.map(([sangamKey, amount]) => (
                   <button
                     key={sangamKey}
