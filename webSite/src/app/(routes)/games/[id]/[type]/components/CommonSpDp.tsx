@@ -1,33 +1,29 @@
 "use client";
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
+import { singlePannaNumbers, doublePannaNumbers } from '@/app/constant/constant';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-interface TriplepannaProps {
+interface CommonSpDpProps {
   marketId: string;
   marketName?: string;
 }
 
-const triplePannaNumbers = [
-  '000', '111', '222', '333', '444', '555', '666', '777', '888', '999'
-];
-
-const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
-
-const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Market' }) => {
+const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
 
-  // Store each triple panna's value as a number (sum of all clicks/inputs)
-  const [amounts, setAmounts] = useState<{ [key: string]: number }>({
-    '000': 0, '111': 0, '222': 0, '333': 0, '444': 0, '555': 0, '666': 0, '777': 0, '888': 0, '999': 0
-  });
+  // Store each panna's value as a number (sum of all clicks/inputs)
+  const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedGameMode, setSelectedGameMode] = useState<'SP' | 'DP' | 'SP-DP'>('SP');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [inputDigits, setInputDigits] = useState<string>('');
+  const [validPannas, setValidPannas] = useState<string[]>([]);
 
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
@@ -78,6 +74,76 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     }
   }, [marketStatus]);
 
+  // Filter pannas based on input digits and game mode
+  useEffect(() => {
+    if (inputDigits && inputDigits.length > 0) {
+      // Split input into individual digits and convert to strings
+      const digits = inputDigits.split('').map(d => d.toString());
+      let filteredPannas: string[] = [];
+
+      if (selectedGameMode === 'SP') {
+        // Filter single panna numbers that contain any of the input digits
+        filteredPannas = singlePannaNumbers
+          .filter(num => {
+            const numStr = num.toString().padStart(3, '0');
+            // Check if any of the input digits is present in the panna
+            return digits.some(digit => numStr.includes(digit));
+          })
+          .map(num => num.toString().padStart(3, '0'));
+      } else if (selectedGameMode === 'DP') {
+        // Filter double panna numbers that contain any of the input digits
+        filteredPannas = doublePannaNumbers
+          .filter(num => {
+            const numStr = num.toString().padStart(3, '0');
+            // Check if any of the input digits is present in the panna
+            return digits.some(digit => numStr.includes(digit));
+          })
+          .map(num => num.toString().padStart(3, '0'));
+      } else if (selectedGameMode === 'SP-DP') {
+        // Filter both single and double panna numbers that contain any of the input digits
+        const spPannas = singlePannaNumbers
+          .filter(num => {
+            const numStr = num.toString().padStart(3, '0');
+            // Check if any of the input digits is present in the panna
+            return digits.some(digit => numStr.includes(digit));
+          })
+          .map(num => num.toString().padStart(3, '0'));
+
+        const dpPannas = doublePannaNumbers
+          .filter(num => {
+            const numStr = num.toString().padStart(3, '0');
+            // Check if any of the input digits is present in the panna
+            return digits.some(digit => numStr.includes(digit));
+          })
+          .map(num => num.toString().padStart(3, '0'));
+
+        // Combine and remove duplicates
+        filteredPannas = Array.from(new Set([...spPannas, ...dpPannas]));
+      }
+
+      setValidPannas(filteredPannas);
+
+      // Automatically place the selected amount on all valid pannas
+      if (selectedAmount !== null) {
+        const newAmounts: { [key: string]: number } = {};
+        filteredPannas.forEach(panna => {
+          newAmounts[panna] = selectedAmount;
+        });
+        setAmounts(newAmounts);
+      } else {
+        // Reset amounts for new pannas if no amount is selected
+        const newAmounts: { [key: string]: number } = {};
+        filteredPannas.forEach(panna => {
+          newAmounts[panna] = 0;
+        });
+        setAmounts(newAmounts);
+      }
+    } else {
+      setValidPannas([]);
+      setAmounts({});
+    }
+  }, [inputDigits, selectedGameMode, selectedAmount]);
+
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
     if (!marketStatus) return false;
@@ -101,64 +167,6 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     setSelectedAmount(amt);
   };
 
-  // When a triple panna is clicked, if amount is selected, add that amount to the panna's value
-  const handlePannaClick = (digit: string, isRightClick: boolean = false) => {
-    if (selectedAmount === null) {
-      toast.error('Please select an amount first.');
-      return;
-    }
-
-      setAmounts(prev => ({
-        ...prev,
-      [digit]: isRightClick
-        ? Math.max(0, prev[digit] - selectedAmount)
-        : prev[digit] + selectedAmount
-    }));
-  };
-
-  // Handle right click events
-  const handleRightClick = (e: React.MouseEvent, action: () => void) => {
-    e.preventDefault();
-    e.stopPropagation();
-    action();
-  };
-
-  // Handle mobile long press for subtract functionality
-  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
-  const [isLongPressing, setIsLongPressing] = useState<boolean>(false);
-
-  const handleTouchStart = (action: () => void, subtractAction: () => void) => {
-    const timer = setTimeout(() => {
-      setIsLongPressing(true);
-      subtractAction();
-      toast.info('Long press to subtract amount');
-    }, 500); // 500ms long press
-    setLongPressTimer(timer);
-  };
-
-  const handleClick = (action: () => void) => {
-    // Only execute if not a long press
-    if (!isLongPressing) {
-      action();
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-    setIsLongPressing(false);
-  };
-
-  const handleTouchMove = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
-    }
-    setIsLongPressing(false);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -174,7 +182,12 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     }
 
     if (total === 0) {
-      toast.error('Please select at least one triple panna to bet on.');
+      toast.error('Please select at least one panna to bet on.');
+      return;
+    }
+
+    if (!inputDigits || inputDigits.length === 0) {
+      toast.error('Please enter digits to generate pannas.');
       return;
     }
 
@@ -197,7 +210,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
       // Call the bet API
       const response = await betAPI.placeBet({
         marketId,
-        gameType: 'triple_panna',
+        gameType: selectedGameMode === 'SP' ? 'common_sp' : selectedGameMode === 'DP' ? 'common_dp' : 'common_sp_dp',
         betType: selectedBetType,
         numbers: amounts,
         amount: total
@@ -210,10 +223,10 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
         toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
-        setAmounts({
-          '000': 0, '111': 0, '222': 0, '333': 0, '444': 0, '555': 0, '666': 0, '777': 0, '888': 0, '999': 0
-        });
+        setAmounts({});
         setSelectedAmount(null);
+        setInputDigits('');
+        setValidPannas([]);
       } else {
         toast.error(response.message || 'Failed to place bet');
       }
@@ -226,10 +239,10 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
   };
 
   const handleReset = () => {
-    setAmounts({
-      '000': 0, '111': 0, '222': 0, '333': 0, '444': 0, '555': 0, '666': 0, '777': 0, '888': 0, '999': 0
-    });
+    setAmounts({});
     setSelectedAmount(null);
+    setInputDigits('');
+    setValidPannas([]);
     // Reset to default bet type based on current availability
     if (isBetTypeAllowed('open')) {
       setSelectedBetType('open');
@@ -237,6 +250,9 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
       setSelectedBetType('close');
     }
   };
+
+  // Amount options for mapping
+  const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
@@ -246,7 +262,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-bold text-gray-800">{marketName}</span>
+              <span className="text-lg font-bold text-gray-800">{marketName} - Common SP/DP</span>
 
               <div className="flex gap-2">
                 {isBetTypeAllowed('open') && (
@@ -285,19 +301,19 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
-      </div>
+              </div>
 
               <div className="grid grid-cols-4 gap-3">
-          {amountOptions.map((amt) => (
-            <button
-              key={amt}
-              type="button"
+                {amountOptions.map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
                     className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
-              onClick={() => handleAmountSelect(amt)}
-            >
+                    onClick={() => handleAmountSelect(amt)}
+                  >
                     <div className="text-base font-bold">{amt}</div>
                     {selectedAmount === amt && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -306,10 +322,10 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                         </svg>
                       </div>
                     )}
-            </button>
-          ))}
-        </div>
-      </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Compact Total Display */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
@@ -320,72 +336,114 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
             </div>
           </div>
 
-          {/* Compact Triple Panna Selection */}
+          {/* Game Mode Selection */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <h2 className="text-base font-bold text-gray-800">Choose Game Mode</h2>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {(['SP', 'DP', 'SP-DP'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSelectedGameMode(mode)}
+                  className={`flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg ${selectedGameMode === mode
+                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white border-orange-500 shadow-lg'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50 hover:border-orange-300'
+                    }`}
+                >
+                  <span className="mr-2">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                      <circle cx="10" cy="10" r="9" stroke={selectedGameMode === mode ? "#fff" : "#F97316"} strokeWidth="2" fill={selectedGameMode === mode ? "#fff" : "none"} />
+                      {selectedGameMode === mode && (
+                        <circle cx="10" cy="10" r="5" fill="#F97316" />
+                      )}
+                    </svg>
+                  </span>
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Input Digits Section */}
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Select Triple Panna</h2>
+              <h2 className="text-base font-bold text-gray-800">Enter Digits</h2>
             </div>
 
-            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
-              {triplePannaNumbers.map((digit) => (
-                <div key={digit} className="group">
-                  <div className="text-center mb-1">
-                    <span className="text-xs font-bold text-gray-600">{digit}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleClick(() => handlePannaClick(digit))}
-                    onContextMenu={(e) => handleRightClick(e, () => handlePannaClick(digit, true))}
-                    onTouchStart={() => handleTouchStart(
-                      () => handlePannaClick(digit),
-                      () => handlePannaClick(digit, true)
-                    )}
-                    onTouchEnd={handleTouchEnd}
-                    onTouchMove={handleTouchMove}
-                    disabled={selectedAmount === null || isSubmitting}
-                    title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
-                    className={`w-full aspect-square rounded-md border transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[digit] && amounts[digit] > 0
-                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md'
-                      : selectedAmount === null
-                        ? 'bg-gray-100 border-gray-200 text-gray-400'
-                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-sm'
-                      } ${isLongPressing ? 'scale-95' : ''}`}
-                  >
-                    <div className="flex flex-col items-center justify-center h-full">
-                      {amounts[digit] > 0 ? (
-                        <span className="text-xs font-bold">{amounts[digit]}</span>
-                      ) : (
-                        <svg className="w-3 h-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                value={inputDigits}
+                onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter digits (e.g., 123)"
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-black"
+                maxLength={9}
+              />
+              <div className="flex items-center">
+                <span className="text-sm text-gray-600">
+                  {validPannas.length > 0 ? `${validPannas.length} pannas found` : 'Enter digits'}
+                </span>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+
+          {/* Valid Pannas Display */}
+          {validPannas.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <h2 className="text-base font-bold text-gray-800">Filtered Pannas (Auto-placed)</h2>
+              </div>
+
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                {validPannas.map((panna) => (
+                  <div key={panna} className="group">
+                    <div className="text-center mb-1">
+                      <span className="text-xs font-bold text-gray-600">{panna}</span>
+                    </div>
+                    <div className={`w-full aspect-square rounded-md border transition-all duration-200 ${amounts[panna] && amounts[panna] > 0
+                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md'
+                      : 'bg-gray-100 border-gray-200 text-gray-400'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center h-full">
+                        {amounts[panna] > 0 ? (
+                          <span className="text-xs font-bold">{amounts[panna]}</span>
+                        ) : (
+                          <span className="text-xs text-gray-400">₹0</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={handleReset}
+            <button
+              type="button"
+              onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+            >
               <div className="flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-          Reset
+                Reset
               </div>
-        </button>
-        
-        <button
-          type="submit"
-              disabled={total === 0 || isSubmitting}
+            </button>
+
+            <button
+              type="submit"
+              disabled={total === 0 || isSubmitting || validPannas.length === 0}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               <div className="flex items-center justify-center gap-2">
@@ -402,13 +460,13 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-          Submit
+                    Submit
                   </>
                 )}
               </div>
-        </button>
-      </div>
-    </form>
+            </button>
+          </div>
+        </form>
       </div>
       <ToastContainer
         position="top-right"
@@ -426,4 +484,4 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
   );
 };
 
-export default Triplepanna;
+export default CommonSpDp;

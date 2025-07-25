@@ -16,7 +16,7 @@ import SinglePanna from './components/SinglePanna';
 import DoublePanna from './components/Doublepanna';
 import TriplePanna from './components/Triplepanna';
 import CyclePanna from './components/CyclePanna';
-import SpDpTp from './components/SpDpTp'
+import CommonSpDp from './components/CommonSpDp'
 import HalfSangamA from './components/HalfSangamA';
 import HalfSangamB from './components/HalfSangamB';
 
@@ -60,8 +60,8 @@ const GameTypePage = () => {
         return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="SP" />;
       case 'dp-motor':
         return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="DP" />;
-      case 'SP_DP_TP':
-        return <SpDpTp gameId={gameId} />
+      case 'SP_DP':
+        return <CommonSpDp marketId={gameId} marketName={marketName} />
       case 'red-bracket':
         return <RedBracket gameId={gameId} />;
       case 'cycle-panna':
