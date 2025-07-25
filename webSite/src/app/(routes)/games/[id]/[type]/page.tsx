@@ -74,8 +74,7 @@ const GameTypePage = () => {
         return <HalfSangamB gameId={gameId} />;
       case 'full-sangam':
         return <SangamGame gameId={gameId} />;
-      case 'odd-even':
-        return <OddEven gameId={gameId} />;
+
       default:
         return <div>Game type not found</div>;
     }
