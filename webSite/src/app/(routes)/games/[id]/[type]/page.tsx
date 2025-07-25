@@ -63,11 +63,11 @@ const GameTypePage = () => {
       case 'SP_DP':
         return <CommonSpDp marketId={gameId} marketName={marketName} />
       case 'red-bracket':
-        return <RedBracket gameId={gameId} />;
+        return <RedBracket marketId={gameId} marketName={marketName} />;
       case 'cycle-panna':
         return <CyclePanna gameId={gameId} />;
       case 'family-panel':
-        return <FamilyPanel gameId={gameId} />;
+        return <FamilyPanel marketId={gameId} marketName={marketName} />;
       case 'half-sangam-a':
         return <HalfSangamA gameId={gameId} />;
       case 'half-sangam-b':

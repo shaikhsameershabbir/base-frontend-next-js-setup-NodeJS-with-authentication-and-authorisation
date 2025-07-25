@@ -5,6 +5,12 @@ export class PlayerValidator {
     private validationMiddleware = new ValidationMiddleware();
 
     validateProfileUpdate = [
+        body('name')
+            .optional()
+            .trim()
+            .isLength({ min: 2, max: 50 })
+            .withMessage('Name must be between 2 and 50 characters'),
+
         body('email')
             .optional()
             .trim()
@@ -50,7 +56,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel'])
             .withMessage('Invalid game type'),
 
         body('betType')
@@ -91,7 +97,7 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Game type is required')
-            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam'])
+            .isIn(['single', 'jodi', 'single_panna', 'double_panna', 'triple_panna', 'motor_sp', 'motor_dp', 'common_sp', 'common_dp', 'common_sp_dp', 'panna', 'sangam', 'half_bracket', 'full_bracket', 'family_panel'])
             .withMessage('Invalid game type'),
 
         body('numbers')

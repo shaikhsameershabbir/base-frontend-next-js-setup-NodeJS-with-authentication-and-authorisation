@@ -17,7 +17,7 @@ const gameTypes = [
   { id: "SP_DP", name: "Common SP, DP, SPDP", icon: "/Game/sp_dp_tp.png" },
   { id: "red-bracket", name: "Red Bracket", icon: "/Game/odd_even.png" },
   { id: "cycle-panna", name: "Cycle Panna", icon: "/Game/cycly_panna.png" },
-  { id: "family-panel", name: "Family Panel", icon: "/Game/family_panel.png" },
+  { id: "family-panel", name: "Family", icon: "/Game/family_panel.png" },
   { id: "half-sangam-a", name: "Half Sangam A", icon: "/Game/half_sangam.png" },
   { id: "half-sangam-b", name: "Half Sangam B", icon: "/Game/half_sangam.png" },
   { id: "full-sangam", name: "Full Sangam", icon: "/Game/full_sangam.png" },
