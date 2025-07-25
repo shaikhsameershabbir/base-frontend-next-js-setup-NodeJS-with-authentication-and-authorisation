@@ -7,8 +7,7 @@ import { betAPI } from '@/lib/api/bet';
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';
 import SangamGame from './components/SangamGame';
-import SpMotor from './components/SpMotor';
-import DpMotor from './components/DpMoter';
+import BaseMotorGame from './components/BaseMotorGame';
 import RedBracket from './components/RedBracket';
 import FamilyPanel from './components/FamilyPanel';
 import OddEven from './components/OddEven';
@@ -58,9 +57,9 @@ const GameTypePage = () => {
       case 'triple-panna':
         return <TriplePanna marketId={gameId} marketName={marketName} />;
       case 'sp-motor':
-        return <SpMotor gameId={gameId} />;
+        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="SP" />;
       case 'dp-motor':
-        return <DpMotor gameId={gameId} />;
+        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="DP" />;
       case 'SP_DP_TP':
         return <SpDpTp gameId={gameId} />
       case 'red-bracket':

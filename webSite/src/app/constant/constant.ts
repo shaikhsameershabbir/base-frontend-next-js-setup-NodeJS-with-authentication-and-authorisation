@@ -83,7 +83,7 @@ export interface GameRate {
 
 
 // Table data for LeftColumn
-const numbers = [
+export const singlePannaNumbers = [
   128, 129, 120, 130, 140,
   137, 138, 139, 149, 159,
   146, 147, 148, 158, 168,
@@ -110,7 +110,7 @@ const numbers = [
   790, 890, 567, 568, 578
 ];
 
-const dpNumbers = [
+export const doublePannaNumbers = [
   100, 110, 166, 112, 113,
   119, 200, 229, 220, 122,
   155, 228, 300, 266, 177,
