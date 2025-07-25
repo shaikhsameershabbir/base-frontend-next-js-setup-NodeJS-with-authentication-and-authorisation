@@ -24,6 +24,7 @@ function getCombinations(str: string, size: number): string[] {
 
 export function findValidNumbers(input: string, validNumbersArray: number[]) {
     const permutations = getCombinations(input, 3);
-    const validSet = new Set(validNumbersArray.map(String)); // convert to string for comparison
+    // Convert valid numbers to 3-digit strings for proper comparison
+    const validSet = new Set(validNumbersArray.map(num => num.toString().padStart(3, '0')));
     return permutations.filter(p => validSet.has(p));
 }
