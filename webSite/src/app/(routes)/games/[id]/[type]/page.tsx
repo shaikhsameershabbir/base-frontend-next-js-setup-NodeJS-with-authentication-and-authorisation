@@ -56,7 +56,7 @@ const GameTypePage = () => {
       case 'double-panna':
         return <DoublePanna marketId={gameId} marketName={marketName} />;
       case 'triple-panna':
-        return <TriplePanna gameId={gameId} />;
+        return <TriplePanna marketId={gameId} marketName={marketName} />;
       case 'sp-motor':
         return <SpMotor gameId={gameId} />;
       case 'dp-motor':
