@@ -266,8 +266,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
               <div className="flex gap-2">
                 {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
+              <button
+                type="button"
                     onClick={() => setSelectedBetType('open')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
                       ? 'text-white bg-green-600 shadow-md scale-105'
@@ -278,8 +278,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </button>
                 )}
                 {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
+              <button
+                type="button"
                     onClick={() => setSelectedBetType('close')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
                       ? 'text-white bg-blue-600 shadow-md scale-105'
@@ -322,7 +322,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                         </svg>
                       </div>
                     )}
-                  </button>
+              </button>
                 ))}
               </div>
             </div>
@@ -345,25 +345,25 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
             <div className="grid grid-cols-3 gap-3">
               {(['SP', 'DP', 'SP-DP'] as const).map((mode) => (
-                <button
+              <button
                   key={mode}
-                  type="button"
+                type="button"
                   onClick={() => setSelectedGameMode(mode)}
                   className={`flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg ${selectedGameMode === mode
                     ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white border-orange-500 shadow-lg'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50 hover:border-orange-300'
                     }`}
-                >
-                  <span className="mr-2">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+              >
+                <span className="mr-2">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                       <circle cx="10" cy="10" r="9" stroke={selectedGameMode === mode ? "#fff" : "#F97316"} strokeWidth="2" fill={selectedGameMode === mode ? "#fff" : "none"} />
                       {selectedGameMode === mode && (
-                        <circle cx="10" cy="10" r="5" fill="#F97316" />
-                      )}
-                    </svg>
-                  </span>
+                      <circle cx="10" cy="10" r="5" fill="#F97316" />
+                    )}
+                  </svg>
+                </span>
                   {mode}
-                </button>
+              </button>
               ))}
             </div>
           </div>
@@ -376,7 +376,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
             </div>
 
             <div className="flex gap-3">
-              <input
+            <input
                 type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
@@ -422,13 +422,13 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </div>
                 ))}
               </div>
-            </div>
+        </div>
           )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-            <button
-              type="button"
+          <button
+            type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -464,8 +464,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-            </button>
-          </div>
+          </button>
+        </div>
         </form>
       </div>
       <ToastContainer

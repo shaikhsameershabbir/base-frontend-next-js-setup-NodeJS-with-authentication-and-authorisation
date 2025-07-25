@@ -361,8 +361,8 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
             </div>
 
             <div className="flex gap-3">
-              <input
-                type="text"
+          <input
+            type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter digits (e.g., 12345) - Min 4 digits"
@@ -375,7 +375,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                 </span>
               </div>
             </div>
-          </div>
+        </div>
 
           {/* Valid Pannas Display */}
           {validPannas.length > 0 && (
@@ -383,7 +383,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">{gameType === 'SP' ? 'Single' : 'Double'} Pannas (Auto-placed)</h2>
-              </div>
+        </div>
 
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
                 {validPannas.map((panna) => (
@@ -405,15 +405,15 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                       </div>
                     </div>
                   </div>
-                ))}
+            ))}
               </div>
-            </div>
+      </div>
           )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-            <button
-              type="button"
+        <button
+          type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -449,7 +449,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                   </>
                 )}
               </div>
-            </button>
+        </button>
           </div>
         </form>
       </div>

@@ -68,12 +68,9 @@ const GameTypePage = () => {
         return <CyclePanna marketId={gameId} marketName={marketName} />;
       case 'family-panel':
         return <FamilyPanel marketId={gameId} marketName={marketName} />;
-      case 'half-sangam-a':
-        return <HalfSangamA gameId={gameId} />;
-      case 'half-sangam-b':
-        return <HalfSangamB gameId={gameId} />;
-      case 'full-sangam':
-        return <SangamGame gameId={gameId} />;
+      case 'sangam':
+        return <SangamGame marketId={gameId} marketName={marketName} />;
+    
 
       default:
         return <div>Game type not found</div>;

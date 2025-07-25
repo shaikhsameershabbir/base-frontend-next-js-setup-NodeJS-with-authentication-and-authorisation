@@ -132,6 +132,7 @@ export const doublePannaNumbers = [
   880, 566, 800, 667, 668,
   899, 700, 990, 900, 677
 ];
+export const triplePannaNumbers = [111 ,222,333,444,555,666,777,888,999]
 
 
 export const family = [
