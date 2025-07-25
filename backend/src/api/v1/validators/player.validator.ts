@@ -38,6 +38,40 @@ export class PlayerValidator {
         this.validationMiddleware.validateRequest
     ];
 
+    validatePlaceBet = [
+        body('marketId')
+            .trim()
+            .notEmpty()
+            .withMessage('Market ID is required')
+            .isMongoId()
+            .withMessage('Invalid market ID format'),
+
+        body('gameType')
+            .trim()
+            .notEmpty()
+            .withMessage('Game type is required')
+            .isIn(['single', 'jodi', 'panna', 'sangam'])
+            .withMessage('Invalid game type'),
+
+        body('numbers')
+            .isObject()
+            .withMessage('Numbers must be an object')
+            .custom((value) => {
+                // Check if numbers object has at least one non-zero value
+                const hasValidNumbers = Object.values(value).some((val: unknown) => typeof val === 'number' && val > 0);
+                if (!hasValidNumbers) {
+                    throw new Error('At least one number must have a bet amount greater than 0');
+                }
+                return true;
+            }),
+
+        body('amount')
+            .isFloat({ min: 1 })
+            .withMessage('Amount must be at least 1'),
+
+        this.validationMiddleware.validateRequest
+    ];
+
     validateBidConfirmation = [
         body('marketId')
             .trim()

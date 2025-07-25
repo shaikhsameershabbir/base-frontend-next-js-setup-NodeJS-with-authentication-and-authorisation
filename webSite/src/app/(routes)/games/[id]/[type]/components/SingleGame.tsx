@@ -1,12 +1,14 @@
 import { useAuthContext } from '@/contexts/AuthContext';
+import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
 interface SingleGameProps {
-  gameId: string;
+  marketId: string;
 }
 
-const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
+const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
   const { state: { user }, updateBalance } = useAuthContext();
 
   // Store each digit's value as a number (sum of all clicks/inputs)
@@ -15,6 +17,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
   });
   const [total, setTotal] = useState<number>(0);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Calculate total whenever amounts change
   useEffect(() => {
@@ -45,7 +48,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
   // Handle Even/Odd selection
   const handleEvenOddSelect = (type: 'even' | 'odd', isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      toast.warning('Please select an amount first.');
+      toast.error('Please select an amount first.');
       return;
     }
 
@@ -111,7 +114,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
     setIsLongPressing(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if user has sufficient balance
@@ -125,20 +128,42 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
       return;
     }
 
-    // Here you would handle the bid submission
-    console.log({
-      gameId,
-      type: 'single',
-      amounts,
-      total,
-      userBalance: user.balance
-    });
+    if (total === 0) {
+      toast.error('Please select at least one number to bet on.');
+      return;
+    }
 
-    // Update user balance after successful bet placement
-    const newBalance = user.balance - total;
-    updateBalance(newBalance);
+    setIsSubmitting(true);
 
-    toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+    try {
+      // Call the bet API
+      const response = await betAPI.placeBet({
+        marketId,
+        gameType: 'single',
+        numbers: amounts,
+        amount: total
+      });
+
+      if (response.success && response.data) {
+        // Update user balance with the new balance from the response
+        updateBalance(response.data.userAfterAmount);
+
+        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+
+        // Reset the form
+        setAmounts({
+          0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+        });
+        setSelectedAmount(null);
+      } else {
+        toast.error(response.message || 'Failed to place bet');
+      }
+    } catch (error: any) {
+      console.error('Bet placement error:', error);
+      toast.error(error.message || 'Failed to place bet. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -190,8 +215,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                     key={amt}
                     type="button"
                     className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
@@ -241,7 +266,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                 )}
                 onTouchEnd={handleTouchEnd}
                 onTouchMove={handleTouchMove}
-                disabled={selectedAmount === null}
+                disabled={selectedAmount === null || isSubmitting}
                 title={`Click/Tap: Add ${selectedAmount || 0} to all even digits, Right click/Long press: Subtract ${selectedAmount || 0} from all even digits`}
                 className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
               >
@@ -257,7 +282,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                 )}
                 onTouchEnd={handleTouchEnd}
                 onTouchMove={handleTouchMove}
-                disabled={selectedAmount === null}
+                disabled={selectedAmount === null || isSubmitting}
                 title={`Click/Tap: Add ${selectedAmount || 0} to all odd digits, Right click/Long press: Subtract ${selectedAmount || 0} from all odd digits`}
                 className="flex-1 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
               >
@@ -282,13 +307,13 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                     )}
                     onTouchEnd={handleTouchEnd}
                     onTouchMove={handleTouchMove}
-                    disabled={selectedAmount === null}
+                    disabled={selectedAmount === null || isSubmitting}
                     title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
                     className={`w-full aspect-square rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[i] && amounts[i] > 0
-                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
-                      : selectedAmount === null
-                        ? 'bg-gray-100 border-gray-200 text-gray-400'
-                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
+                        : selectedAmount === null
+                          ? 'bg-gray-100 border-gray-200 text-gray-400'
+                          : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
                       } ${isLongPressing ? 'scale-95' : ''}`}
                   >
                     <div className="flex flex-col items-center justify-center h-full">
@@ -311,7 +336,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
             <button
               type="button"
               onClick={handleReset}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg"
+              disabled={isSubmitting}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -323,14 +349,26 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
 
             <button
               type="submit"
-              disabled={total === 0}
+              disabled={total === 0 || isSubmitting}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               <div className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-                Submit
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Placing Bet...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Submit
+                  </>
+                )}
               </div>
             </button>
           </div>

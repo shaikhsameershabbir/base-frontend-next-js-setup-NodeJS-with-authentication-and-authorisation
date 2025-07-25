@@ -26,11 +26,28 @@ router.get('/assigned-markets',
     playerController.getAssignedMarkets as unknown as RequestHandler
 );
 
-// Bid confirmation routes
-router.post('/confirm-bid',
+// Bet-related routes
+router.post('/place-bet',
+    playerAuthMiddleware.authenticatePlayer,
+    playerValidator.validatePlaceBet,
+    playerController.placeBet as unknown as RequestHandler
+);
+
+router.get('/bet-history',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.getBetHistory as unknown as RequestHandler
+);
+
+router.get('/bet/:betId',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.getBetById as unknown as RequestHandler
+);
+
+// Bid confirmation routes (legacy - can be removed later)
+router.post('/confirm-bet',
     playerAuthMiddleware.authenticatePlayer,
     playerValidator.validateBidConfirmation,
-    playerController.confirmBid as unknown as RequestHandler
+    playerController.confirmBet as unknown as RequestHandler
 );
 
 export default router; 

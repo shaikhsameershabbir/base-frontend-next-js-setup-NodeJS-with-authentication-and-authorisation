@@ -30,7 +30,7 @@ const GameTypePage = () => {
       case 'all-in-one':
         return <AllInOneGame gameId={gameId} />;
       case 'single':
-        return <SingleGame gameId={gameId} />;
+        return <SingleGame marketId={gameId} />;
       case 'jodi-digits':
         return <JodiGame gameId={gameId} />;
       case 'single-panna':
@@ -44,7 +44,7 @@ const GameTypePage = () => {
       case 'dp-motor':
         return <DpMotor gameId={gameId} />;
       case 'SP_DP_TP':
-        return <SpDpTp gameId={gameId}/>
+        return <SpDpTp gameId={gameId} />
       case 'red-bracket':
         return <RedBracket gameId={gameId} />;
       case 'cycle-panna':
@@ -52,9 +52,9 @@ const GameTypePage = () => {
       case 'family-panel':
         return <FamilyPanel gameId={gameId} />;
       case 'half-sangam-a':
-        return <HalfSangamA gameId={gameId}/>;  
+        return <HalfSangamA gameId={gameId} />;
       case 'half-sangam-b':
-        return <HalfSangamB gameId={gameId}/>;
+        return <HalfSangamB gameId={gameId} />;
       case 'full-sangam':
         return <SangamGame gameId={gameId} />;
       case 'odd-even':

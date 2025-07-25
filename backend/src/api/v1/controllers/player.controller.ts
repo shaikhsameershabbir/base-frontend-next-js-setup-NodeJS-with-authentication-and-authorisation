@@ -3,6 +3,7 @@ import { User } from '../../../models/User';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { UserHierarchy } from '../../../models/UserHierarchy';
 import { MarketRank } from '../../../models/marketRank';
+import { Bet } from '../../../models/Bet';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
@@ -252,7 +253,206 @@ export class PlayerController {
         }
     }
 
-    async confirmBid(req: AuthenticatedRequest, res: Response): Promise<void> {
+    async placeBet(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const { marketId, gameType, numbers, amount } = req.body;
+
+            // Validate required fields
+            if (!marketId || !gameType || !numbers || amount === undefined) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Missing required fields: marketId, gameType, numbers, amount'
+                });
+                return;
+            }
+
+            // Get current user with balance
+            const user = await User.findById(req.user.userId);
+            if (!user) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            // Check if user has sufficient balance
+            if (user.balance < amount) {
+                res.status(400).json({
+                    success: false,
+                    message: `Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${amount.toLocaleString()}`
+                });
+                return;
+            }
+
+            // Validate that numbers object has at least one non-zero value
+            const numbersArray = Object.values(numbers) as number[];
+            const hasValidNumbers = numbersArray.some((value: number) => value > 0);
+            if (!hasValidNumbers) {
+                res.status(400).json({
+                    success: false,
+                    message: 'At least one number must have a bet amount greater than 0'
+                });
+                return;
+            }
+
+            // Calculate total amount from numbers (should match the provided amount)
+            const calculatedAmount = numbersArray.reduce((sum: number, value: number) => sum + value, 0);
+            if (calculatedAmount !== amount) {
+                res.status(400).json({
+                    success: false,
+                    message: `Amount mismatch. Calculated: ₹${calculatedAmount.toLocaleString()}, Provided: ₹${amount.toLocaleString()}`
+                });
+                return;
+            }
+
+            // Store user balance before bet
+            const userBeforeAmount = user.balance;
+            const userAfterAmount = user.balance - amount;
+
+            // Create bet record
+            const bet = new Bet({
+                marketId,
+                userId: req.user.userId,
+                type: gameType,
+                amount,
+                userBeforeAmount,
+                userAfterAmount,
+                status: true
+            });
+
+            await bet.save();
+
+            // Update user balance
+            user.balance = userAfterAmount;
+            await user.save();
+
+            logger.info(`Bet placed successfully: User ${req.user.userId}, Market ${marketId}, Amount ₹${amount}, Game Type ${gameType}`);
+
+            res.json({
+                success: true,
+                message: 'Bet placed successfully',
+                data: {
+                    betId: bet._id,
+                    marketId,
+                    gameType,
+                    numbers,
+                    amount,
+                    userBeforeAmount,
+                    userAfterAmount,
+                    status: bet.status,
+                    createdAt: bet.createdAt
+                }
+            });
+        } catch (error) {
+            logger.error('Place bet error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getBetHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const skip = (page - 1) * limit;
+
+            // Get bets for the current user with pagination
+            const bets = await Bet.find({ userId: req.user.userId })
+                .populate('marketId', 'marketName')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+
+            // Get total count for pagination
+            const total = await Bet.countDocuments({ userId: req.user.userId });
+
+            res.json({
+                success: true,
+                message: 'Bet history retrieved successfully',
+                data: {
+                    bets,
+                    total,
+                    page,
+                    limit
+                }
+            });
+        } catch (error) {
+            logger.error('Get bet history error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async getBetById(req: AuthenticatedRequest, res: Response): Promise<void> {
+        try {
+            if (!req.user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+                return;
+            }
+
+            const { betId } = req.params;
+
+            // Get bet by ID and ensure it belongs to the current user
+            const bet = await Bet.findOne({ _id: betId, userId: req.user.userId })
+                .populate('marketId', 'marketName');
+
+            if (!bet) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Bet not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Bet details retrieved successfully',
+                data: {
+                    betId: bet._id,
+                    marketId: bet.marketId,
+                    type: bet.type,
+                    amount: bet.amount,
+                    userBeforeAmount: bet.userBeforeAmount,
+                    userAfterAmount: bet.userAfterAmount,
+                    status: bet.status,
+                    result: bet.result,
+                    createdAt: bet.createdAt
+                }
+            });
+        } catch (error) {
+            logger.error('Get bet by ID error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async confirmBet(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
                 res.status(401).json({
