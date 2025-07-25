@@ -17,6 +17,7 @@ export interface BetResponse {
         gameType: string;
         betType: 'open' | 'close';
         numbers: { [key: number]: number };
+        selectedNumbers: { [key: number]: number };
         amount: number;
         userBeforeAmount: number;
         userAfterAmount: number;
@@ -36,6 +37,8 @@ export interface BetHistoryResponse {
                 marketName: string;
             };
             type: string;
+            betType: string;
+            selectedNumbers: { [key: number]: number };
             amount: number;
             userBeforeAmount: number;
             userAfterAmount: number;

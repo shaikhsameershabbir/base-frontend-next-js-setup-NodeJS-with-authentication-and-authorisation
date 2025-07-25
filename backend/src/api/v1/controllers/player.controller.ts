@@ -329,6 +329,8 @@ export class PlayerController {
                     betId: bet._id,
                     marketId: bet.marketId,
                     type: bet.type,
+                    betType: bet.betType,
+                    selectedNumbers: bet.selectedNumbers,
                     amount: bet.amount,
                     userBeforeAmount: bet.userBeforeAmount,
                     userAfterAmount: bet.userAfterAmount,

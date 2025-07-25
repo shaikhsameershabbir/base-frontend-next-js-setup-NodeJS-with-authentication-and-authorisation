@@ -122,7 +122,8 @@ export class BetController {
                 amount,
                 userBeforeAmount,
                 userAfterAmount,
-                status: true
+                status: true,
+                selectedNumbers: numbers // Save the selected numbers and their amounts
             });
 
             await bet.save();
@@ -142,6 +143,7 @@ export class BetController {
                     gameType,
                     betType,
                     numbers,
+                    selectedNumbers: bet.selectedNumbers,
                     amount,
                     userBeforeAmount,
                     userAfterAmount,
