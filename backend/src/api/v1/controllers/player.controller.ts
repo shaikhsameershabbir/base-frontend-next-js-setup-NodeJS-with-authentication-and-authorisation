@@ -8,7 +8,7 @@ import { Bet } from '../../../models/Bet';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
-import { getCurrentIndianTime, getMarketStatus } from '../../../utils/timeUtils';
+import { getCurrentIndianTime, getMarketStatus, parseTimeToIndianMoment, isBettingAllowed } from '../../../utils/timeUtils';
 
 export class PlayerController {
     async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -511,13 +511,34 @@ export class PlayerController {
         try {
             const currentTime = getCurrentIndianTime();
 
+            // Test time conversion for debugging
+            const testOpenTime = "2025-07-25T07:00:00.000Z";
+            const testCloseTime = "2025-07-25T10:30:00.000Z";
+            const openMoment = parseTimeToIndianMoment(testOpenTime);
+            const closeMoment = parseTimeToIndianMoment(testCloseTime);
+
+            // Test the new logic
+            const testStatus = getMarketStatus(testOpenTime, testCloseTime);
+            const testOpenBet = isBettingAllowed('open', testOpenTime, testCloseTime);
+            const testCloseBet = isBettingAllowed('close', testOpenTime, testCloseTime);
+
             res.json({
                 success: true,
                 message: 'Current Indian time retrieved successfully',
                 data: {
                     currentTime: currentTime.toISOString(),
                     formattedTime: currentTime.format('YYYY-MM-DD HH:mm:ss'),
-                    timezone: 'Asia/Kolkata'
+                    timezone: 'Asia/Kolkata',
+                    debug: {
+                        testOpenTime,
+                        testCloseTime,
+                        openTimeIST: openMoment.format('YYYY-MM-DD HH:mm:ss'),
+                        closeTimeIST: closeMoment.format('YYYY-MM-DD HH:mm:ss'),
+                        currentTimeIST: currentTime.format('YYYY-MM-DD HH:mm:ss'),
+                        testStatus: testStatus.status,
+                        testOpenBet: testOpenBet.allowed,
+                        testCloseBet: testCloseBet.allowed
+                    }
                 }
             });
         } catch (error) {
@@ -552,6 +573,15 @@ export class PlayerController {
             }
 
             const status = getMarketStatus(market.openTime, market.closeTime);
+
+            // Log market status for debugging
+            logger.info(`Market status for ${marketId}:`, {
+                marketName: market.marketName,
+                openTime: market.openTime,
+                closeTime: market.closeTime,
+                status: status.status,
+                message: status.message
+            });
 
             res.json({
                 success: true,

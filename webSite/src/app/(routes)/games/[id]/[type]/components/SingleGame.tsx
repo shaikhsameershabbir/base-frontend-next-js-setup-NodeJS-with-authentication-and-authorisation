@@ -6,9 +6,10 @@ import 'react-toastify/dist/ReactToastify.css';
 
 interface SingleGameProps {
   marketId: string;
+  marketName?: string;
 }
 
-const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
+const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
 
   // Store each digit's value as a number (sum of all clicks/inputs)
@@ -19,12 +20,49 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [marketStatus, setMarketStatus] = useState<any>(null);
+  const [currentTime, setCurrentTime] = useState<string>('');
 
   // Calculate total whenever amounts change
   useEffect(() => {
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
     setTotal(sum);
   }, [amounts]);
+
+  // Fetch market status and current time
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const [timeResponse, statusResponse] = await Promise.all([
+          betAPI.getCurrentTime(),
+          betAPI.getMarketStatus(marketId)
+        ]);
+
+        if (timeResponse.success) {
+          setCurrentTime(timeResponse.data.formattedTime);
+        }
+
+        if (statusResponse.success) {
+          setMarketStatus(statusResponse.data);
+        }
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      }
+    };
+
+    fetchMarketData();
+
+    // Update time every minute
+    const timeInterval = setInterval(() => {
+      betAPI.getCurrentTime().then(response => {
+        if (response.success) {
+          setCurrentTime(response.data.formattedTime);
+        }
+      }).catch(console.error);
+    }, 60000);
+
+    return () => clearInterval(timeInterval);
+  }, [marketId]);
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
@@ -115,6 +153,17 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
     setIsLongPressing(false);
   };
 
+  // Check if betting is allowed for the selected bet type
+  const isBettingAllowedForType = (betType: 'open' | 'close'): boolean => {
+    if (!marketStatus) return false;
+
+    if (betType === 'open') {
+      return marketStatus.status === 'open_betting';
+    } else {
+      return marketStatus.status === 'close_betting';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -131,6 +180,13 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
 
     if (total === 0) {
       toast.error('Please select at least one number to bet on.');
+      return;
+    }
+
+    // Frontend time validation
+    if (!isBettingAllowedForType(selectedBetType)) {
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      toast.error(statusMessage);
       return;
     }
 
@@ -186,13 +242,28 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-bold text-gray-800">TIME BAZAR</span>
-              <span className="text-sm text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">OPEN</span>
+              <span className="text-lg font-bold text-gray-800">{marketName}</span>
+              <span className={`text-sm font-semibold px-2 py-1 rounded-full ${marketStatus?.status === 'open_betting'
+                  ? 'text-green-600 bg-green-50'
+                  : marketStatus?.status === 'close_betting'
+                    ? 'text-blue-600 bg-blue-50'
+                    : marketStatus?.status === 'no_betting'
+                      ? 'text-yellow-600 bg-yellow-50'
+                      : marketStatus?.status === 'closing_soon'
+                        ? 'text-orange-600 bg-orange-50'
+                        : 'text-red-600 bg-red-50'
+                }`}>
+                {marketStatus?.status === 'open_betting' ? 'OPEN BETTING' :
+                  marketStatus?.status === 'close_betting' ? 'CLOSE BETTING' :
+                    marketStatus?.status === 'no_betting' ? 'NO BETTING' :
+                      marketStatus?.status === 'closing_soon' ? 'CLOSING SOON' :
+                        'CLOSED'}
+              </span>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-600">Date & Time (IST)</div>
+              <div className="text-sm text-gray-600">Current Time (IST)</div>
               <div className="text-lg font-bold text-gray-800">
-                {new Date().toLocaleString('en-GB', {
+                {currentTime || new Date().toLocaleString('en-GB', {
                   day: '2-digit',
                   month: '2-digit',
                   year: 'numeric',
@@ -203,6 +274,11 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
               </div>
             </div>
           </div>
+          {marketStatus?.message && (
+            <div className="mt-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+              {marketStatus.message}
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -216,9 +292,12 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
               <button
                 type="button"
                 onClick={() => setSelectedBetType('open')}
+                disabled={!isBettingAllowedForType('open')}
                 className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'open'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg scale-105'
-                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-green-300 hover:shadow-md'
+                  : isBettingAllowedForType('open')
+                    ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-green-300 hover:shadow-md'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
                   }`}
               >
                 <div className="text-base font-bold">OPEN</div>
@@ -229,13 +308,23 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
                     </svg>
                   </div>
                 )}
+                {!isBettingAllowedForType('open') && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedBetType('close')}
+                disabled={!isBettingAllowedForType('close')}
                 className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'close'
                   ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg scale-105'
-                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-red-300 hover:shadow-md'
+                  : isBettingAllowedForType('close')
+                    ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-red-300 hover:shadow-md'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-50'
                   }`}
               >
                 <div className="text-base font-bold">CLOSE</div>
@@ -243,6 +332,13 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
                   <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
                     <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+                {!isBettingAllowedForType('close') && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </div>
                 )}

@@ -1,7 +1,8 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import BottomNav from '@/app/components/BottomNav';
+import { betAPI } from '@/lib/api/bet';
 // Import game type components
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';
@@ -24,13 +25,30 @@ const GameTypePage = () => {
   const params = useParams();
   const gameId = params.id as string;
   const gameType = params.type as string;
+  const [marketName, setMarketName] = useState<string>('Market');
+
+  // Fetch market details
+  useEffect(() => {
+    const fetchMarketStatus = async () => {
+      try {
+        const response = await betAPI.getMarketStatus(gameId);
+        if (response.success && response.data) {
+          setMarketName(response.data.marketName || 'Market');
+        }
+      } catch (error) {
+        console.error('Error fetching market status:', error);
+      }
+    };
+
+    fetchMarketStatus();
+  }, [gameId]);
 
   const renderGameComponent = () => {
     switch (gameType) {
       case 'all-in-one':
         return <AllInOneGame gameId={gameId} />;
       case 'single':
-        return <SingleGame marketId={gameId} />;
+        return <SingleGame marketId={gameId} marketName={marketName} />;
       case 'jodi-digits':
         return <JodiGame gameId={gameId} />;
       case 'single-panna':
