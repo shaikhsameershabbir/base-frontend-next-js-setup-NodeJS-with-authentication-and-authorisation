@@ -1,12 +1,14 @@
+import { useAuthContext } from '@/contexts/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 interface SingleGameProps {
   gameId: string;
 }
 
 const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
+  const { state: { user } } = useAuthContext();
+
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({
     0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
@@ -28,7 +30,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
   // When a digit is clicked, if amount is selected, add that amount to the digit's value
   const handleDigitClick = (digit: number, isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      toast.warning('Please select an amount first.');
+      toast.error('Please select an amount first.');
       return;
     }
 
@@ -111,13 +113,28 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if user has sufficient balance
+    if (!user) {
+      toast.error('User not authenticated. Please login again.');
+      return;
+    }
+
+    if (user.balance < total) {
+      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      return;
+    }
+
     // Here you would handle the bid submission
     console.log({
       gameId,
       type: 'single',
       amounts,
-      total
+      total,
+      userBalance: user.balance
     });
+
+    toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
   };
 
   const handleReset = () => {
@@ -169,8 +186,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                     key={amt}
                     type="button"
                     className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
@@ -264,10 +281,10 @@ const SingleGame: React.FC<SingleGameProps> = ({ gameId }) => {
                     disabled={selectedAmount === null}
                     title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
                     className={`w-full aspect-square rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[i] && amounts[i] > 0
-                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
-                        : selectedAmount === null
-                          ? 'bg-gray-100 border-gray-200 text-gray-400'
-                          : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
+                      : selectedAmount === null
+                        ? 'bg-gray-100 border-gray-200 text-gray-400'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
                       } ${isLongPressing ? 'scale-95' : ''}`}
                   >
                     <div className="flex flex-col items-center justify-center h-full">
