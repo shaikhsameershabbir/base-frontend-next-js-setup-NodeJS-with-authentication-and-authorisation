@@ -53,6 +53,13 @@ export class PlayerValidator {
             .isIn(['single', 'jodi', 'panna', 'sangam'])
             .withMessage('Invalid game type'),
 
+        body('betType')
+            .trim()
+            .notEmpty()
+            .withMessage('Bet type is required')
+            .isIn(['open', 'close'])
+            .withMessage('Invalid bet type. Must be either "open" or "close"'),
+
         body('numbers')
             .isObject()
             .withMessage('Numbers must be an object')

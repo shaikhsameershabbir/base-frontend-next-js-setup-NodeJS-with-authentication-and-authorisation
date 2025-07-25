@@ -3,14 +3,14 @@ import { Schema, model, Document } from 'mongoose';
 export interface IBet extends Document {
     marketId: object;
     userId: object;
-    type: string;
+    type: string; // game type: single, double, panna, etc.
+    betType: string; // bet type: open, close
     amount: number;
     userBeforeAmount: number;
     userAfterAmount: number;
     status: boolean;
     createdAt: Date;
     result?: string;
-
 }
 
 const betSchema = new Schema<IBet>({
@@ -22,6 +22,11 @@ const betSchema = new Schema<IBet>({
     type: {
         type: String,
         required: true
+    },
+    betType: {
+        type: String,
+        required: true,
+        enum: ['open', 'close']
     },
     userId: {
         type: Schema.Types.ObjectId,

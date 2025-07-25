@@ -17,6 +17,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
   });
   const [total, setTotal] = useState<number>(0);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Calculate total whenever amounts change
@@ -140,6 +141,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'single',
+        betType: selectedBetType,
         numbers: amounts,
         amount: total
       });
@@ -188,12 +190,15 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
               <span className="text-sm text-green-600 font-semibold bg-green-50 px-2 py-1 rounded-full">OPEN</span>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-600">Date</div>
+              <div className="text-sm text-gray-600">Date & Time (IST)</div>
               <div className="text-lg font-bold text-gray-800">
-                {new Date().toLocaleDateString('en-GB', {
+                {new Date().toLocaleString('en-GB', {
                   day: '2-digit',
                   month: '2-digit',
-                  year: 'numeric'
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'Asia/Kolkata'
                 })}
               </div>
             </div>
@@ -201,6 +206,50 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Bet Type Selection */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <h2 className="text-base font-bold text-gray-800">Select Bet Type</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedBetType('open')}
+                className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'open'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg scale-105'
+                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-green-300 hover:shadow-md'
+                  }`}
+              >
+                <div className="text-base font-bold">OPEN</div>
+                {selectedBetType === 'open' && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedBetType('close')}
+                className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedBetType === 'close'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg scale-105'
+                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-red-300 hover:shadow-md'
+                  }`}
+              >
+                <div className="text-base font-bold">CLOSE</div>
+                {selectedBetType === 'close' && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Compact Amount Selection */}
             <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
@@ -215,8 +264,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
                     key={amt}
                     type="button"
                     className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
+                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
@@ -310,10 +359,10 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId }) => {
                     disabled={selectedAmount === null || isSubmitting}
                     title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
                     className={`w-full aspect-square rounded-xl border-2 transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[i] && amounts[i] > 0
-                        ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
-                        : selectedAmount === null
-                          ? 'bg-gray-100 border-gray-200 text-gray-400'
-                          : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
+                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-lg'
+                      : selectedAmount === null
+                        ? 'bg-gray-100 border-gray-200 text-gray-400'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50 hover:shadow-md'
                       } ${isLongPressing ? 'scale-95' : ''}`}
                   >
                     <div className="flex flex-col items-center justify-center h-full">

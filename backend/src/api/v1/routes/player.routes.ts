@@ -26,13 +26,7 @@ router.get('/assigned-markets',
     playerController.getAssignedMarkets as unknown as RequestHandler
 );
 
-// Bet-related routes
-router.post('/place-bet',
-    playerAuthMiddleware.authenticatePlayer,
-    playerValidator.validatePlaceBet,
-    playerController.placeBet as unknown as RequestHandler
-);
-
+// Bet-related routes (except placeBet which is in bet controller)
 router.get('/bet-history',
     playerAuthMiddleware.authenticatePlayer,
     playerController.getBetHistory as unknown as RequestHandler
@@ -41,6 +35,27 @@ router.get('/bet-history',
 router.get('/bet/:betId',
     playerAuthMiddleware.authenticatePlayer,
     playerController.getBetById as unknown as RequestHandler
+);
+
+router.post('/bet/:betId/cancel',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.cancelBet as unknown as RequestHandler
+);
+
+router.get('/bet-stats',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.getBetStats as unknown as RequestHandler
+);
+
+// Time and market status routes
+router.get('/current-time',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.getCurrentTime as unknown as RequestHandler
+);
+
+router.get('/market/:marketId/status',
+    playerAuthMiddleware.authenticatePlayer,
+    playerController.getMarketStatus as unknown as RequestHandler
 );
 
 // Bid confirmation routes (legacy - can be removed later)

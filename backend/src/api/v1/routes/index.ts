@@ -5,6 +5,7 @@ import marketsRoutes from './markets.routes';
 import transfersRoutes from './transfers.routes';
 import activitiesRoutes from './activities.routes';
 import playerRoutes from './player.routes';
+import betRoutes from './bet.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use(`/markets`, marketsRoutes);
 router.use(`/transfers`, transfersRoutes);
 router.use(`/activities`, activitiesRoutes);
 router.use(`/player`, playerRoutes);
+router.use(`/bets`, betRoutes);
 
 export default router; 
