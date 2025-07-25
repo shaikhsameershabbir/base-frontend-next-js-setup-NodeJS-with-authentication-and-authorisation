@@ -18,6 +18,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   });
   const [total, setTotal] = useState<number>(0);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -62,6 +63,17 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
     return () => clearInterval(timeInterval);
   }, [marketId]);
+
+  // Set default bet type when market status changes
+  useEffect(() => {
+    if (marketStatus) {
+      if (isBetTypeAllowed('open')) {
+        setSelectedBetType('open');
+      } else if (isBetTypeAllowed('close')) {
+        setSelectedBetType('close');
+      }
+    }
+  }, [marketStatus]);
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
@@ -157,12 +169,25 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     if (!marketStatus) return null;
 
     if (marketStatus.status === 'open_betting') {
-      return 'open';
+      return 'open'; // During open betting, default to open
     } else if (marketStatus.status === 'close_betting') {
-      return 'close';
+      return 'close'; // During close betting, default to close
     }
 
     return null;
+  };
+
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    if (!marketStatus) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatus.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
+    }
   };
 
   // Check if betting is currently allowed
@@ -200,10 +225,18 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     setIsSubmitting(true);
 
     try {
-      // Get the current bet type
-      const currentBetType = getCurrentBetType();
-      if (!currentBetType) {
-        toast.error('No betting type available at this time');
+      // Determine which bet types are available
+      const canBetOpen = isBetTypeAllowed('open');
+      const canBetClose = isBetTypeAllowed('close');
+
+      if (!canBetOpen && !canBetClose) {
+        toast.error('No betting available at this time');
+        return;
+      }
+
+      // Use the user's selected bet type
+      if (!isBetTypeAllowed(selectedBetType)) {
+        toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
         return;
       }
 
@@ -211,7 +244,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'single',
-        betType: currentBetType,
+        betType: selectedBetType,
         numbers: amounts,
         amount: total
       });
@@ -243,6 +276,12 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
       0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
     });
     setSelectedAmount(null);
+    // Reset to default bet type based on current availability
+    if (isBetTypeAllowed('open')) {
+      setSelectedBetType('open');
+    } else if (isBetTypeAllowed('close')) {
+      setSelectedBetType('close');
+    }
   };
 
   // Amount options for mapping
@@ -258,14 +297,32 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
-              {getCurrentBetType() && (
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full items-end justify-end ${getCurrentBetType() === 'open'
-                  ? 'text-green-700 bg-green-100'
-                  : 'text-blue-700 bg-blue-100'
-                  }`}>
-                  {getCurrentBetType()?.toUpperCase()}
-                </span>
-              )}
+              <div className="flex gap-2">
+                {isBetTypeAllowed('open') && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBetType('open')}
+                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                      ? 'text-white bg-green-600 shadow-md scale-105'
+                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                      }`}
+                  >
+                    OPEN
+                  </button>
+                )}
+                {isBetTypeAllowed('close') && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBetType('close')}
+                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                      ? 'text-white bg-blue-600 shadow-md scale-105'
+                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                      }`}
+                  >
+                    CLOSE
+                  </button>
+                )}
+              </div>
             </div>
 
           </div>
@@ -321,7 +378,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Select Digits</h2>
               </div>
-          
+
             </div>
 
             {/* Even/Odd Quick Selection */}

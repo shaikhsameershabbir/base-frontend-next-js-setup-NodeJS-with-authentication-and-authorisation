@@ -72,15 +72,10 @@ export const isBettingAllowed = (
             };
         }
     } else {
-        // Close betting: 12:30 PM to 3:45 PM
-        if (now.isBetween(openMoment, closeNoBettingStart)) {
+        // Close betting: Allowed during both open betting period AND close betting period
+        if (now.isBefore(closeNoBettingStart)) {
             return {
                 allowed: true
-            };
-        } else if (now.isBefore(openMoment)) {
-            return {
-                allowed: false,
-                message: `Close betting will be available from ${openMoment.format('HH:mm')} to ${closeNoBettingStart.format('HH:mm')}`
             };
         } else {
             return {
