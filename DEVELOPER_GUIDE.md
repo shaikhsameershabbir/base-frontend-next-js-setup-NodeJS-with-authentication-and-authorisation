@@ -8,10 +8,11 @@
 5. [Setup & Installation](#setup--installation)
 6. [Database Schema](#database-schema)
 7. [API Documentation](#api-documentation)
-8. [Authentication & Authorization](#authentication--authorization)
-9. [Development Workflow](#development-workflow)
-10. [Deployment](#deployment)
-11. [Troubleshooting](#troubleshooting)
+8. [Game System](#game-system)
+9. [Authentication & Authorization](#authentication--authorization)
+10. [Development Workflow](#development-workflow)
+11. [Deployment](#deployment)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -30,6 +31,10 @@
 - Comprehensive analytics and reporting
 - Secure authentication with JWT tokens
 - Responsive design for mobile and desktop
+- **Advanced Betting System** with multiple game types
+- **Time-based Betting Restrictions** with IST timezone support
+- **Real-time Balance Management** with instant updates
+- **Comprehensive Game Validation** (frontend & backend)
 
 ---
 
@@ -59,6 +64,21 @@ Superadmin
                 └── Player
 ```
 
+### Game System Architecture
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Game UI       │    │   Bet API       │    │   Time Utils    │
+│   Components    │◄──►│   Controllers   │◄──►│   (IST Logic)   │
+│   (React)       │    │   (Express)     │    │   (Moment.js)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Bet Model     │
+                       │   (MongoDB)     │
+                       └─────────────────┘
+```
+
 ---
 
 ## 🛠️ Technology Stack
@@ -72,14 +92,17 @@ Superadmin
 - **Validation**: express-validator
 - **Logging**: Winston
 - **Rate Limiting**: express-rate-limit
+- **Time Management**: moment-timezone (Asia/Kolkata)
+- **Real-time Updates**: WebSocket support (planned)
 
 ### Admin Panel
 - **Framework**: Next.js 14 with TypeScript
 - **Styling**: Tailwind CSS
-- **UI Components**: Radix UI
+- **UI Components**: Radix UI, shadcn/ui
 - **Icons**: Lucide React
 - **HTTP Client**: Axios
 - **State Management**: React Context API
+- **Theme**: Dark/Light mode support
 
 ### Website
 - **Framework**: Next.js 14 with TypeScript
@@ -89,6 +112,8 @@ Superadmin
 - **HTTP Client**: Axios
 - **State Management**: React Context API
 - **Animations**: Framer Motion
+- **Notifications**: React Toastify
+- **Time Management**: moment-timezone
 
 ---
 
@@ -100,16 +125,32 @@ backend/
 ├── src/
 │   ├── api/v1/
 │   │   ├── controllers/     # Request handlers
+│   │   │   ├── bet.controller.ts      # Bet placement logic
+│   │   │   ├── player.controller.ts   # Player operations
+│   │   │   ├── auth.controller.ts     # Authentication
+│   │   │   ├── markets.controller.ts  # Market management
+│   │   │   ├── users.controller.ts    # User management
+│   │   │   └── transfers.controller.ts # Transfer operations
 │   │   ├── middlewares/     # Custom middleware
 │   │   ├── routes/          # API route definitions
+│   │   │   ├── bet.routes.ts          # Bet placement routes
+│   │   │   ├── player.routes.ts       # Player routes
+│   │   │   ├── auth.routes.ts         # Auth routes
+│   │   │   └── index.ts               # Route aggregation
 │   │   ├── types/           # TypeScript interfaces
 │   │   └── validators/      # Request validation
+│   │       └── player.validator.ts    # Bet validation rules
 │   ├── config/              # Configuration files
 │   ├── controllers/         # Business logic controllers
 │   ├── middlewares/         # Global middleware
 │   ├── models/              # MongoDB schemas
+│   │   ├── Bet.ts           # Bet schema with betType & selectedNumbers
+│   │   ├── User.ts          # User schema
+│   │   ├── Market.ts        # Market schema
+│   │   └── Transfer.ts      # Transfer schema
 │   ├── services/            # Business logic services
 │   ├── utils/               # Utility functions
+│   │   └── timeUtils.ts     # IST timezone utilities
 │   ├── app.ts              # Express app setup
 │   └── server.ts           # Server entry point
 ├── scripts/                 # Database scripts
@@ -122,16 +163,38 @@ backend/
 admin/
 ├── src/
 │   ├── app/                 # Next.js app directory
-│   │   ├── (routes)/        # Route groups
+│   │   ├── (login)/         # Login route group
 │   │   ├── dashboard/       # Dashboard pages
 │   │   ├── users/           # User management
+│   │   │   └── [role]/      # Role-based user views
+│   │   │       └── [userid]/ # Individual user management
 │   │   ├── markets/         # Market management
+│   │   │   └── rank/        # Market ranking
 │   │   ├── analytics/       # Analytics pages
+│   │   ├── points/          # Points management
+│   │   │   └── transfer/    # Transfer operations
 │   │   ├── settings/        # Settings pages
-│   │   └── login/           # Authentication
+│   │   └── profile/         # Profile management
 │   ├── components/          # Reusable components
+│   │   ├── auth/            # Authentication components
+│   │   ├── dashboard/       # Dashboard components
+│   │   ├── layout/          # Layout components
+│   │   ├── modals/          # Modal components
+│   │   ├── theme/           # Theme components
+│   │   ├── transfer/        # Transfer components
+│   │   └── ui/              # UI components (shadcn/ui)
 │   ├── hooks/               # Custom React hooks
+│   │   ├── useAuth.ts       # Authentication hook
+│   │   ├── useDebounce.ts   # Debounce utility
+│   │   ├── useMarkets.ts    # Market data hook
+│   │   └── useUsers.ts      # User management hook
 │   └── lib/                 # Utility libraries
+│       ├── api/             # API clients
+│       │   └── transfer.ts  # Transfer API
+│       ├── api-client.ts    # Base API client
+│       ├── api-market.ts    # Market API
+│       ├── api-service.ts   # Service API
+│       └── utils.ts         # Utility functions
 ```
 
 ### Website Structure
@@ -139,16 +202,57 @@ admin/
 webSite/
 ├── src/
 │   ├── app/                 # Next.js app directory
+│   │   ├── (login)/         # Public login page
 │   │   ├── (routes)/        # Protected routes
-│   │   ├── login/           # Public login page
-│   │   ├── home/            # Home page
-│   │   ├── games/           # Game pages
-│   │   ├── charts/          # Chart pages
-│   │   └── components/      # Shared components
-│   ├── contexts/            # React contexts
-│   ├── hooks/               # Custom hooks
-│   └── lib/                 # API clients
+│   │   │   ├── charts/      # Chart pages
+│   │   │   │   ├── Jodi/    # Jodi charts
+│   │   │   │   └── Panel/   # Panel charts
+│   │   │   ├── funds/       # Funds management
+│   │   │   ├── gameRate/    # Game rates
+│   │   │   ├── games/       # Game pages
+│   │   │   │   └── [id]/    # Market-specific games
+│   │   │   │       └── [type]/ # Game type components
+│   │   │   │           ├── components/ # Game components
+│   │   │   │           │   ├── SingleGame.tsx
+│   │   │   │           │   ├── JodiGame.tsx
+│   │   │   │           │   ├── SinglePanna.tsx
+│   │   │   │           │   ├── DoublePanna.tsx
+│   │   │   │           │   ├── TriplePanna.tsx
+│   │   │   │           │   ├── BaseMotorGame.tsx
+│   │   │   │           │   ├── CommonSpDp.tsx
+│   │   │   │           │   ├── RedBracket.tsx
+│   │   │   │           │   ├── FamilyPanel.tsx
+│   │   │   │           │   ├── CyclePanna.tsx
+│   │   │   │           │   └── SangamGame.tsx
+│   │   │   │           └── page.tsx
+│   │   │   ├── home/        # Home page
+│   │   │   ├── myBids/      # Bet history
+│   │   │   └── passbook/    # Transaction history
+│   │   ├── components/      # Shared components
+│   │   │   ├── AuthGuard.tsx # Route protection
+│   │   │   ├── BidsCard.tsx # Bet display
+│   │   │   ├── BottomNav.tsx # Mobile navigation
+│   │   │   ├── Header.tsx   # Page header
+│   │   │   ├── MarketCard.tsx # Market display
+│   │   │   ├── Message.tsx  # Message component
+│   │   │   ├── Sidebar.tsx  # Sidebar navigation
+│   │   │   ├── SplashScreen.tsx # Loading screen
+│   │   │   └── ui/          # UI components
+│   │   ├── constant/        # Constants
+│   │   │   ├── constant.ts  # Game constants
+│   │   │   └── pagination.tsx # Pagination component
+│   │   ├── contexts/        # React contexts
+│   │   │   ├── AuthContext.tsx # Authentication context
+│   │   │   └── MarketsContext.tsx # Market context
+│   │   ├── hooks/           # Custom hooks
+│   │   └── lib/             # API clients
+│   │       ├── api/         # API modules
+│   │       │   ├── auth.ts  # Authentication API
+│   │       │   └── bet.ts   # Betting API
+│   │       ├── api-client.ts # Base API client
+│   │       └── utils.ts     # Utility functions
 ├── public/                  # Static assets
+│   └── Game/               # Game images
 ```
 
 ---
@@ -234,9 +338,27 @@ interface IUser {
 ```typescript
 interface IMarket {
     marketName: string;         // Market name
-    openTime: string;           // Opening time
-    closeTime: string;          // Closing time
+    openTime: string;           // Opening time (HH:mm format)
+    closeTime: string;          // Closing time (HH:mm format)
     isActive: boolean;          // Market status
+    createdAt: Date;
+    updatedAt: Date;
+}
+```
+
+### Bet Model (NEW)
+```typescript
+interface IBet {
+    userId: ObjectId;           // User who placed the bet
+    marketId: ObjectId;         // Market reference
+    gameType: string;           // Game type (single, jodi, panna, etc.)
+    betType: 'open' | 'close';  // Bet type (open/close)
+    numbers: { [key: string]: number }; // Numbers and amounts
+    selectedNumbers: any;       // Specific numbers bet on
+    totalAmount: number;        // Total bet amount
+    status: 'pending' | 'won' | 'lost' | 'cancelled';
+    result?: string;            // Game result
+    payout?: number;            // Payout amount
     createdAt: Date;
     updatedAt: Date;
 }
@@ -300,6 +422,57 @@ Get current user profile
 
 #### PUT /api/v1/auth/profile
 Update user profile
+
+### Betting Endpoints (NEW)
+
+#### POST /api/v1/bets/place-bet
+Place a new bet
+```json
+{
+    "marketId": "market_id_here",
+    "gameType": "single",
+    "betType": "open",
+    "numbers": {
+        "123": 100,
+        "456": 200
+    },
+    "selectedNumbers": ["123", "456"]
+}
+```
+
+#### GET /api/v1/player/bet-history
+Get user's bet history
+```json
+{
+    "bets": [
+        {
+            "id": "bet_id",
+            "marketName": "Market Name",
+            "gameType": "single",
+            "betType": "open",
+            "totalAmount": 300,
+            "status": "pending",
+            "selectedNumbers": ["123", "456"],
+            "createdAt": "2024-01-01T00:00:00Z"
+        }
+    ]
+}
+```
+
+#### GET /api/v1/player/bet/:id
+Get specific bet details
+
+#### PUT /api/v1/player/bet/:id/cancel
+Cancel a bet
+
+#### GET /api/v1/player/bet-stats
+Get betting statistics
+
+#### GET /api/v1/player/current-time
+Get current IST time
+
+#### GET /api/v1/player/market/:marketId/status
+Get market betting status
 
 ### User Management Endpoints
 
@@ -365,6 +538,166 @@ Confirm player bid
 
 ---
 
+## 🎮 Game System
+
+### Game Types
+
+#### 1. Single Game
+- **Description**: Bet on single digits (0-9)
+- **API Type**: `single`
+- **UI Component**: `SingleGame.tsx`
+- **Features**: Amount selection, balance validation, time restrictions
+
+#### 2. Jodi Game
+- **Description**: Bet on number pairs (00-99)
+- **API Type**: `jodi`
+- **UI Component**: `JodiGame.tsx`
+- **Features**: Range selection, modern UI, real-time validation
+
+#### 3. Panna Games
+- **Single Panna**: 3-digit combinations (000-999)
+- **Double Panna**: 2-digit combinations (00-99)
+- **Triple Panna**: 1-digit combinations (0-9)
+- **API Types**: `single_panna`, `double_panna`, `triple_panna`
+- **UI Components**: `SinglePanna.tsx`, `DoublePanna.tsx`, `TriplePanna.tsx`
+
+#### 4. Motor Games
+- **SP Motor**: Generate single pannas from input digits
+- **DP Motor**: Generate double pannas from input digits
+- **API Types**: `motor_sp`, `motor_dp`
+- **UI Component**: `BaseMotorGame.tsx`
+- **Features**: Auto-placement, minimum 4 digits required
+
+#### 5. Common Games
+- **Common SP**: Filter single pannas by input digits
+- **Common DP**: Filter double pannas by input digits
+- **Common SP-DP**: Filter both types
+- **API Types**: `common_sp`, `common_dp`, `common_sp_dp`
+- **UI Component**: `CommonSpDp.tsx`
+- **Features**: Any-digit matching, auto-placement
+
+#### 6. Bracket Games
+- **Half Bracket**: Numbers with sum ≤ 9
+- **Full Bracket**: Numbers with sum ≤ 9
+- **API Types**: `half_bracket`, `full_bracket`
+- **UI Component**: `RedBracket.tsx`
+- **Features**: Dynamic number generation, auto-placement
+
+#### 7. Family Panel
+- **Description**: Bet on family numbers
+- **API Type**: `family_panel`
+- **UI Component**: `FamilyPanel.tsx`
+- **Features**: Family identification, auto-placement
+
+#### 8. Cycle Panna
+- **Description**: Bet on cycle panna numbers
+- **API Type**: `cycle_panna`
+- **UI Component**: `CyclePanna.tsx`
+- **Features**: Cycle identification, input validation
+
+#### 9. Sangam Games
+- **Half Sangam Open**: Panna X Digit (e.g., 123X6)
+- **Half Sangam Close**: Digit X Panna (e.g., 4X123)
+- **Full Sangam**: Panna-SumLastDigits-Panna (e.g., 123-64-112)
+- **API Type**: `sangam`
+- **UI Component**: `SangamGame.tsx`
+- **Features**: Complex calculations, real-time filtering
+
+### Time-Based Betting System
+
+#### Betting Windows
+```typescript
+// Open Betting: 12:00 AM - 12:15 PM
+// Buffer Period: 12:15 PM - 12:30 PM (No betting)
+// Close Betting: 12:30 PM - 3:45 PM
+// Game Closed: 3:45 PM - 4:00 PM
+```
+
+#### Time Validation Logic
+```typescript
+function isBettingAllowed(betType: 'open' | 'close', currentTime: moment.Moment): boolean {
+    const hour = currentTime.hour();
+    const minute = currentTime.minute();
+    const timeInMinutes = hour * 60 + minute;
+    
+    if (betType === 'open') {
+        // Open betting: 00:00 - 12:15 (0 - 735 minutes)
+        return timeInMinutes >= 0 && timeInMinutes <= 735;
+    } else {
+        // Close betting: 12:30 - 15:45 (750 - 945 minutes)
+        return timeInMinutes >= 750 && timeInMinutes <= 945;
+    }
+}
+```
+
+#### Market Status
+```typescript
+function getMarketStatus(currentTime: moment.Moment): string {
+    const hour = currentTime.hour();
+    const minute = currentTime.minute();
+    const timeInMinutes = hour * 60 + minute;
+    
+    if (timeInMinutes >= 0 && timeInMinutes <= 735) {
+        return 'open_betting';
+    } else if (timeInMinutes >= 750 && timeInMinutes <= 945) {
+        return 'close_betting';
+    } else {
+        return 'closed';
+    }
+}
+```
+
+### UI Components Architecture
+
+#### Common Features Across All Games
+- **Modern UI**: Curved corners, shadows, gradients
+- **Responsive Design**: Mobile-first approach
+- **Balance Validation**: Real-time balance checking
+- **Time Validation**: IST timezone support
+- **Toast Notifications**: User feedback
+- **Loading States**: API call indicators
+- **Form Reset**: After successful submission
+
+#### Component Structure
+```typescript
+interface GameComponentProps {
+    marketId: string;
+    marketName: string;
+}
+
+interface GameState {
+    amounts: { [key: string]: number };
+    selectedAmount: number | null;
+    selectedBetType: 'open' | 'close';
+    loading: boolean;
+    currentTime: string;
+    marketStatus: string;
+}
+```
+
+#### State Management
+```typescript
+// AuthContext for user balance
+const { user, updateBalance } = useAuthContext();
+
+// Real-time balance update
+const handleSubmit = async () => {
+    if (user.balance < total) {
+        toast.error('Insufficient balance');
+        return;
+    }
+    
+    const response = await betAPI.placeBet(betData);
+    if (response.success) {
+        updateBalance(user.balance - total);
+        toast.success('Bet placed successfully!');
+        resetForm();
+    }
+};
+```
+
+---
+
 ## 🔐 Authentication & Authorization
 
 ### JWT Token System
@@ -388,7 +721,7 @@ enum UserRole {
 - **Admin**: User management, market management
 - **Distributor**: Agent management, balance transfers
 - **Agent**: Player management, basic operations
-- **Player**: Game access, personal data
+- **Player**: Game access, personal data, betting
 
 ### Middleware Chain
 1. **Rate Limiting**: Prevent abuse
@@ -409,6 +742,7 @@ enum UserRole {
 - **Models**: Database schema definitions
 - **Middlewares**: Request processing pipeline
 - **Validators**: Input validation rules
+- **Utils**: Time utilities and helper functions
 
 #### Frontend (Admin & Website)
 - **Components**: Reusable UI components
@@ -416,6 +750,7 @@ enum UserRole {
 - **Hooks**: Custom React hooks
 - **Pages**: Route-specific components
 - **Utils**: Helper functions
+- **API Clients**: HTTP request handlers
 
 ### State Management
 
@@ -425,21 +760,46 @@ enum UserRole {
 - **UsersContext**: User management state
 
 #### Website
-- **AuthContext**: Player authentication
-- **MarketsContext**: Market assignments
-- **GameContext**: Game state management
+- **AuthContext**: Player authentication and balance
+- **MarketsContext**: Market assignments and data
 
 ### API Integration
 ```typescript
 // Example API client usage
-const { login, state } = useAuthContext();
+const { login, user, updateBalance } = useAuthContext();
 const success = await login(username, password);
+
+// Bet placement
+const response = await betAPI.placeBet({
+    marketId,
+    gameType,
+    betType,
+    numbers,
+    selectedNumbers
+});
 ```
 
 ### Error Handling
 - **Backend**: Centralized error middleware
 - **Frontend**: Context-based error states
 - **Validation**: Client and server-side validation
+- **Toast Notifications**: User-friendly error messages
+
+### Time Management
+```typescript
+// Frontend time synchronization
+useEffect(() => {
+    const fetchTime = async () => {
+        const response = await betAPI.getCurrentTime();
+        setCurrentTime(response.currentTime);
+        setMarketStatus(response.marketStatus);
+    };
+    
+    fetchTime();
+    const interval = setInterval(fetchTime, 1000);
+    return () => clearInterval(interval);
+}, []);
+```
 
 ---
 
@@ -485,12 +845,23 @@ docker run -p 3000:3000 matka-website
 2. **JWT Errors**: Verify secret keys and token expiration
 3. **CORS Errors**: Check allowed origins configuration
 4. **Rate Limiting**: Monitor request frequency
+5. **Time Validation**: Verify IST timezone configuration
+6. **Bet Validation**: Check game type and bet type validation
 
 #### Frontend Issues
 1. **API Connection**: Verify API URL configuration
 2. **Authentication**: Check token storage and refresh
 3. **State Management**: Verify context providers
 4. **Build Errors**: Check TypeScript and dependency issues
+5. **Time Synchronization**: Verify IST time display
+6. **Balance Updates**: Check real-time balance updates
+
+#### Game-Specific Issues
+1. **Motor Games**: Verify minimum 4 digits requirement
+2. **Common Games**: Check digit filtering logic
+3. **Bracket Games**: Verify sum calculation (≤ 9)
+4. **Sangam Games**: Check complex calculation logic
+5. **Input Validation**: Verify real-time and on-blur validation
 
 ### Debug Commands
 ```bash
@@ -509,12 +880,14 @@ npm run lint         # Code linting
 - **Backend**: Check `logs/` directory
 - **Frontend**: Browser developer tools
 - **Database**: MongoDB logs
+- **Time Validation**: Check IST timezone logs
 
 ### Performance Monitoring
 - **API Response Times**: Monitor endpoint performance
 - **Database Queries**: Optimize slow queries
 - **Frontend Loading**: Bundle size optimization
 - **Memory Usage**: Monitor application memory
+- **Real-time Updates**: Monitor WebSocket performance
 
 ---
 
@@ -525,12 +898,14 @@ npm run lint         # Code linting
 - [Express.js Documentation](https://expressjs.com/)
 - [MongoDB Documentation](https://docs.mongodb.com/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [Moment.js Timezone Documentation](https://momentjs.com/timezone/)
 
 ### Development Tools
 - **VS Code Extensions**: TypeScript, ESLint, Prettier
 - **API Testing**: Postman, Insomnia
 - **Database GUI**: MongoDB Compass
 - **Version Control**: Git with conventional commits
+- **Time Testing**: IST timezone testing tools
 
 ### Best Practices
 - **Code Style**: ESLint + Prettier configuration
@@ -538,6 +913,8 @@ npm run lint         # Code linting
 - **Testing**: Unit tests for critical functions
 - **Security**: Regular dependency updates
 - **Performance**: Code splitting and optimization
+- **Time Management**: Consistent IST timezone usage
+- **Validation**: Dual frontend and backend validation
 
 ---
 
@@ -548,8 +925,10 @@ For technical support or questions:
 - **Frontend Issues**: Browser console and React DevTools
 - **Database Issues**: MongoDB Compass and query optimization
 - **Deployment Issues**: Environment configuration and Docker logs
+- **Game Logic Issues**: Check validation rules and time constraints
+- **Time Issues**: Verify IST timezone configuration
 
 ---
 
 *Last Updated: July 2024*
-*Version: 1.0.0* 
+*Version: 2.0.0* 
