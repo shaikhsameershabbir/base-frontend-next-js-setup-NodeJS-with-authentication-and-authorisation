@@ -60,12 +60,12 @@ export const superNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Bids",
-                href: "/bids",
+                href: "/bets",
                 icon: "ClipboardList",
             },
             {
                 title: "Bid History",
-                href: "/bids/history",
+                href: "/bets/history",
                 icon: "History",
             },
         ],
@@ -168,12 +168,12 @@ export const adminNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Bids",
-                href: "/bids",
+                href: "/bets",
                 icon: "ClipboardList",
             },
             {
                 title: "Bid History",
-                href: "/bids/history",
+                href: "/bets/history",
                 icon: "History",
             },
         ],
@@ -266,12 +266,12 @@ export const distributorNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Bids",
-                href: "/bids",
+                href: "/bets",
                 icon: "ClipboardList",
             },
             {
                 title: "Bid History",
-                href: "/bids/history",
+                href: "/bets/history",
                 icon: "History",
             },
         ],
@@ -360,12 +360,12 @@ export const agentNavbar: NavbarItem[] = [
         children: [
             {
                 title: "All Bids",
-                href: "/bids",
+                href: "/bets",
                 icon: "ClipboardList",
             },
             {
                 title: "Bid History",
-                href: "/bids/history",
+                href: "/bets/history",
                 icon: "History",
             },
         ],

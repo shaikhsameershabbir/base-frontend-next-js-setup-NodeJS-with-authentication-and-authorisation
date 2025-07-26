@@ -14,5 +14,6 @@ router.post('/place-bet',
     playerValidator.validatePlaceBet,
     betController.placeBet as unknown as RequestHandler
 );
+// bet routes for amdin start here like history eyc 
 
 export default router; 

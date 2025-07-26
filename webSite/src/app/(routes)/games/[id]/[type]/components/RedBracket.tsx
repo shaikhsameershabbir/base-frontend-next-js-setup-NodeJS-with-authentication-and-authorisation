@@ -187,7 +187,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
       toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
       return;
     }
-
+    
     setIsSubmitting(true);
 
     try {
@@ -326,57 +326,57 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
             </div>
 
             <div className="flex gap-4 mb-4">
-              <button
-                type="button"
-                className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
+            <button
+              type="button"
+              className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
                   ${selectedBracketType === 'half'
                     ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-500 shadow-lg"
                     : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-md"
-                  }`}
+                }`}
                 onClick={() => setSelectedBracketType('half')}
-              >
-                <span className="mr-2">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+            >
+              <span className="mr-2">
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                     <circle cx="10" cy="10" r="9" stroke={selectedBracketType === 'half' ? "#fff" : "#8B5CF6"} strokeWidth="2" fill={selectedBracketType === 'half' ? "#fff" : "none"} />
                     {selectedBracketType === 'half' && (
                       <circle cx="10" cy="10" r="5" fill="#8B5CF6" />
-                    )}
-                  </svg>
-                </span>
-                Half Bracket
-              </button>
-              <button
-                type="button"
-                className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
+                  )}
+                </svg>
+              </span>
+              Half Bracket
+            </button>
+            <button
+              type="button"
+              className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
                   ${selectedBracketType === 'full'
                     ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-500 shadow-lg"
                     : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-md"
-                  }`}
+                }`}
                 onClick={() => setSelectedBracketType('full')}
-              >
-                <span className="mr-2">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+            >
+              <span className="mr-2">
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                     <circle cx="10" cy="10" r="9" stroke={selectedBracketType === 'full' ? "#fff" : "#8B5CF6"} strokeWidth="2" fill={selectedBracketType === 'full' ? "#fff" : "none"} />
                     {selectedBracketType === 'full' && (
                       <circle cx="10" cy="10" r="5" fill="#8B5CF6" />
-                    )}
-                  </svg>
-                </span>
-                Full Bracket
-              </button>
-            </div>
+                  )}
+                </svg>
+              </span>
+              Full Bracket
+            </button>
+        </div>
 
             {/* Bracket Number Input for Half Bracket */}
             {selectedBracketType === 'half' && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Enter Bracket Number (1-9)
-                </label>
-                <input
-                  type="number"
+          </label>
+          <input
+            type="number"
                   value={bracketNumber}
                   onChange={(e) => handleBracketNumberChange(e.target.value)}
-                  min="1"
+            min="1"
                   max="9"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                   placeholder="Enter number 1-9"
@@ -394,7 +394,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                     }).filter(Boolean).join(',')}...
                   </div>
                 )}
-              </div>
+        </div>
             )}
 
             {/* Generated Numbers Display */}
@@ -413,16 +413,16 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                         <span className="text-xs font-bold">{selectedAmount || 0}</span>
                       </div>
                     </div>
-                  ))}
+            ))}
                 </div>
               </div>
             )}
-          </div>
+      </div>
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-            <button
-              type="button"
+        <button
+          type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -458,7 +458,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-            </button>
+        </button>
           </div>
         </form>
       </div>

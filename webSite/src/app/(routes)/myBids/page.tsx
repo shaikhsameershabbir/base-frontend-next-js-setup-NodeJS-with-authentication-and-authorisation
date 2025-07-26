@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bid, bids } from "@/app/constant/constant";
 import BottomNav from "@/app/components/BottomNav";
-import BidsCard from "@/app/components/BidsCard";
+import BidsCard from "@/app/components/betsCard";
 import Header from "@/app/components/Header";
 import { Pagination } from "@/app/constant/pagination";
 

@@ -237,7 +237,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
       toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
       return;
     }
-
+    
     setIsSubmitting(true);
 
     try {
@@ -371,14 +371,14 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <h2 className="text-base font-bold text-gray-800">Enter Number</h2>
-            </div>
+        </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Enter Number (10-99)
-              </label>
-              <input
-                type="number"
+          </label>
+          <input
+            type="number"
                 value={inputNumber}
                 onChange={(e) => handleInputNumberChange(e.target.value)}
                 onBlur={handleInputBlur}
@@ -392,7 +392,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                   Cycle panna for {inputNumber}: {cycleNumbers.length} numbers will be selected
                 </div>
               )}
-            </div>
+        </div>
 
             {/* Cycle Numbers Display */}
             {cycleNumbers.length > 0 && (
@@ -414,12 +414,12 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                 </div>
               </div>
             )}
-          </div>
+      </div>
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-            <button
-              type="button"
+        <button
+          type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -455,7 +455,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-            </button>
+        </button>
           </div>
         </form>
       </div>
