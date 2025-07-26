@@ -485,6 +485,7 @@ export default function BetsPage() {
                                         <SelectItem value="today">Today</SelectItem>
                                         <SelectItem value="yesterday">Yesterday</SelectItem>
                                         <SelectItem value="thisWeek">This Week</SelectItem>
+                                        <SelectItem value="lastWeek">Last Week</SelectItem>
                                         <SelectItem value="custom">Custom Range</SelectItem>
                                     </SelectContent>
                                 </Select>

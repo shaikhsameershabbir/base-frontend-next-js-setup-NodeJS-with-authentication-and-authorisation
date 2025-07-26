@@ -11,7 +11,7 @@ interface FilterOptions {
     limit?: number;
     startDate?: string;
     endDate?: string;
-    dateFilter?: 'today' | 'yesterday' | 'thisWeek' | 'custom';
+    dateFilter?: 'today' | 'yesterday' | 'thisWeek' | 'lastWeek' | 'custom';
     adminId?: string;
     distributorId?: string;
     agentId?: string;
@@ -21,15 +21,13 @@ interface FilterOptions {
     gameType?: string;
 }
 
-// Change the HierarchyOption interface to be more flexible:
 interface HierarchyOption {
-    _id: any; // or string | Types.ObjectId
+    _id: string | Types.ObjectId;
     username: string;
 }
 
 export class AdminBetController {
     constructor() {
-        // Bind methods to preserve 'this' context
         this.getBets = this.getBets.bind(this);
         this.getBetById = this.getBetById.bind(this);
         this.getHierarchyOptions = this.getHierarchyOptions.bind(this);
@@ -75,7 +73,7 @@ export class AdminBetController {
             );
 
             // Build bet filter
-            const betFilterQuery: any = {
+            const betFilterQuery: Record<string, unknown> = {
                 ...dateFilterQuery,
                 ...userFilterQuery
             };
@@ -220,7 +218,7 @@ export class AdminBetController {
                     if (level === 'admin') {
                         hierarchyOptions = await User.find({ role: 'admin', isActive: true })
                             .select('_id username')
-                            .lean() as HierarchyOption[];
+                            .lean() as unknown as HierarchyOption[];
                     } else if (level === 'distributor') {
                         adminId = req.query.adminId as string;
                         if (adminId) {
@@ -230,7 +228,7 @@ export class AdminBetController {
                                 isActive: true
                             })
                                 .select('_id username')
-                                .lean() as HierarchyOption[];
+                                .lean() as unknown as HierarchyOption[];
                         }
                     } else if (level === 'agent') {
                         distributorId = req.query.distributorId as string;
@@ -241,7 +239,7 @@ export class AdminBetController {
                                 isActive: true
                             })
                                 .select('_id username')
-                                .lean() as HierarchyOption[];
+                                .lean() as unknown as HierarchyOption[];
                         }
                     } else if (level === 'player') {
                         agentId = req.query.agentId as string;
@@ -252,7 +250,7 @@ export class AdminBetController {
                                 isActive: true
                             })
                                 .select('_id username')
-                                .lean() as HierarchyOption[];
+                                .lean() as unknown as HierarchyOption[];
                         }
                     }
                     break;
@@ -264,7 +262,7 @@ export class AdminBetController {
                             isActive: true
                         })
                             .select('_id username')
-                            .lean() as HierarchyOption[];
+                            .lean() as unknown as HierarchyOption[];
                     } else if (level === 'agent') {
                         distributorId = req.query.distributorId as string;
                         if (distributorId) {
@@ -280,7 +278,7 @@ export class AdminBetController {
                                     isActive: true
                                 })
                                     .select('_id username')
-                                    .lean() as HierarchyOption[];
+                                    .lean() as unknown as HierarchyOption[];
                             }
                         }
                     } else if (level === 'player') {
@@ -300,7 +298,7 @@ export class AdminBetController {
                                             isActive: true
                                         })
                                             .select('_id username')
-                                            .lean() as HierarchyOption[];
+                                            .lean() as unknown as HierarchyOption[];
                                     }
                                 }
                             }
@@ -315,7 +313,7 @@ export class AdminBetController {
                             isActive: true
                         })
                             .select('_id username')
-                            .lean() as HierarchyOption[];
+                            .lean() as unknown as HierarchyOption[];
                     } else if (level === 'player') {
                         agentId = req.query.agentId as string;
                         if (agentId) {
@@ -331,7 +329,7 @@ export class AdminBetController {
                                     isActive: true
                                 })
                                     .select('_id username')
-                                    .lean() as HierarchyOption[];
+                                    .lean() as unknown as HierarchyOption[];
                             }
                         }
                     }
@@ -344,7 +342,7 @@ export class AdminBetController {
                             isActive: true
                         })
                             .select('_id username')
-                            .lean() as HierarchyOption[];
+                            .lean() as unknown as HierarchyOption[];
                     }
                     break;
             }
@@ -364,12 +362,12 @@ export class AdminBetController {
         }
     }
 
-    // Convert back to regular methods
-    private buildDateFilter(dateFilter: string, startDate?: string, endDate?: string): any {
+    private buildDateFilter(dateFilter: string, startDate?: string, endDate?: string): Record<string, unknown> {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
         const startOfWeek = new Date(today.getTime() - today.getDay() * 24 * 60 * 60 * 1000);
+        const startOfLastWeek = new Date(startOfWeek.getTime() - 7 * 24 * 60 * 60 * 1000);
 
         switch (dateFilter) {
             case 'today':
@@ -391,6 +389,13 @@ export class AdminBetController {
                     createdAt: {
                         $gte: startOfWeek,
                         $lt: new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000)
+                    }
+                };
+            case 'lastWeek':
+                return {
+                    createdAt: {
+                        $gte: startOfLastWeek,
+                        $lt: startOfWeek
                     }
                 };
             case 'custom':
@@ -417,7 +422,7 @@ export class AdminBetController {
         currentUserId: string,
         currentUserRole: string,
         filters: { adminId?: string; distributorId?: string; agentId?: string; playerId?: string }
-    ): Promise<any> {
+    ): Promise<Record<string, unknown>> {
         const { adminId, distributorId, agentId, playerId } = filters;
 
         // If specific player is selected, filter by that player only
@@ -427,62 +432,66 @@ export class AdminBetController {
 
         // If specific agent is selected, get all players under that agent
         if (agentId) {
-            const players = await User.find({ parentId: agentId, role: 'player' }).select('_id');
-            const playerIds = players.map(p => p._id);
+            const players = await User.find({ parentId: agentId, role: 'player' }).select('_id').lean();
+            const playerIds = players.map((p: any) => p._id);
             return { userId: { $in: playerIds } };
         }
 
         // If specific distributor is selected, get all players under that distributor
         if (distributorId) {
-            const agents = await User.find({ parentId: distributorId, role: 'agent' }).select('_id');
-            const agentIds = agents.map(a => a._id);
-            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id');
-            const playerIds = players.map(p => p._id);
+            const agents = await User.find({ parentId: distributorId, role: 'agent' }).select('_id').lean();
+            const agentIds = agents.map((a: any) => a._id);
+            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean();
+            const playerIds = players.map((p: any) => p._id);
             return { userId: { $in: playerIds } };
         }
 
         // If specific admin is selected, get all players under that admin
         if (adminId) {
-            const distributors = await User.find({ parentId: adminId, role: 'distributor' }).select('_id');
-            const distributorIds = distributors.map(d => d._id);
-            const agents = await User.find({ parentId: { $in: distributorIds }, role: 'agent' }).select('_id');
-            const agentIds = agents.map(a => a._id);
-            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id');
-            const playerIds = players.map(p => p._id);
+            const distributors = await User.find({ parentId: adminId, role: 'distributor' }).select('_id').lean();
+            const distributorIds = distributors.map((d: any) => d._id);
+            const agents = await User.find({ parentId: { $in: distributorIds }, role: 'agent' }).select('_id').lean();
+            const agentIds = agents.map((a: any) => a._id);
+            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean();
+            const playerIds = players.map((p: any) => p._id);
             return { userId: { $in: playerIds } };
         }
 
         // Default: get all players under current user based on role
         switch (currentUserRole) {
-            case 'superadmin':
+            case 'superadmin': {
                 // Get all players in the system
-                const allPlayers = await User.find({ role: 'player' }).select('_id');
-                const allPlayerIds = allPlayers.map(p => p._id);
+                const allPlayers = await User.find({ role: 'player' }).select('_id').lean();
+                const allPlayerIds = allPlayers.map((p: any) => p._id);
                 return { userId: { $in: allPlayerIds } };
+            }
 
-            case 'admin':
+            case 'admin': {
                 // Get all players under this admin
-                const adminDistributors = await User.find({ parentId: currentUserId, role: 'distributor' }).select('_id');
-                const adminDistributorIds = adminDistributors.map(d => d._id);
-                const adminAgents = await User.find({ parentId: { $in: adminDistributorIds }, role: 'agent' }).select('_id');
-                const adminAgentIds = adminAgents.map(a => a._id);
-                const adminPlayers = await User.find({ parentId: { $in: adminAgentIds }, role: 'player' }).select('_id');
-                const adminPlayerIds = adminPlayers.map(p => p._id);
+                const adminDistributors = await User.find({ parentId: currentUserId, role: 'distributor' }).select('_id').lean();
+                const adminDistributorIds = adminDistributors.map((d: any) => d._id);
+                const adminAgents = await User.find({ parentId: { $in: adminDistributorIds }, role: 'agent' }).select('_id').lean();
+                const adminAgentIds = adminAgents.map((a: any) => a._id);
+                const adminPlayers = await User.find({ parentId: { $in: adminAgentIds }, role: 'player' }).select('_id').lean();
+                const adminPlayerIds = adminPlayers.map((p: any) => p._id);
                 return { userId: { $in: adminPlayerIds } };
+            }
 
-            case 'distributor':
+            case 'distributor': {
                 // Get all players under this distributor
-                const distributorAgents = await User.find({ parentId: currentUserId, role: 'agent' }).select('_id');
-                const distributorAgentIds = distributorAgents.map(a => a._id);
-                const distributorPlayers = await User.find({ parentId: { $in: distributorAgentIds }, role: 'player' }).select('_id');
-                const distributorPlayerIds = distributorPlayers.map(p => p._id);
+                const distributorAgents = await User.find({ parentId: currentUserId, role: 'agent' }).select('_id').lean();
+                const distributorAgentIds = distributorAgents.map((a: any) => a._id);
+                const distributorPlayers = await User.find({ parentId: { $in: distributorAgentIds }, role: 'player' }).select('_id').lean();
+                const distributorPlayerIds = distributorPlayers.map((p: any) => p._id);
                 return { userId: { $in: distributorPlayerIds } };
+            }
 
-            case 'agent':
+            case 'agent': {
                 // Get all players under this agent
-                const agentPlayers = await User.find({ parentId: currentUserId, role: 'player' }).select('_id');
-                const agentPlayerIds = agentPlayers.map(p => p._id);
+                const agentPlayers = await User.find({ parentId: currentUserId, role: 'player' }).select('_id').lean();
+                const agentPlayerIds = agentPlayers.map((p: any) => p._id);
                 return { userId: { $in: agentPlayerIds } };
+            }
 
             default:
                 return {};
@@ -512,7 +521,7 @@ export class AdminBetController {
         return pathArray.some((id: Types.ObjectId) => id.equals(currentUserObjectId));
     }
 
-    private async calculateBetSummary(filterQuery: any): Promise<any> {
+    private async calculateBetSummary(filterQuery: Record<string, unknown>): Promise<Record<string, unknown>> {
         const pipeline = [
             { $match: filterQuery },
             {
