@@ -12,6 +12,11 @@ export const superNavbar: NavbarItem[] = [
         icon: "Home",
     },
     {
+        title: "All Bids",
+        href: "/bets",
+        icon: "ClipboardList",
+    },
+    {
         title: "User Management",
         icon: "Users",
         children: [
@@ -37,7 +42,18 @@ export const superNavbar: NavbarItem[] = [
             }
         ],
     },
-
+    {
+        title: "load management",
+        icon: "Wallet",
+        children: [
+            {
+                title: "Load",
+                href: "/load",
+                icon: "TrendingUp",
+            },
+          
+        ],
+    },
     {
         title: "Markets Management",
         icon: "Home",
@@ -54,22 +70,7 @@ export const superNavbar: NavbarItem[] = [
             },
         ],
     },
-    {
-        title: "Bid Management",
-        icon: "TrendingUp",
-        children: [
-            {
-                title: "All Bids",
-                href: "/bets",
-                icon: "ClipboardList",
-            },
-            {
-                title: "Bid History",
-                href: "/bets/history",
-                icon: "History",
-            },
-        ],
-    },
+
     {
         title: "Point Management",
         icon: "Wallet",

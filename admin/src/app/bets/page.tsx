@@ -13,12 +13,10 @@ import { BetDetailModal } from '@/components/modals/BetDetailModal';
 import { useBets } from '@/hooks/useBets';
 import { BetFilters, HierarchyOption } from '@/lib/betApi';
 import {
-    Search,
+
     Filter,
     Eye,
-    Calendar,
-    User,
-    Target,
+
     DollarSign,
     RefreshCw,
     TrendingUp,
