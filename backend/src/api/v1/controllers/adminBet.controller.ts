@@ -26,6 +26,10 @@ interface HierarchyOption {
     username: string;
 }
 
+interface LeanIdResult {
+    _id: string | Types.ObjectId;
+}
+
 export class AdminBetController {
     constructor() {
         this.getBets = this.getBets.bind(this);
@@ -432,28 +436,28 @@ export class AdminBetController {
 
         // If specific agent is selected, get all players under that agent
         if (agentId) {
-            const players = await User.find({ parentId: agentId, role: 'player' }).select('_id').lean();
-            const playerIds = players.map((p: any) => p._id);
+            const players = await User.find({ parentId: agentId, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+            const playerIds = players.map((p: LeanIdResult) => p._id);
             return { userId: { $in: playerIds } };
         }
 
         // If specific distributor is selected, get all players under that distributor
         if (distributorId) {
-            const agents = await User.find({ parentId: distributorId, role: 'agent' }).select('_id').lean();
-            const agentIds = agents.map((a: any) => a._id);
-            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean();
-            const playerIds = players.map((p: any) => p._id);
+            const agents = await User.find({ parentId: distributorId, role: 'agent' }).select('_id').lean() as unknown as LeanIdResult[];
+            const agentIds = agents.map((a: LeanIdResult) => a._id);
+            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+            const playerIds = players.map((p: LeanIdResult) => p._id);
             return { userId: { $in: playerIds } };
         }
 
         // If specific admin is selected, get all players under that admin
         if (adminId) {
-            const distributors = await User.find({ parentId: adminId, role: 'distributor' }).select('_id').lean();
-            const distributorIds = distributors.map((d: any) => d._id);
-            const agents = await User.find({ parentId: { $in: distributorIds }, role: 'agent' }).select('_id').lean();
-            const agentIds = agents.map((a: any) => a._id);
-            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean();
-            const playerIds = players.map((p: any) => p._id);
+            const distributors = await User.find({ parentId: adminId, role: 'distributor' }).select('_id').lean() as unknown as LeanIdResult[];
+            const distributorIds = distributors.map((d: LeanIdResult) => d._id);
+            const agents = await User.find({ parentId: { $in: distributorIds }, role: 'agent' }).select('_id').lean() as unknown as LeanIdResult[];
+            const agentIds = agents.map((a: LeanIdResult) => a._id);
+            const players = await User.find({ parentId: { $in: agentIds }, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+            const playerIds = players.map((p: LeanIdResult) => p._id);
             return { userId: { $in: playerIds } };
         }
 
@@ -461,35 +465,35 @@ export class AdminBetController {
         switch (currentUserRole) {
             case 'superadmin': {
                 // Get all players in the system
-                const allPlayers = await User.find({ role: 'player' }).select('_id').lean();
-                const allPlayerIds = allPlayers.map((p: any) => p._id);
+                const allPlayers = await User.find({ role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+                const allPlayerIds = allPlayers.map((p: LeanIdResult) => p._id);
                 return { userId: { $in: allPlayerIds } };
             }
 
             case 'admin': {
                 // Get all players under this admin
-                const adminDistributors = await User.find({ parentId: currentUserId, role: 'distributor' }).select('_id').lean();
-                const adminDistributorIds = adminDistributors.map((d: any) => d._id);
-                const adminAgents = await User.find({ parentId: { $in: adminDistributorIds }, role: 'agent' }).select('_id').lean();
-                const adminAgentIds = adminAgents.map((a: any) => a._id);
-                const adminPlayers = await User.find({ parentId: { $in: adminAgentIds }, role: 'player' }).select('_id').lean();
-                const adminPlayerIds = adminPlayers.map((p: any) => p._id);
+                const adminDistributors = await User.find({ parentId: currentUserId, role: 'distributor' }).select('_id').lean() as unknown as LeanIdResult[];
+                const adminDistributorIds = adminDistributors.map((d: LeanIdResult) => d._id);
+                const adminAgents = await User.find({ parentId: { $in: adminDistributorIds }, role: 'agent' }).select('_id').lean() as unknown as LeanIdResult[];
+                const adminAgentIds = adminAgents.map((a: LeanIdResult) => a._id);
+                const adminPlayers = await User.find({ parentId: { $in: adminAgentIds }, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+                const adminPlayerIds = adminPlayers.map((p: LeanIdResult) => p._id);
                 return { userId: { $in: adminPlayerIds } };
             }
 
             case 'distributor': {
                 // Get all players under this distributor
-                const distributorAgents = await User.find({ parentId: currentUserId, role: 'agent' }).select('_id').lean();
-                const distributorAgentIds = distributorAgents.map((a: any) => a._id);
-                const distributorPlayers = await User.find({ parentId: { $in: distributorAgentIds }, role: 'player' }).select('_id').lean();
-                const distributorPlayerIds = distributorPlayers.map((p: any) => p._id);
+                const distributorAgents = await User.find({ parentId: currentUserId, role: 'agent' }).select('_id').lean() as unknown as LeanIdResult[];
+                const distributorAgentIds = distributorAgents.map((a: LeanIdResult) => a._id);
+                const distributorPlayers = await User.find({ parentId: { $in: distributorAgentIds }, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+                const distributorPlayerIds = distributorPlayers.map((p: LeanIdResult) => p._id);
                 return { userId: { $in: distributorPlayerIds } };
             }
 
             case 'agent': {
                 // Get all players under this agent
-                const agentPlayers = await User.find({ parentId: currentUserId, role: 'player' }).select('_id').lean();
-                const agentPlayerIds = agentPlayers.map((p: any) => p._id);
+                const agentPlayers = await User.find({ parentId: currentUserId, role: 'player' }).select('_id').lean() as unknown as LeanIdResult[];
+                const agentPlayerIds = agentPlayers.map((p: LeanIdResult) => p._id);
                 return { userId: { $in: agentPlayerIds } };
             }
 
