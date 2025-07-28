@@ -18,7 +18,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -77,11 +77,8 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   // Set default bet type when market status changes
   useEffect(() => {
     if (marketStatus) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
-      }
+      // SangamGame only allows 'both' betting type
+      setSelectedBetType('both');
     }
   }, [marketStatus]);
 
@@ -245,20 +242,10 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     action();
   };
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      return marketStatus.status === 'open_betting';
-    } else {
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
-
-  // Check if betting is currently allowed
+  // Check if betting is allowed (only during open betting for Sangam)
   const isBettingAllowed = (): boolean => {
-    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
+    if (!marketStatus) return false;
+    return marketStatus.status === 'open_betting';
   };
 
   // Check if sangam game is allowed (only before open time closes)
@@ -288,14 +275,15 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
       toast.error('Please place at least one bet.');
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
+      // Call the bet API - SangamGame always sends 'both' as bet type
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'sangam',
-        betType: 'open', // Sangam is always open betting
+        betType: 'both',
         numbers: amounts,
         amount: total
       });
@@ -331,6 +319,8 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     setFilteredSecondPannas([]);
     setAmounts({});
     setSelectedAmount(null);
+    // SangamGame always uses 'both' bet type
+    setSelectedBetType('both');
   };
 
   // Amount options
@@ -350,15 +340,9 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isSangamAllowed() ? (
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full text-green-700 bg-green-100">
-                    SANGAM OPEN
-                  </span>
-                ) : (
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full text-red-700 bg-red-100">
-                    SANGAM CLOSED
-                  </span>
-                )}
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-600 text-white shadow-md">
+                  BOTH
+                </span>
               </div>
             </div>
           </div>
@@ -486,16 +470,16 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     First Panna (3 digits)
-          </label>
-          <input
-            type="text"
+                  </label>
+                  <input
+                    type="text"
                     value={pannaInput}
                     onChange={(e) => handlePannaInputChange(e.target.value)}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                     placeholder="Enter 3 digits (e.g., 123)"
                     maxLength={3}
-          />
-        </div>
+                  />
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -520,16 +504,16 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Enter Digit (0-9)
-          </label>
-          <input
-            type="text"
+                      </label>
+                      <input
+                        type="text"
                         value={digitInput}
                         onChange={(e) => handleDigitInputChange(e.target.value)}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                         placeholder="Enter digit 0-9"
                         maxLength={1}
-          />
-        </div>
+                      />
+                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -551,16 +535,16 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Enter Panna (3 digits)
-          </label>
-          <input
+                      </label>
+                      <input
                         type="text"
                         value={pannaInput}
                         onChange={(e) => handlePannaInputChange(e.target.value)}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                         placeholder="Enter 3 digits (e.g., 123)"
                         maxLength={3}
-          />
-        </div>
+                      />
+                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -612,7 +596,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 </label>
                 <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
                   {filteredPannas.map((panna) => (
-        <button
+                    <button
                       key={panna}
                       type="button"
                       onClick={() => handleFirstPannaSelect(panna)}
@@ -621,7 +605,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                       <div className="flex flex-col items-center justify-center h-full">
                         <span className="text-xs font-bold">{panna}</span>
                       </div>
-        </button>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -692,7 +676,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Selected Sangam Bets ({sangamBets.length})</h2>
-      </div>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {sangamBets.map(([sangamKey, amount]) => (
@@ -714,8 +698,8 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
+            <button
+              type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -751,7 +735,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-        </button>
+            </button>
           </div>
         </form>
       </div>

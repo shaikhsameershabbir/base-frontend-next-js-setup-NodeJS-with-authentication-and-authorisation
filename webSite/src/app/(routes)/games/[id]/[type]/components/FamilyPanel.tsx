@@ -16,7 +16,7 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -71,11 +71,8 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
   // Set default bet type when market status changes
   useEffect(() => {
     if (marketStatus) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
-      }
+      // FamilyPanel game only allows 'both' betting type
+      setSelectedBetType('both');
     }
   }, [marketStatus]);
 
@@ -128,20 +125,10 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     }
   };
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      return marketStatus.status === 'open_betting';
-    } else {
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
-
-  // Check if betting is currently allowed
+  // Check if betting is allowed (only during open betting for FamilyPanel)
   const isBettingAllowed = (): boolean => {
-    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
+    if (!marketStatus) return false;
+    return marketStatus.status === 'open_betting';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,18 +165,20 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
       return;
     }
 
-    if (!isBetTypeAllowed(selectedBetType)) {
-      toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
+    // FamilyPanel game only allows betting during open betting period
+    if (!isBettingAllowed()) {
+      toast.error('FamilyPanel betting is only available during open betting period');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Call the bet API - FamilyPanel game always sends 'both' as bet type
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'family_panel',
-        betType: selectedBetType,
+        betType: 'both',
         numbers: amounts,
         amount: total
       });
@@ -219,11 +208,8 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     setFamilyNumbers([]);
     setAmounts({});
     setSelectedAmount(null);
-    if (isBetTypeAllowed('open')) {
-      setSelectedBetType('open');
-    } else if (isBetTypeAllowed('close')) {
-      setSelectedBetType('close');
-    }
+    // FamilyPanel game always uses 'both' bet type
+    setSelectedBetType('both');
   };
 
   // Amount options
@@ -240,30 +226,9 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('open')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                      ? 'text-white bg-green-600 shadow-md scale-105'
-                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                      }`}
-                  >
-                    OPEN
-                  </button>
-                )}
-                {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('close')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                      ? 'text-white bg-blue-600 shadow-md scale-105'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                      }`}
-                  >
-                    CLOSE
-                  </button>
-                )}
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-600 text-white shadow-md">
+                  BOTH
+                </span>
               </div>
             </div>
           </div>

@@ -29,10 +29,10 @@ export class BetController {
             }
 
             // Validate betType
-            if (!['open', 'close'].includes(betType)) {
+            if (!['open', 'close', 'both'].includes(betType)) {
                 res.status(400).json({
                     success: false,
-                    message: 'Invalid betType. Must be either "open" or "close"'
+                    message: 'Invalid betType. Must be either "open", "close", or "both"'
                 });
                 return;
             }

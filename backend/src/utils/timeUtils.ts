@@ -40,13 +40,13 @@ export const parseTimeToIndianMoment = (timeString: string, date?: Date): moment
 
 /**
  * Check if betting is allowed for a specific bet type and market times
- * @param betType - 'open' or 'close'
+ * @param betType - 'open', 'close', or 'both'
  * @param openTime - Market open time string (HH:mm or ISO format)
  * @param closeTime - Market close time string (HH:mm or ISO format)
  * @param bufferMinutes - Minutes before the time when betting is not allowed (default: 15)
  */
 export const isBettingAllowed = (
-    betType: 'open' | 'close',
+    betType: 'open' | 'close' | 'both',
     openTime: string,
     closeTime: string,
     bufferMinutes: number = 15
@@ -71,7 +71,7 @@ export const isBettingAllowed = (
                 message: `Open betting has ended at ${openNoBettingStart.format('HH:mm')}. Close betting is available from ${openMoment.format('HH:mm')} to ${closeNoBettingStart.format('HH:mm')}`
             };
         }
-    } else {
+    } else if (betType === 'close') {
         // Close betting: Allowed during both open betting period AND close betting period
         if (now.isBefore(closeNoBettingStart)) {
             return {
@@ -81,6 +81,18 @@ export const isBettingAllowed = (
             return {
                 allowed: false,
                 message: `Close betting has ended at ${closeNoBettingStart.format('HH:mm')}. Market will be closed at ${closeMoment.format('HH:mm')}`
+            };
+        }
+    } else {
+        // Both betting: Only allowed during open betting period (for Jodi games)
+        if (now.isBefore(openNoBettingStart)) {
+            return {
+                allowed: true
+            };
+        } else {
+            return {
+                allowed: false,
+                message: `Jodi betting has ended at ${openNoBettingStart.format('HH:mm')}. Jodi games are only available during open betting period`
             };
         }
     }
@@ -162,7 +174,7 @@ export const formatTimeForDisplay = (time: Date | moment.Moment): string => {
  * @param closeTime - Market close time string (HH:mm)
  */
 export const getTimeUntilNextBetting = (
-    betType: 'open' | 'close',
+    betType: 'open' | 'close' | 'both',
     openTime: string,
     closeTime: string
 ): { hours: number; minutes: number; seconds: number } | null => {

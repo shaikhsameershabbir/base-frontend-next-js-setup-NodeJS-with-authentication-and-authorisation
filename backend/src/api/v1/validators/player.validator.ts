@@ -63,8 +63,8 @@ export class PlayerValidator {
             .trim()
             .notEmpty()
             .withMessage('Bet type is required')
-            .isIn(['open', 'close'])
-            .withMessage('Invalid bet type. Must be either "open" or "close"'),
+            .isIn(['open', 'close', 'both'])
+            .withMessage('Invalid bet type. Must be either "open", "close", or "both"'),
 
         body('numbers')
             .isObject()

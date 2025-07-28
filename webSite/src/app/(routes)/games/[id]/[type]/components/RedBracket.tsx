@@ -15,7 +15,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
 
   // Core state from SingleGame
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [marketStatus, setMarketStatus] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState<string>('');
@@ -71,11 +71,8 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
   // Set default bet type when market status changes
   useEffect(() => {
     if (marketStatus) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
-      }
+      // RedBracket game only allows 'both' betting type
+      setSelectedBetType('both');
     }
   }, [marketStatus]);
 
@@ -133,20 +130,10 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
     }
   };
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      return marketStatus.status === 'open_betting';
-    } else {
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
-
-  // Check if betting is currently allowed
+  // Check if betting is allowed (only during open betting for RedBracket)
   const isBettingAllowed = (): boolean => {
-    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
+    if (!marketStatus) return false;
+    return marketStatus.status === 'open_betting';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -183,18 +170,20 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
       return;
     }
 
-    if (!isBetTypeAllowed(selectedBetType)) {
-      toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
+    // RedBracket game only allows betting during open betting period
+    if (!isBettingAllowed()) {
+      toast.error('RedBracket betting is only available during open betting period');
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
+      // Call the bet API - RedBracket game always sends 'both' as bet type
       const response = await betAPI.placeBet({
         marketId,
         gameType: selectedBracketType === 'half' ? 'half_bracket' : 'full_bracket',
-        betType: selectedBetType,
+        betType: 'both',
         numbers: amounts,
         amount: total
       });
@@ -226,11 +215,8 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
     setBracketNumbers([]);
     setAmounts({});
     setSelectedAmount(null);
-    if (isBetTypeAllowed('open')) {
-      setSelectedBetType('open');
-    } else if (isBetTypeAllowed('close')) {
-      setSelectedBetType('close');
-    }
+    // RedBracket game always uses 'both' bet type
+    setSelectedBetType('both');
   };
 
   // Amount options
@@ -247,30 +233,9 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('open')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                      ? 'text-white bg-green-600 shadow-md scale-105'
-                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                      }`}
-                  >
-                    OPEN
-                  </button>
-                )}
-                {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('close')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                      ? 'text-white bg-blue-600 shadow-md scale-105'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                      }`}
-                  >
-                    CLOSE
-                  </button>
-                )}
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-600 text-white shadow-md">
+                  BOTH
+                </span>
               </div>
             </div>
           </div>
@@ -326,57 +291,57 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
             </div>
 
             <div className="flex gap-4 mb-4">
-            <button
-              type="button"
-              className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
                   ${selectedBracketType === 'half'
                     ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-500 shadow-lg"
                     : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-md"
-                }`}
+                  }`}
                 onClick={() => setSelectedBracketType('half')}
-            >
-              <span className="mr-2">
-                <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+              >
+                <span className="mr-2">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                     <circle cx="10" cy="10" r="9" stroke={selectedBracketType === 'half' ? "#fff" : "#8B5CF6"} strokeWidth="2" fill={selectedBracketType === 'half' ? "#fff" : "none"} />
                     {selectedBracketType === 'half' && (
                       <circle cx="10" cy="10" r="5" fill="#8B5CF6" />
-                  )}
-                </svg>
-              </span>
-              Half Bracket
-            </button>
-            <button
-              type="button"
-              className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
+                    )}
+                  </svg>
+                </span>
+                Half Bracket
+              </button>
+              <button
+                type="button"
+                className={`flex-1 flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg
                   ${selectedBracketType === 'full'
                     ? "bg-gradient-to-br from-purple-400 to-purple-600 text-white border-purple-500 shadow-lg"
                     : "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-md"
-                }`}
+                  }`}
                 onClick={() => setSelectedBracketType('full')}
-            >
-              <span className="mr-2">
-                <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+              >
+                <span className="mr-2">
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                     <circle cx="10" cy="10" r="9" stroke={selectedBracketType === 'full' ? "#fff" : "#8B5CF6"} strokeWidth="2" fill={selectedBracketType === 'full' ? "#fff" : "none"} />
                     {selectedBracketType === 'full' && (
                       <circle cx="10" cy="10" r="5" fill="#8B5CF6" />
-                  )}
-                </svg>
-              </span>
-              Full Bracket
-            </button>
-        </div>
+                    )}
+                  </svg>
+                </span>
+                Full Bracket
+              </button>
+            </div>
 
             {/* Bracket Number Input for Half Bracket */}
             {selectedBracketType === 'half' && (
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Enter Bracket Number (1-9)
-          </label>
-          <input
-            type="number"
+                </label>
+                <input
+                  type="number"
                   value={bracketNumber}
                   onChange={(e) => handleBracketNumberChange(e.target.value)}
-            min="1"
+                  min="1"
                   max="9"
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
                   placeholder="Enter number 1-9"
@@ -394,7 +359,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                     }).filter(Boolean).join(',')}...
                   </div>
                 )}
-        </div>
+              </div>
             )}
 
             {/* Generated Numbers Display */}
@@ -413,16 +378,16 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                         <span className="text-xs font-bold">{selectedAmount || 0}</span>
                       </div>
                     </div>
-            ))}
+                  ))}
                 </div>
               </div>
             )}
-      </div>
+          </div>
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
+            <button
+              type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -458,7 +423,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-        </button>
+            </button>
           </div>
         </form>
       </div>

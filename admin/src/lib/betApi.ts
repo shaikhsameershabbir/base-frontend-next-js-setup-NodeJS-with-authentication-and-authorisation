@@ -37,7 +37,7 @@ export interface BetFilters {
     agentId?: string;
     playerId?: string;
     marketId?: string;
-    betType?: 'open' | 'close';
+    betType?: 'open' | 'close' | 'both';
     gameType?: string;
 }
 

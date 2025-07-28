@@ -17,7 +17,7 @@ interface FilterOptions {
     agentId?: string;
     playerId?: string;
     marketId?: string;
-    betType?: 'open' | 'close';
+    betType?: 'open' | 'close' | 'both';
     gameType?: string;
 }
 
@@ -539,11 +539,17 @@ export class AdminBetController {
                     closeBets: {
                         $sum: { $cond: [{ $eq: ['$betType', 'close'] }, 1, 0] }
                     },
+                    bothBets: {
+                        $sum: { $cond: [{ $eq: ['$betType', 'both'] }, 1, 0] }
+                    },
                     openAmount: {
                         $sum: { $cond: [{ $eq: ['$betType', 'open'] }, '$amount', 0] }
                     },
                     closeAmount: {
                         $sum: { $cond: [{ $eq: ['$betType', 'close'] }, '$amount', 0] }
+                    },
+                    bothAmount: {
+                        $sum: { $cond: [{ $eq: ['$betType', 'both'] }, '$amount', 0] }
                     }
                 }
             }
@@ -555,8 +561,10 @@ export class AdminBetController {
             totalAmount: 0,
             openBets: 0,
             closeBets: 0,
+            bothBets: 0,
             openAmount: 0,
-            closeAmount: 0
+            closeAmount: 0,
+            bothAmount: 0
         };
 
         return summary;

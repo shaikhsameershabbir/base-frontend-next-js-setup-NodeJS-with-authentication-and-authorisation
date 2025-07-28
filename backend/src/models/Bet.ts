@@ -4,7 +4,7 @@ export interface IBet extends Document {
     marketId: object;
     userId: object;
     type: string; // game type: single, double, panna, etc.
-    betType: string; // bet type: open, close
+    betType: string; // bet type: open, close, both
     amount: number;
     userBeforeAmount: number;
     userAfterAmount: number;
@@ -27,7 +27,7 @@ const betSchema = new Schema<IBet>({
     betType: {
         type: String,
         required: true,
-        enum: ['open', 'close']
+        enum: ['open', 'close', 'both']
     },
     userId: {
         type: Schema.Types.ObjectId,

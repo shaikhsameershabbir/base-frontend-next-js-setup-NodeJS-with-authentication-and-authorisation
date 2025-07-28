@@ -3,7 +3,7 @@ import apiClient from '../api-client';
 export interface BetRequest {
     marketId: string;
     gameType: string;
-    betType: 'open' | 'close';
+    betType: 'open' | 'close' | 'both';
     numbers: { [key: number]: number }; // For single game: { 0: 100, 1: 50, ... }
     amount: number;
 }
@@ -15,7 +15,7 @@ export interface BetResponse {
         betId: string;
         marketId: string;
         gameType: string;
-        betType: 'open' | 'close';
+        betType: 'open' | 'close' | 'both';
         numbers: { [key: number]: number };
         selectedNumbers: { [key: number]: number };
         amount: number;
