@@ -5,8 +5,7 @@ import { marketsAPI, Market } from '@/lib/api-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
 import { Plus, Edit, Trash2, CheckCircle, XCircle, Loader2, Store, Clock, User, Search, Star } from 'lucide-react';
 import { MarketModal } from '@/components/modals/MarketModal';
 import { AdminLayout } from '@/components/layout/admin-layout';

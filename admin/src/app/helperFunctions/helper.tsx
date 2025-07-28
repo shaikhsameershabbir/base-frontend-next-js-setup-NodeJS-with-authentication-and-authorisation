@@ -1,78 +1,80 @@
-import { CheckCircle, Shield, Target, UserIcon, Users, XCircle } from 'lucide-react'
-import React from 'react'
+import { Shield, Target, User as UserIcon, Crown, Users, CheckCircle, XCircle } from "lucide-react"
+import React from "react";
 
-export const getRoleColor = (role: string) => {
+export function getRoleDisplayName(role: string): string {
     switch (role) {
-        case "superadmin":
-            return "bg-purple-500/10 text-purple-600 border-purple-500/20"
-        case "admin":
-            return "bg-blue-500/10 text-blue-600 border-blue-500/20"
-        case "distributor":
-            return "bg-orange-500/10 text-orange-600 border-orange-500/20"
-        case "player":
-            return "bg-green-500/10 text-green-600 border-green-500/20"
+        case 'superadmin':
+            return 'Super Admin'
+        case 'admin':
+            return 'Admin'
+        case 'distributor':
+            return 'Distributor'
+        case 'agent':
+            return 'Agent'
+        case 'player':
+            return 'Player'
         default:
-            return "bg-muted text-muted-foreground border-border"
+            return role.charAt(0).toUpperCase() + role.slice(1)
     }
 }
 
-export const getRoleIcon = (role: string) => {
+export function getRoleColor(role: string): string {
     switch (role) {
-        case "superadmin":
-            return <Shield className="h-4 w-4" />
-        case "admin":
-            return <Users className="h-4 w-4" />
-        case "distributor":
-            return <Target className="h-4 w-4" />
-        case "player":
-            return <UserIcon className="h-4 w-4" />
+        case 'superadmin':
+            return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+        case 'admin':
+            return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+        case 'distributor':
+            return 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+        case 'agent':
+            return 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+        case 'player':
+            return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
         default:
-            return <Users className="h-4 w-4" />
+            return 'bg-gray-500 text-white'
     }
 }
-export const getStatusColor = (isActive: boolean) => {
+
+export function getRoleIcon(role: string): React.ReactNode {
+    switch (role) {
+        case 'superadmin':
+            return <Crown className="h-3 w-3" />;
+        case 'admin':
+            return <Shield className="h-3 w-3" />;
+        case 'distributor':
+            return <Target className="h-3 w-3" />;
+        case 'agent':
+            return <Users className="h-3 w-3" />;
+        case 'player':
+            return <UserIcon className="h-3 w-3" />;
+        default:
+            return <UserIcon className="h-3 w-3" />;
+    }
+}
+
+export function getStatusColor(isActive: boolean): string {
     return isActive
-        ? "bg-green-500/10 text-green-600 border-green-500/20"
-        : "bg-red-500/10 text-red-600 border-red-500/20"
+        ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+        : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
 }
 
-export const getStatusIcon = (isActive: boolean) => {
+export function getStatusIcon(isActive: boolean) {
     return isActive
-        ? <CheckCircle className="h-4 w-4 text-green-600" />
-        : <XCircle className="h-4 w-4 text-red-600" />
+        ? <CheckCircle className="h-3 w-3" />
+        : <XCircle className="h-3 w-3" />
 }
-export const getChildRole = (role: string) => {
-    switch (role) {
-        case "superadmin":
-            return "admin"
-        case "admin":
-            return "distributor"
-        case "distributor":
-            return "agent"
+
+export function getChildRole(parentRole: string): string {
+    switch (parentRole) {
+        case 'superadmin':
+            return 'admin'
+        case 'admin':
+            return 'distributor'
+        case 'distributor':
+            return 'agent'
+        case 'agent':
+            return 'player'
         default:
-            return "player"
+            return 'player'
     }
 }
-export const getRoleDisplayName = (role: string) => {
-    switch (role) {
-        case "superadmin":
-            return "Super Admin"
-        case "admin":
-            return "Admin"
-        case "distributor":
-            return "Distributor"
-        case "player":
-            return "Player"
-        default:
-            return role
-    }
-}
-function helper() {
-
-
-    return (
-        <div>helper</div>
-    )
-}
-
-export default helper

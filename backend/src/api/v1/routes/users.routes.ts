@@ -90,7 +90,6 @@ router.put('/:userId',
 
 router.delete('/:userId',
     authMiddleware.authenticateToken,
-
     usersController.deleteUserAndDownline
 );
 

@@ -13,7 +13,7 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [isEditing, setIsEditing] = useState(false)
-    const [editData, setEditData] = useState({ username: "", balance: 0 })
+    const [editData, setEditData] = useState({ email: "", currentPassword: "", newPassword: "" })
 
     useEffect(() => {
         fetchProfile()
@@ -28,8 +28,9 @@ export default function ProfilePage() {
                 setUser(userData || null)
                 if (userData) {
                     setEditData({
-                        username: userData.username,
-                        balance: userData.balance
+                        email: userData.email || "",
+                        currentPassword: "",
+                        newPassword: ""
                     })
                 }
             } else {
@@ -117,36 +118,62 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label htmlFor="username" className="text-primary">Username</Label>
-                            {isEditing ? (
-                                <Input
-                                    id="username"
-                                    value={editData.username}
-                                    onChange={(e) => setEditData({ ...editData, username: e.target.value })}
-                                    className="text-primary"
-                                />
-                            ) : (
-                                <div className="p-3 bg-muted rounded-md text-primary">
-                                    {user.username}
-                                </div>
-                            )}
+                            <div className="p-3 bg-muted rounded-md text-primary">
+                                {user.username}
+                            </div>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="balance" className="text-primary">Balance</Label>
+                            <div className="p-3 bg-muted rounded-md text-primary">
+                                ₹{user.balance}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="text-primary">Email</Label>
                             {isEditing ? (
                                 <Input
-                                    id="balance"
-                                    type="number"
-                                    value={editData.balance}
-                                    onChange={(e) => setEditData({ ...editData, balance: parseFloat(e.target.value) || 0 })}
+                                    id="email"
+                                    type="email"
+                                    value={editData.email}
+                                    onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                                     className="text-primary"
                                 />
                             ) : (
                                 <div className="p-3 bg-muted rounded-md text-primary">
-                                    ₹{user.balance}
+                                    {user.email || "Not set"}
                                 </div>
                             )}
                         </div>
+
+                        {isEditing && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="currentPassword" className="text-primary">Current Password</Label>
+                                    <Input
+                                        id="currentPassword"
+                                        type="password"
+                                        value={editData.currentPassword}
+                                        onChange={(e) => setEditData({ ...editData, currentPassword: e.target.value })}
+                                        className="text-primary"
+                                        placeholder="Enter current password"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="newPassword" className="text-primary">New Password</Label>
+                                    <Input
+                                        id="newPassword"
+                                        type="password"
+                                        value={editData.newPassword}
+                                        onChange={(e) => setEditData({ ...editData, newPassword: e.target.value })}
+                                        className="text-primary"
+                                        placeholder="Enter new password (optional)"
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         <div className="space-y-2">
                             <Label className="text-primary">Role</Label>
@@ -194,8 +221,9 @@ export default function ProfilePage() {
                                     onClick={() => {
                                         setIsEditing(false)
                                         setEditData({
-                                            username: user.username,
-                                            balance: user.balance
+                                            email: user.email || "",
+                                            currentPassword: "",
+                                            newPassword: ""
                                         })
                                         setError("")
                                     }}

@@ -1,10 +1,175 @@
 import { Request, Response } from 'express';
 import { Bet } from '../../../models/Bet';
+import { User } from '../../../models/User';
+import { Market } from '../../../models/Market';
+import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
+import { HierarchyService } from '../../../services/hierarchyService';
+import { AuthenticatedRequest } from '../../../middlewares/auth';
 
-export const getAllLoads = async (req: Request, res: Response) => {
+// Get hierarchical users for the current user
+export const getHierarchicalUsers = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const currentUser = (req as AuthenticatedRequest).user;
+        if (!currentUser) {
+            res.status(401).json({ success: false, message: 'Authentication required' });
+            return;
+        }
+
+        const { role } = req.query;
+        let users: Array<{ _id: string; username: string; role: string; isActive: boolean; parentId?: string }> = [];
+
+        switch (currentUser.role) {
+            case 'superadmin': {
+                // Superadmin can see all users
+                const query: Record<string, unknown> = {};
+                if (role) query.role = role;
+                const superadminUsers = await User.find(query).select('username role isActive parentId').lean();
+                users = superadminUsers.map(user => ({
+                    _id: user._id.toString(),
+                    username: user.username,
+                    role: user.role,
+                    isActive: user.isActive,
+                    parentId: user.parentId?.toString()
+                }));
+                break;
+            }
+
+            case 'admin': {
+                // Admin can see distributors, agents, and players under them
+                const adminDownline = await HierarchyService.getAllDownlineUserIds(currentUser.userId, false);
+                const adminUsers = await User.find({
+                    _id: { $in: adminDownline },
+                    ...(role && { role })
+                }).select('username role isActive parentId').lean();
+                users = adminUsers.map(user => ({
+                    _id: user._id.toString(),
+                    username: user.username,
+                    role: user.role,
+                    isActive: user.isActive,
+                    parentId: user.parentId?.toString()
+                }));
+                break;
+            }
+
+            case 'distributor': {
+                // Distributor can see agents and players under them
+                const distributorDownline = await HierarchyService.getAllDownlineUserIds(currentUser.userId, false);
+                const distributorUsers = await User.find({
+                    _id: { $in: distributorDownline },
+                    ...(role && { role })
+                }).select('username role isActive parentId').lean();
+                users = distributorUsers.map(user => ({
+                    _id: user._id.toString(),
+                    username: user.username,
+                    role: user.role,
+                    isActive: user.isActive,
+                    parentId: user.parentId?.toString()
+                }));
+                break;
+            }
+
+            case 'agent': {
+                // Agent can see players under them
+                const agentDownline = await HierarchyService.getAllDownlineUserIds(currentUser.userId, false);
+                const agentUsers = await User.find({
+                    _id: { $in: agentDownline },
+                    ...(role && { role })
+                }).select('username role isActive parentId').lean();
+                users = agentUsers.map(user => ({
+                    _id: user._id.toString(),
+                    username: user.username,
+                    role: user.role,
+                    isActive: user.isActive,
+                    parentId: user.parentId?.toString()
+                }));
+                break;
+            }
+
+            default:
+                res.status(403).json({ success: false, message: 'Insufficient permissions' });
+                return;
+        }
+
+        // Group users by role
+        const groupedUsers = users.reduce((acc, user) => {
+            if (!acc[user.role]) {
+                acc[user.role] = [];
+            }
+            acc[user.role].push({
+                _id: user._id,
+                username: user.username,
+                role: user.role,
+                isActive: user.isActive,
+                parentId: user.parentId
+            });
+            return acc;
+        }, {} as Record<string, Array<{ _id: string; username: string; role: string; isActive: boolean; parentId?: string }>>);
+
+        res.json({
+            success: true,
+            message: 'Hierarchical users retrieved successfully',
+            data: groupedUsers
+        });
+    } catch (error) {
+        console.error('Get hierarchical users error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+// Get assigned markets for the current user
+export const getAssignedMarkets = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const currentUser = (req as AuthenticatedRequest).user;
+        if (!currentUser) {
+            res.status(401).json({ success: false, message: 'Authentication required' });
+            return;
+        }
+
+        // Get markets assigned to the current user and their downline
+        const userAssignments = await UserMarketAssignment.find({
+            assignedTo: currentUser.userId,
+            isActive: true
+        }).populate('marketId');
+
+        // Get all downline user IDs
+        const downlineUserIds = await HierarchyService.getAllDownlineUserIds(currentUser.userId, true);
+
+        // Get assignments for all downline users
+        const downlineAssignments = await UserMarketAssignment.find({
+            assignedTo: { $in: downlineUserIds },
+            isActive: true
+        }).populate('marketId');
+
+        // Combine and deduplicate market IDs
+        const allAssignments = [...userAssignments, ...downlineAssignments];
+        const uniqueMarketIds = new Set<string>();
+
+        allAssignments.forEach(assignment => {
+            if (assignment.marketId) {
+                uniqueMarketIds.add(assignment.marketId._id.toString());
+            }
+        });
+
+        // Get market details
+        const markets = await Market.find({
+            _id: { $in: Array.from(uniqueMarketIds) }
+        }).select('marketName openTime closeTime isActive');
+
+        res.json({
+            success: true,
+            message: 'Assigned markets retrieved successfully',
+            data: markets
+        });
+    } catch (error) {
+        console.error('Get assigned markets error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+export const getAllLoads = async (req: Request, res: Response): Promise<void> => {
     try {
         // Get date from query or use today
-        const { date } = req.query;
+        const { date, userId, marketId } = req.query;
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         let start: Date, end: Date;
@@ -17,10 +182,39 @@ export const getAllLoads = async (req: Request, res: Response) => {
             end = new Date(today.getTime() + 24 * 60 * 60 * 1000);
         }
 
-        // Get all bets for the date
-        const bets = await Bet.find({
+        // Build query for bets
+        const betQuery: Record<string, unknown> = {
             createdAt: { $gte: start, $lt: end }
-        }).lean();
+        };
+
+        // Add user filter if provided
+        if (userId) {
+            const currentUser = (req as AuthenticatedRequest).user;
+            if (!currentUser) {
+                res.status(401).json({ success: false, message: 'Authentication required' });
+                return;
+            }
+
+            // Check if the requested user is accessible to current user
+            const accessibleUserIds = await HierarchyService.getAllDownlineUserIds(currentUser.userId, true);
+
+            if (!accessibleUserIds.includes(userId as string)) {
+                res.status(403).json({ success: false, message: 'Access denied to this user' });
+                return;
+            }
+
+            // If userId is provided, get all downline users for hierarchical aggregation
+            const selectedUserDownline = await HierarchyService.getAllDownlineUserIds(userId as string, true);
+            betQuery.userId = { $in: selectedUserDownline };
+        }
+
+        // Add market filter if provided
+        if (marketId) {
+            betQuery.marketId = marketId;
+        }
+
+        // Get all bets for the date with filters
+        const bets = await Bet.find(betQuery).lean();
 
         console.log('Raw bets:', bets); // Debug: see the actual bet structure
 
@@ -391,7 +585,8 @@ export const getAllLoads = async (req: Request, res: Response) => {
             debug: {
                 totalBets: bets.length,
                 dateRange: { start, end },
-                betTypes: [...new Set(bets.map(b => b.type))]
+                betTypes: [...new Set(bets.map(b => b.type))],
+                filters: { userId, marketId }
             }
         });
     } catch (error) {
