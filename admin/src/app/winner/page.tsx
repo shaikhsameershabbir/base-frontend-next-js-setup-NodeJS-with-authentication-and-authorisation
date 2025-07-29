@@ -17,6 +17,7 @@ export default function WinnerPage() {
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedGameType, setSelectedGameType] = useState<string>('all');
+    const [selectedBetType, setSelectedBetType] = useState<string>('all'); // 'all', 'open', 'close'
 
     // Hierarchical filter states
     const [hierarchicalUsers, setHierarchicalUsers] = useState<Record<string, HierarchicalUser[]>>({});
@@ -139,6 +140,10 @@ export default function WinnerPage() {
         fetchWinnerData(selectedDate || undefined, playerId !== 'all' ? playerId : selectedAgent !== 'all' ? selectedAgent : selectedDistributor !== 'all' ? selectedDistributor : selectedAdmin !== 'all' ? selectedAdmin : undefined, selectedMarket !== 'all' ? selectedMarket : undefined);
     };
 
+    const handleBetTypeChange = (betType: string) => {
+        setSelectedBetType(betType);
+    };
+
     const clearFilters = () => {
         setSelectedUser('all');
         setSelectedMarket('all');
@@ -148,8 +153,59 @@ export default function WinnerPage() {
         setSelectedDistributor('all');
         setSelectedAgent('all');
         setSelectedPlayer('all');
+        setSelectedBetType('all');
         setCurrentDataUser('all');
         fetchWinnerData();
+    };
+
+    // Function to organize data by game types
+    const organizeDataByGameTypes = (rawData: any) => {
+        if (!rawData || !rawData.data) return null;
+
+        const organizedData: any = {
+            single: {},
+            double: {},
+            panna: {}
+        };
+
+        // Process each game type
+        Object.entries(rawData.data).forEach(([gameType, gameData]: [string, any]) => {
+            // Determine which bet type to use based on filter
+            let betTypeData: any = {};
+
+            if (selectedBetType === 'all') {
+                // Combine open, close, and both data
+                betTypeData = {
+                    ...(gameData.open || {}),
+                    ...(gameData.close || {}),
+                    ...(gameData.both || {})
+                };
+            } else if (selectedBetType === 'open' && gameData.open) {
+                betTypeData = gameData.open;
+            } else if (selectedBetType === 'close' && gameData.close) {
+                betTypeData = gameData.close;
+            } else if (selectedBetType === 'both' && gameData.both) {
+                betTypeData = gameData.both;
+            }
+
+            // Categorize numbers by game type
+            Object.entries(betTypeData).forEach(([number, amount]: [string, any]) => {
+                const numLength = number.length;
+
+                if (numLength === 1) {
+                    // Single digit (0-9)
+                    organizedData.single[number] = amount;
+                } else if (numLength === 2) {
+                    // Double digit (00-99)
+                    organizedData.double[number] = amount;
+                } else if (numLength === 3) {
+                    // Triple digit (000-999)
+                    organizedData.panna[number] = amount;
+                }
+            });
+        });
+
+        return organizedData;
     };
 
     const renderFilters = () => {
@@ -201,6 +257,22 @@ export default function WinnerPage() {
                                             {market.marketName}
                                         </SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Bet Type Filter */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300 font-medium">Bet Type Filter</Label>
+                            <Select value={selectedBetType} onValueChange={handleBetTypeChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select bet type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Bets</SelectItem>
+                                    <SelectItem value="open">Open Bets</SelectItem>
+                                    <SelectItem value="close">Close Bets</SelectItem>
+                                    <SelectItem value="both">Both Bets</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -305,15 +377,35 @@ export default function WinnerPage() {
     const renderJsonData = () => {
         if (!data) return null;
 
+        // Organize data by game types
+        const organizedData = organizeDataByGameTypes(data);
+
+        const displayData = {
+            originalData: data,
+            organizedByGameTypes: organizedData,
+            filters: {
+                selectedBetType,
+                selectedDate,
+                selectedMarket,
+                selectedUser,
+                selectedAdmin,
+                selectedDistributor,
+                selectedAgent,
+                selectedPlayer
+            }
+        };
+
         return (
             <Card className="mb-6 bg-gray-900 border-gray-700">
                 <CardHeader>
-                    <CardTitle className="text-white">Winner Data (JSON Format)</CardTitle>
+                    <CardTitle className="text-white">
+                        Winner Data (JSON Format) - {selectedBetType !== 'all' ? `${selectedBetType.toUpperCase()} Bets` : 'All Bets'}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
+                    <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-screen">
                         <pre className="text-green-400 text-sm whitespace-pre-wrap">
-                            {JSON.stringify(data, null, 2)}
+                            {JSON.stringify(displayData, null, 2)}
                         </pre>
                     </div>
                 </CardContent>

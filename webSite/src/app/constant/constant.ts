@@ -109,9 +109,6 @@ export const singlePannaNumbers = [
   457, 467, 468, 478, 569,
   790, 890, 567, 568, 578
 ];
-
-
-
 export const doublePannaNumbers = [
   100, 110, 166, 112, 113,
   119, 200, 229, 220, 122,
