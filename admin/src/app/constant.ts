@@ -51,6 +51,11 @@ export const superNavbar: NavbarItem[] = [
                 href: "/load",
                 icon: "TrendingUp",
             },
+            {
+                title: "Winner",
+                href: "/winner",
+                icon: "Award",
+            },
           
         ],
     },

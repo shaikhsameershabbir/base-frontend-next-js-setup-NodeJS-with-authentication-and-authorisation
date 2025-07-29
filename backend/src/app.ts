@@ -13,6 +13,67 @@ const errorHandler = new ErrorHandlerMiddleware();
 const rateLimiter = new RateLimiterMiddleware();
 const validationMiddleware = new ValidationMiddleware();
 
+// Endpoint hit counter
+interface EndpointStats {
+    count: number;
+    lastHit: Date;
+    methods: Set<string>;
+}
+
+const endpointHits = new Map<string, EndpointStats>();
+
+// Middleware to count endpoint hits
+const countEndpointHits = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const endpoint = req.path;
+    const method = req.method;
+
+    if (!endpointHits.has(endpoint)) {
+        endpointHits.set(endpoint, {
+            count: 0,
+            lastHit: new Date(),
+            methods: new Set()
+        });
+    }
+
+    const stats = endpointHits.get(endpoint)!;
+    stats.count++;
+    stats.lastHit = new Date();
+    stats.methods.add(method);
+
+    // Log endpoint hit
+    logger.info(`Endpoint hit: ${method} ${endpoint} (Total hits: ${stats.count})`);
+
+    next();
+};
+
+// Function to get endpoint statistics
+export const getEndpointStats = () => {
+    const stats: Record<string, {
+        count: number;
+        lastHit: string;
+        methods: string[];
+        averageHitsPerMinute: number;
+    }> = {};
+
+    endpointHits.forEach((value, key) => {
+        stats[key] = {
+            count: value.count,
+            lastHit: value.lastHit.toISOString(),
+            methods: Array.from(value.methods),
+            averageHitsPerMinute: calculateAverageHitsPerMinute(value)
+        };
+    });
+
+    return stats;
+};
+
+// Function to calculate average hits per minute (simple calculation)
+const calculateAverageHitsPerMinute = (stats: EndpointStats) => {
+    const now = new Date();
+    const timeDiffInMinutes = (now.getTime() - stats.lastHit.getTime()) / (1000 * 60);
+    return timeDiffInMinutes > 0 ? stats.count / timeDiffInMinutes : stats.count;
+};
+
 // Connect to MongoDB
 connectDB();
 
@@ -106,9 +167,24 @@ app.get('/cors-test', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
+// Endpoint statistics endpoint
+app.get('/api-stats', (req, res) => {
+    const stats = getEndpointStats();
+    const totalHits = Object.values(stats).reduce((sum, stat) => sum + stat.count, 0);
+
+    res.json({
+        totalEndpoints: Object.keys(stats).length,
+        totalHits,
+        endpoints: stats,
+        timestamp: new Date().toISOString()
+    });
+});
+
 const API_PREFIX = '/api/v1';
-// API routes
-app.use(API_PREFIX, apiRoutes);
+
+// Apply endpoint hit counting middleware to API routes
+app.use(API_PREFIX, countEndpointHits, apiRoutes);
 
 // 404 handler
 app.use(errorHandler.handleNotFound);

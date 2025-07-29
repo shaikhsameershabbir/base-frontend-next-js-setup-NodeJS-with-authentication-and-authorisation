@@ -216,7 +216,6 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
         // Get all bets for the date with filters
         const bets = await Bet.find(betQuery).lean();
 
-        console.log('Raw bets:', bets); // Debug: see the actual bet structure
 
         // Types to group by (removed 'panna' and 'sangam' as they are stored in different objects)
         const types = [
@@ -391,7 +390,6 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
                 numbersObj = { [String(bet.selectedNumbers || 'unknown')]: bet.amount };
             }
 
-            console.log(`Bet type: ${type}, selectedNumbers:`, bet.selectedNumbers, 'processed as:', numbersObj); // Debug
 
             // Merge the numbers object into the result by bet type
             // Only include relevant bet types for each game
@@ -569,9 +567,6 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
         const grandTotal = Object.values(completeTotals).reduce((sum, gameTotal) => sum + gameTotal.total, 0);
 
         // Console log the result for now
-        console.log('Load aggregation:', JSON.stringify(result, null, 2));
-        console.log('Bet statistics:', JSON.stringify(betStats, null, 2));
-        console.log('Complete totals:', JSON.stringify(completeTotals, null, 2));
 
         res.json({
             success: true,
