@@ -2,13 +2,13 @@ import { Response } from 'express';
 import { User } from '../../../models/User';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { UserHierarchy } from '../../../models/UserHierarchy';
-import { MarketRank } from '../../../models/marketRank';
+import { MarketRank } from '../../../models/MarketRank';
 import { Market } from '../../../models/Market';
 import { Bet } from '../../../models/Bet';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
-import { getCurrentIndianTime, getMarketStatus, parseTimeToIndianMoment, isBettingAllowed } from '../../../utils/timeUtils';
+import { getCurrentIndianTime, getMarketStatus } from '../../../utils/timeUtils';
 
 export class PlayerController {
     async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -513,34 +513,13 @@ export class PlayerController {
         try {
             const currentTime = getCurrentIndianTime();
 
-            // Test time conversion for debugging
-            const testOpenTime = "2025-07-25T07:00:00.000Z";
-            const testCloseTime = "2025-07-25T10:30:00.000Z";
-            const openMoment = parseTimeToIndianMoment(testOpenTime);
-            const closeMoment = parseTimeToIndianMoment(testCloseTime);
-
-            // Test the new logic
-            const testStatus = getMarketStatus(testOpenTime, testCloseTime);
-            const testOpenBet = isBettingAllowed('open', testOpenTime, testCloseTime);
-            const testCloseBet = isBettingAllowed('close', testOpenTime, testCloseTime);
-
             res.json({
                 success: true,
                 message: 'Current Indian time retrieved successfully',
                 data: {
                     currentTime: currentTime.toISOString(),
                     formattedTime: currentTime.format('YYYY-MM-DD HH:mm:ss'),
-                    timezone: 'Asia/Kolkata',
-                    debug: {
-                        testOpenTime,
-                        testCloseTime,
-                        openTimeIST: openMoment.format('YYYY-MM-DD HH:mm:ss'),
-                        closeTimeIST: closeMoment.format('YYYY-MM-DD HH:mm:ss'),
-                        currentTimeIST: currentTime.format('YYYY-MM-DD HH:mm:ss'),
-                        testStatus: testStatus.status,
-                        testOpenBet: testOpenBet.allowed,
-                        testCloseBet: testCloseBet.allowed
-                    }
+                    timezone: 'Asia/Kolkata'
                 }
             });
         } catch (error) {

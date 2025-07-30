@@ -1,13 +1,6 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Market } from '../../models/Market';
-
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        role: string;
-    };
-}
+import { AuthenticatedRequest } from '../../api/v1/middlewares/auth.middleware';
 
 export const getMarkets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {

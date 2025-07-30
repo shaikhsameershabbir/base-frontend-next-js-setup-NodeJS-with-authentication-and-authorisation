@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { Market } from '../../../models/Market';
-import { MarketRank } from '../../../models/marketRank';
+import { MarketRank } from '../../../models/MarketRank';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { User } from '../../../models/User';
 import { logger } from '../../../config/logger';

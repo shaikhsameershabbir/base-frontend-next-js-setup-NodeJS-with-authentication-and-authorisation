@@ -1,21 +1,14 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { verifyAccessToken, extractTokenFromCookie } from '../utils/jwt';
 import { User } from '../models/User';
 import { TokenBlacklist } from '../models/TokenBlacklist';
 import { logger } from '../config/logger';
+import { AuthenticatedRequest } from './auth';
 
 // Extend Request interface to include user
-interface PlayerRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
-}
 
-export const authenticatePlayer = async (req: PlayerRequest, res: Response, next: NextFunction): Promise<void> => {
+
+export const authenticatePlayer = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         // Extract token from cookie or Authorization header
         let token = extractTokenFromCookie(req.headers.cookie || '');
@@ -83,7 +76,7 @@ export const authenticatePlayer = async (req: PlayerRequest, res: Response, next
 /**
  * Middleware to check if user is a player (for optional routes)
  */
-export const checkPlayerRole = async (req: PlayerRequest, res: Response, next: NextFunction): Promise<void> => {
+export const checkPlayerRole = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         // Extract token from cookie
         const token = extractTokenFromCookie(req.headers.cookie || '');
@@ -106,6 +99,7 @@ export const checkPlayerRole = async (req: PlayerRequest, res: Response, next: N
 
         next();
     } catch (error) {
+        logger.error('Player authentication error:', error);
         // Token is invalid, continue without user info
         next();
     }

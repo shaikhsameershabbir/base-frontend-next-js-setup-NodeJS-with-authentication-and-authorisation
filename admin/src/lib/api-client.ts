@@ -3,7 +3,7 @@ import axios, { type AxiosInstance, AxiosError } from "axios"
 
 // Create the API client instance
 const apiClient: AxiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5555/api/v1",
     headers: {
         "Content-Type": "application/json",
     },
@@ -73,7 +73,7 @@ apiClient.interceptors.response.use(
 
                 // Attempt to refresh the token
                 const refreshResponse = await axios.post(
-                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/auth/refresh`,
+                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5555/api/v1"}/auth/refresh`,
                     { refreshToken },
                     { withCredentials: true }
                 )

@@ -1,7 +1,7 @@
 // This file is deprecated. Please use api-service.ts for all API functionality.
 // This file is kept for backward compatibility only.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5555/api/v1';
 
 export interface LoginResponse {
     success: boolean;

@@ -158,15 +158,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// CORS test endpoint
-app.get('/cors-test', (req, res) => {
-    res.json({
-        message: 'CORS is working!',
-        origin: req.headers.origin,
-        method: req.method,
-        timestamp: new Date().toISOString()
-    });
-});
+
 
 // Endpoint statistics endpoint
 app.get('/api-stats', (req, res) => {

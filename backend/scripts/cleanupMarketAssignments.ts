@@ -43,7 +43,7 @@ const cleanupMarketAssignments = async () => {
                 }
             } catch (error) {
                 invalidAssignments++;
-                logger.warn(`Assignment ${assignment._id} has invalid marketId reference: ${error.message}`);
+                logger.warn(`Assignment ${assignment._id} has invalid marketId reference: ${(error as Error).message}`);
             }
         }
 

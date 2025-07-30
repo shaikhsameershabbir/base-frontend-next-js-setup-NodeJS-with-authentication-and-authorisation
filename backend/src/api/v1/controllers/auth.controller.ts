@@ -13,9 +13,9 @@ export class AuthController {
         try {
             const { username, password, loginSource = 'unknown' } = req.body;
             // Find user by username
-            console.log(username, password)
             const user = await User.findOne({ username });
             if (!user) {
+                console.log('user not found ')
                 res.status(401).json({
                     success: false,
                     message: 'Invalid username or password'
@@ -25,7 +25,9 @@ export class AuthController {
 
             // Check if user is active
             if (!user.isActive) {
+                console.log('user is not active')
                 res.status(401).json({
+
                     success: false,
                     message: 'Your account has been deactivated. Please contact support.'
                 });
@@ -34,6 +36,7 @@ export class AuthController {
 
             // For web application, only allow player role
             if (loginSource === 'web' && user.role !== 'player') {
+                console.log('user is not a player')
                 res.status(403).json({
                     success: false,
                     message: 'Access denied. This application is only for players.'
@@ -44,6 +47,7 @@ export class AuthController {
             // Verify password
             const isValidPassword = await bcrypt.compare(password, user.password);
             if (!isValidPassword) {
+                console.log('invalid password')
                 res.status(401).json({
                     success: false,
                     message: 'Invalid username or password'
@@ -140,7 +144,7 @@ export class AuthController {
             if (token) {
                 try {
                     // Decode the token to get user info and expiration
-                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as { jti?: string; userId: string; exp: number };
 
                     // Add token to blacklist with required fields
                     await TokenBlacklist.create({
@@ -210,14 +214,11 @@ export class AuthController {
                 return;
             }
 
-            // Hash password
-            const hashedPassword = await bcrypt.hash(password, 12);
-
-            // Create new user
+            // Create new user (password will be hashed by the model's pre-save hook)
             const newUser = new User({
                 username,
                 email,
-                password: hashedPassword,
+                password,
                 role,
                 isActive: true,
                 balance: 0
@@ -321,7 +322,7 @@ export class AuthController {
                     return;
                 }
 
-                updateData.password = await bcrypt.hash(newPassword, 12);
+                updateData.password = newPassword; // Will be hashed by the model's pre-save hook
             }
 
             // Update user

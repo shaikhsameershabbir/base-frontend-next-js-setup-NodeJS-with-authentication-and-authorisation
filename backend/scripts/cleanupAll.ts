@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { UserMarketAssignment } from '../src/models/UserMarketAssignment';
-import { MarketRank } from '../src/models/marketRank';
-import { Market } from '../src/models/Market';
+import { MarketRank } from '../src/models/MarketRank';
 import { logger } from '../src/config/logger';
 
 // MongoDB connection
@@ -56,7 +55,7 @@ const cleanupAll = async () => {
                 logger.warn(`Found ${ranks.length} duplicate ranks for key: ${key}`);
 
                 // Keep the first one (oldest) and remove the rest
-                const [keepRank, ...duplicateRanks] = ranks;
+                const [, ...duplicateRanks] = ranks;
 
                 for (const duplicateRank of duplicateRanks) {
                     logger.info(`Removing duplicate rank: ${duplicateRank._id}`);

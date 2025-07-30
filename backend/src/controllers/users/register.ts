@@ -1,17 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { User } from '../../models/User';
 import { HierarchyService } from '../../services/hierarchyService';
 import { logger } from '../../config/logger';
-
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
-}
+import { AuthenticatedRequest } from '../../api/v1/middlewares/auth.middleware';
 
 export const createUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {

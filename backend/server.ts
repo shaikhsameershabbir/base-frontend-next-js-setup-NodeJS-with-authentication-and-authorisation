@@ -1,8 +1,8 @@
 
 
-import app from './app';
-import { Config } from './config';
-import { logger } from './config/logger';
+import app from './src/app';
+import { Config } from './src/config';
+import { logger } from './src/config/logger';
 
 const startServer = () => {
     const PORT = Config.PORT

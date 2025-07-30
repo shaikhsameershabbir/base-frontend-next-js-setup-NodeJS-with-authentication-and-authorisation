@@ -1,16 +1,9 @@
 import { Request, Response } from 'express';
 import { ActivityService } from '../../services/activityService';
 import { logger } from '../../config/logger';
+import { AuthenticatedRequest } from '../../middlewares/auth';
 
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
-}
+
 
 export class ActivityController {
     /**
@@ -21,6 +14,7 @@ export class ActivityController {
             const limit = parseInt(req.query.limit as string) || 50;
             const activityType = req.query.type as string;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const activities = await ActivityService.getRecentActivities(limit, activityType as any);
 
             res.json({
@@ -110,6 +104,7 @@ export class ActivityController {
             const { type } = req.params;
             const limit = parseInt(req.query.limit as string) || 50;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const activities = await ActivityService.getActivitiesByType(type as any, limit);
 
             res.json({

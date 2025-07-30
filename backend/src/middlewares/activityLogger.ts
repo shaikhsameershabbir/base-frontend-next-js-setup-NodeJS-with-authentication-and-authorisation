@@ -1,16 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { ActivityService } from '../services/activityService';
 import { logger } from '../config/logger';
-
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
-}
+import { AuthenticatedRequest } from '../api/v1/middlewares/auth.middleware';
 
 interface ActivityLogConfig {
     activityType: 'login' | 'logout' | 'bid' | 'win' | 'transfer' | 'registration' | 'balance_update' | 'game_play' | 'market_action' | 'commission' | 'other';

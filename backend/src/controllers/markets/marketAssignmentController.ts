@@ -1,19 +1,12 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Types } from 'mongoose';
 import { User } from '../../models/User';
 import { Market, IMarket } from '../../models/Market';
 import { UserMarketAssignment } from '../../models/UserMarketAssignment';
 import { logger } from '../../config/logger';
+import { AuthenticatedRequest } from '../../api/v1/middlewares/auth.middleware';
 
-interface AuthenticatedRequest extends Request {
-    user?: {
-        userId: string;
-        username: string;
-        balance: number;
-        role: string;
-        parentId?: string;
-    };
-}
+
 
 // Get markets available for assignment to a specific user
 export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -107,14 +100,15 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         const assignedMarketIds = validExistingAssignments.map(assignment =>
             String((assignment.marketId as unknown as IMarket)._id)
         );
+        
 
         const assignedMarkets = validExistingAssignments.map(assignment => {
             const market = assignment.marketId as unknown as IMarket;
             return {
                 _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
                 marketName: market.marketName,
-                openTime: market.openTime instanceof Date ? market.openTime.toISOString() : '',
-                closeTime: market.closeTime instanceof Date ? market.closeTime.toISOString() : '',
+                openTime: market.openTime,
+                closeTime: market.closeTime,
                 isActive: market.isActive,
                 isAssigned: true,
                 assignmentId: assignment._id
@@ -133,8 +127,8 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
                 return {
                     _id: market._id instanceof Types.ObjectId ? market._id.toString() : String(market._id),
                     marketName: market.marketName,
-                    openTime: market.openTime instanceof Date ? market.openTime.toISOString() : '',
-                    closeTime: market.closeTime instanceof Date ? market.closeTime.toISOString() : '',
+                    openTime: market.openTime,
+                    closeTime: market.closeTime,
                     isActive: market.isActive,
                     isAssigned: false
                 };
@@ -388,7 +382,7 @@ export const getAssignedMarketsForAuthenticatedUser = async (req: AuthenticatedR
             assignedTo: currentUser.userId,
             isActive: true
         }).populate('marketId assignedBy');
-    
+
 
         res.json({
             success: true,
