@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useRef } from 'react';
 import { authAPI } from '@/lib/api/auth';
 
 // ============================================================================
@@ -200,6 +200,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // useReducer gives us state and dispatch function
     // state = current auth state, dispatch = function to update auth state
     const [state, dispatch] = useReducer(authReducer, initialState);
+    const isMountedRef = useRef(false);
+    const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Set mounted ref after first render
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            // Clear any pending timeouts
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // ============================================================================
     // HELPER FUNCTIONS
@@ -210,6 +224,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      * This gets the latest user data from the server
      */
     const fetchUserProfile = async (): Promise<void> => {
+        // Prevent multiple simultaneous calls
+        if (state.loading) {
+            console.log('🔄 Profile fetch already in progress, skipping...');
+            return;
+        }
+
+        // Prevent API calls if component is unmounted (React Strict Mode)
+        if (!isMountedRef.current) {
+            console.log('🔄 Component not mounted, skipping profile fetch...');
+            return;
+        }
+
         try {
             console.log('🔄 Fetching user profile from server...');
             // Start loading
@@ -217,6 +243,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             // Call API to get user data
             const response = await authAPI.getProfile();
+
+            // Check if component is still mounted before updating state
+            if (!isMountedRef.current) {
+                console.log('🔄 Component unmounted during fetch, skipping state update...');
+                return;
+            }
 
             if (response.success && response.data) {
                 console.log('✅ User profile fetched successfully');
@@ -227,6 +259,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         } catch (err: any) {
             console.error('❌ Error fetching user profile:', err);
+
+            // Check if component is still mounted before updating state
+            if (!isMountedRef.current) {
+                console.log('🔄 Component unmounted during error, skipping state update...');
+                return;
+            }
 
             // If it's an authentication error (401/403), user is not logged in
             if (err.response?.status === 401 || err.response?.status === 403) {
@@ -384,8 +422,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     // Set user in state (this makes them "logged in")
                     dispatch({ type: 'SET_USER', payload: parsedUser });
 
-                    // Get fresh data from server (in case data changed)
-                    await fetchUserProfile();
+                    // Debounce the profile fetch to prevent rapid successive calls
+                    if (fetchTimeoutRef.current) {
+                        clearTimeout(fetchTimeoutRef.current);
+                    }
+
+                    fetchTimeoutRef.current = setTimeout(async () => {
+                        if (isMountedRef.current) {
+                            // Get fresh data from server (in case data changed)
+                            await fetchUserProfile();
+                        }
+                    }, 200);
                 } catch (err) {
                     console.error('❌ Error parsing user data:', err);
                     // If stored data is corrupted, clear it
@@ -410,6 +457,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
 
         initializeAuth();
+
+        // Cleanup timeout on unmount
+        return () => {
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+        };
     }, []);
 
     // ============================================================================

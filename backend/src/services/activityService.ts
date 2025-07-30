@@ -46,7 +46,7 @@ export class ActivityService {
             });
 
             const savedActivity = await activity.save();
-            logger.info(`Activity created: ${data.activityType} for user ${data.userId}`);
+
             return savedActivity;
         } catch (error) {
             logger.error('Error creating activity:', error);

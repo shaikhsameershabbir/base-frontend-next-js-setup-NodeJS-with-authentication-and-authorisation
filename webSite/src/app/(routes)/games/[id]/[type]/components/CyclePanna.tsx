@@ -4,6 +4,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface CyclePannaProps {
   marketId: string;
@@ -12,13 +13,14 @@ interface CyclePannaProps {
 
 const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   // CyclePanna specific state
   const [inputNumber, setInputNumber] = useState<string>('');
@@ -83,57 +85,42 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
     "99": [199, 299, 399, 499, 599, 699, 799, 899, 990, 999]
   };
 
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
+
   // Calculate total whenever amounts change
   useEffect(() => {
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status and current time
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
   // Find cycle numbers when input changes
   useEffect(() => {
@@ -183,16 +170,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
     }
   };
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
 
-    if (betType === 'open') {
-      return marketStatus.status === 'open_betting';
-    } else {
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -228,7 +206,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
     }
 
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }
@@ -237,7 +215,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
       toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
@@ -371,14 +349,14 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <h2 className="text-base font-bold text-gray-800">Enter Number</h2>
-        </div>
+            </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Enter Number (10-99)
-          </label>
-          <input
-            type="number"
+              </label>
+              <input
+                type="number"
                 value={inputNumber}
                 onChange={(e) => handleInputNumberChange(e.target.value)}
                 onBlur={handleInputBlur}
@@ -392,7 +370,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                   Cycle panna for {inputNumber}: {cycleNumbers.length} numbers will be selected
                 </div>
               )}
-        </div>
+            </div>
 
             {/* Cycle Numbers Display */}
             {cycleNumbers.length > 0 && (
@@ -414,12 +392,12 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                 </div>
               </div>
             )}
-      </div>
+          </div>
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
+            <button
+              type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -455,7 +433,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-        </button>
+            </button>
           </div>
         </form>
       </div>

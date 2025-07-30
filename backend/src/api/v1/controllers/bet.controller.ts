@@ -50,15 +50,7 @@ export class BetController {
             // Check if betting is allowed based on current time and bet type
             const timeValidation = isBettingAllowed(betType, market.openTime, market.closeTime);
 
-            // Log time validation details for debugging
-            logger.info(`Time validation for bet:`, {
-                betType,
-                marketId,
-                openTime: market.openTime,
-                closeTime: market.closeTime,
-                allowed: timeValidation.allowed,
-                message: timeValidation.message
-            });
+
 
             if (!timeValidation.allowed) {
                 res.status(400).json({
@@ -132,7 +124,7 @@ export class BetController {
             user.balance = userAfterAmount;
             await user.save();
 
-            logger.info(`Bet placed successfully: User ${req.user.userId}, Market ${marketId}, Amount ₹${amount}, Game Type ${gameType}, Bet Type ${betType}`);
+
 
             res.json({
                 success: true,

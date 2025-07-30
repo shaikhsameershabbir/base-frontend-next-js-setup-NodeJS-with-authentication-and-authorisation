@@ -4,6 +4,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface SubRangeType {
   [key: string]: number[];
@@ -16,6 +17,7 @@ interface DoublePannaProps {
 
 const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
@@ -23,8 +25,8 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
   const [selectedNumber, setSelectedNumber] = useState<number>(0);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   const subRanges: SubRangeType = {
     "0": [118, 226, 224, 299, 334, 488, 550, 668, 677],
@@ -39,67 +41,41 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
     "9": [117, 144, 199, 255, 388, 559, 577, 667, 900],
   };
 
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
+
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Fetch market status and current time
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
 
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -190,7 +166,7 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }
@@ -263,8 +239,8 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
                     type="button"
                     onClick={() => setSelectedBetType('open')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                        ? 'text-white bg-green-600 shadow-md scale-105'
-                        : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                      ? 'text-white bg-green-600 shadow-md scale-105'
+                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
                       }`}
                   >
                     OPEN
@@ -275,8 +251,8 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
                     type="button"
                     onClick={() => setSelectedBetType('close')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                        ? 'text-white bg-blue-600 shadow-md scale-105'
-                        : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                      ? 'text-white bg-blue-600 shadow-md scale-105'
+                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
                       }`}
                   >
                     CLOSE

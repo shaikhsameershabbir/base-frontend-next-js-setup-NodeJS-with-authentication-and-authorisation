@@ -10,7 +10,7 @@ const startServer = () => {
         app.listen(PORT, () => {
 
             console.log('smasher')
-            logger.info(`Server is running on port ${PORT}`);
+
         });
     } catch (error) {
         logger.error(`Error while starting server: ${error}`);

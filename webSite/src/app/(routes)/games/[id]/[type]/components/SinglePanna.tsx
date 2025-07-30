@@ -4,6 +4,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface SubRangeType {
   [key: string]: number[];
@@ -16,6 +17,7 @@ interface SinglePannaProps {
 
 const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
@@ -23,8 +25,8 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
   const [selectedNumber, setSelectedNumber] = useState<number>(0);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   const subRanges: SubRangeType = {
     "0": [127, 136, 145, 190, 235, 280, 370, 389, 460, 479, 569, 578],
@@ -42,64 +44,36 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Fetch market status and current time
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
+
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
-
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -190,7 +164,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { connectDB } from './config/database';
-import { logger } from './config/logger';
+
 import apiRoutes from './api/v1/routes';
 import { ErrorHandlerMiddleware } from './api/v1/middlewares/errorHandler.middleware';
 import { RateLimiterMiddleware } from './api/v1/middlewares/rateLimiter.middleware';
@@ -40,8 +40,10 @@ const countEndpointHits = (req: express.Request, res: express.Response, next: ex
     stats.lastHit = new Date();
     stats.methods.add(method);
 
-    // Log endpoint hit
-    logger.info(`Endpoint hit: ${method} ${endpoint} (Total hits: ${stats.count})`);
+    // Real-time logging of endpoint hits
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${method} ${endpoint} }`);
+    // console.log(`[${timestamp}] ${method} ${endpoint} - Total hits: ${stats.count}`);
 
     next();
 };
@@ -50,6 +52,7 @@ const countEndpointHits = (req: express.Request, res: express.Response, next: ex
 export const getEndpointStats = () => {
     const stats: Record<string, {
         count: number;
+        
         lastHit: string;
         methods: string[];
         averageHitsPerMinute: number;
@@ -139,11 +142,6 @@ app.use((req, res, next) => {
 
 // Request logging
 app.use((req, res, next) => {
-    logger.info(`${req.method} ${req.path}`, {
-        ip: req.ip,
-        userAgent: req.get('User-Agent'),
-        timestamp: new Date().toISOString()
-    });
     next();
 });
 

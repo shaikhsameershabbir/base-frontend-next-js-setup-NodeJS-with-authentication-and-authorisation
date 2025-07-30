@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MarketsProvider } from '@/contexts/MarketsContext';
+import { GameDataProvider } from '@/contexts/GameDataContext';
 
 export const metadata: Metadata = {
   title: "MK Matka Booking",
@@ -20,7 +21,9 @@ export default function RootLayout({
       <body className="antialiased font-sans">
         <AuthProvider>
           <MarketsProvider>
-            {children}
+            <GameDataProvider>
+              {children}
+            </GameDataProvider>
           </MarketsProvider>
         </AuthProvider>
       </body>

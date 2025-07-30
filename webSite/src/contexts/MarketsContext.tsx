@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useRef } from 'react';
 import { marketsAPI } from '@/lib/api/auth';
 import { useAuthContext } from './AuthContext';
 
@@ -148,28 +148,69 @@ interface MarketsProviderProps {
 export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) => {
     const [state, dispatch] = useReducer(marketsReducer, initialState);
     const { state: authState } = useAuthContext();
+    const isMountedRef = useRef(false);
+    const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Set mounted ref after first render
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            // Clear any pending timeouts
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Fetch markets from server
     const fetchMarkets = async () => {
+        // Prevent multiple simultaneous calls
+        if (state.loading) {
+            console.log('🔄 Markets fetch already in progress, skipping...');
+            return;
+        }
+
+        // Prevent API calls if component is unmounted (React Strict Mode)
+        if (!isMountedRef.current) {
+            console.log('🔄 Component not mounted, skipping markets fetch...');
+            return;
+        }
+
         try {
+            console.log('🔄 Fetching markets...');
             dispatch({ type: 'FETCH_MARKETS_START' });
             dispatch({ type: 'SET_HAS_TRIED_FETCH' });
 
             const response = await marketsAPI.getAssignedMarkets();
 
+            // Check if component is still mounted before updating state
+            if (!isMountedRef.current) {
+                console.log('🔄 Component unmounted during fetch, skipping state update...');
+                return;
+            }
+
             if (response.success && response.data) {
+                console.log('✅ Markets fetched successfully');
                 dispatch({
                     type: 'FETCH_MARKETS_SUCCESS',
                     payload: { assignments: response.data.assignments }
                 });
             } else {
+                console.log('❌ Markets fetch failed:', response.message);
                 dispatch({
                     type: 'FETCH_MARKETS_ERROR',
                     payload: response.message || 'Failed to fetch markets'
                 });
             }
         } catch (error: any) {
-            console.error('Error fetching markets:', error);
+            console.error('❌ Error fetching markets:', error);
+
+            // Check if component is still mounted before updating state
+            if (!isMountedRef.current) {
+                console.log('🔄 Component unmounted during error, skipping state update...');
+                return;
+            }
 
             // If it's an authentication error, don't show error message and don't retry
             if (error.response?.status === 401 || error.response?.status === 403) {
@@ -236,23 +277,44 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
 
     // Auto-fetch markets when authentication state changes
     useEffect(() => {
-        // If user is authenticated and we haven't fetched markets yet
-        if (authState.isAuthenticated && authState.user && !state.hasTriedFetch) {
-            fetchMarkets();
+        // Only fetch if:
+        // 1. User is authenticated
+        // 2. User data exists
+        // 3. We haven't tried fetching yet OR we're doing a manual refresh (lastFetched is null)
+        // 4. Not currently loading
+        // 5. Component is mounted
+        if (
+            authState.isAuthenticated &&
+            authState.user &&
+            !state.loading &&
+            isMountedRef.current &&
+            (!state.hasTriedFetch || state.lastFetched === null)
+        ) {
+            // Clear any existing timeout
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+
+            // Debounce the fetch call by 200ms to prevent rapid successive calls (increased for React Strict Mode)
+            fetchTimeoutRef.current = setTimeout(() => {
+                if (isMountedRef.current) {
+                    fetchMarkets();
+                }
+            }, 200);
         }
 
         // If user logs out, reset markets state
         if (!authState.isAuthenticated) {
             dispatch({ type: 'RESET_MARKETS' });
         }
-    }, [authState.isAuthenticated, authState.user, state.hasTriedFetch]);
 
-    // Also fetch markets when lastFetched is null (for manual refresh)
-    useEffect(() => {
-        if (authState.isAuthenticated && authState.user && state.lastFetched === null && !state.hasTriedFetch) {
-            fetchMarkets();
-        }
-    }, [state.lastFetched, authState.isAuthenticated, authState.user, state.hasTriedFetch]);
+        // Cleanup timeout on unmount or dependency change
+        return () => {
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+        };
+    }, [authState.isAuthenticated, authState.user, state.hasTriedFetch, state.lastFetched, state.loading]);
 
     const value: MarketsContextType = {
         state,

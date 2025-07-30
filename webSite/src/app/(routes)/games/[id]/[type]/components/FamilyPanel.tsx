@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { family } from '@/app/constant/constant';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface FamilyPanelProps {
   marketId: string;
@@ -13,13 +14,14 @@ interface FamilyPanelProps {
 
 const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   // FamilyPanel specific state
   const [inputNumber, setInputNumber] = useState<string>('');
@@ -33,48 +35,19 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status and current time
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       // FamilyPanel game only allows 'both' betting type
       setSelectedBetType('both');
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus]);
 
   // Find family numbers when input changes
   useEffect(() => {
@@ -127,8 +100,9 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
 
   // Check if betting is allowed (only during open betting for FamilyPanel)
   const isBettingAllowed = (): boolean => {
-    if (!marketStatus) return false;
-    return marketStatus.status === 'open_betting';
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+    return marketStatusData.status === 'open_betting';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -160,7 +134,7 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     }
 
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }

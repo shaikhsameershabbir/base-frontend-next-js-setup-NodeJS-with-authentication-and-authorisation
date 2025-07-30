@@ -172,8 +172,6 @@ export class PlayerController {
                 return;
             }
 
-            logger.info(`Player ${req.user.userId} admin found: ${adminId}, player level: ${playerHierarchy.level}, path length: ${playerHierarchy.path?.length || 0}`);
-
             // Get assigned markets
             const assignments = await UserMarketAssignment.find({ assignedTo: req.user.userId })
                 .populate({
@@ -182,21 +180,15 @@ export class PlayerController {
                 })
                 .populate('assignedBy', 'username');
 
-            logger.info(`Found ${assignments.length} market assignments for player ${req.user.userId}`);
-
             // Get market ranks from the admin
             const marketIds = assignments
                 .filter(assignment => assignment.marketId)
                 .map(assignment => assignment.marketId);
 
-            logger.info(`Looking for market ranks for admin ${adminId}, market count: ${marketIds.length}`);
-
             const marketRanks = await MarketRank.find({
                 userId: adminId,
                 marketId: { $in: marketIds }
             }).sort({ rank: 1 });
-
-            logger.info(`Found ${marketRanks.length} market ranks for admin ${adminId}`);
 
             // Combine assignments with ranks
             const marketsWithRanks = assignments
@@ -235,8 +227,7 @@ export class PlayerController {
                     return a.rank - b.rank;
                 });
 
-            logger.info(`Retrieved ${marketsWithRanks.length} markets with ranks for player ${req.user.userId}`);
-            logger.info(`Markets with ranks: ${marketsWithRanks.filter(m => m.rank !== null).length}, markets without ranks: ${marketsWithRanks.filter(m => m.rank === null).length}`);
+
 
             res.json({
                 success: true,
@@ -398,7 +389,7 @@ export class PlayerController {
             bet.result = 'cancelled';
             await bet.save();
 
-            logger.info(`Bet cancelled: User ${req.user.userId}, Bet ${betId}, Amount ₹${bet.amount}`);
+
 
             res.json({
                 success: true,
@@ -555,14 +546,7 @@ export class PlayerController {
 
             const status = getMarketStatus(market.openTime, market.closeTime);
 
-            // Log market status for debugging
-            logger.info(`Market status for ${marketId}:`, {
-                marketName: market.marketName,
-                openTime: market.openTime,
-                closeTime: market.closeTime,
-                status: status.status,
-                message: status.message
-            });
+
 
             res.json({
                 success: true,

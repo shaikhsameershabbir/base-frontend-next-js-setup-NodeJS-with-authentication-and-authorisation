@@ -9,11 +9,11 @@ const cleanupDuplicateRanks = async () => {
     try {
         // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
-        logger.info('Connected to MongoDB');
+
 
         // Find all market ranks
         const allRanks = await MarketRank.find({});
-        logger.info(`Found ${allRanks.length} total market ranks`);
+
 
         // Group by userId and marketId to find duplicates
         const groupedRanks = new Map();
@@ -39,23 +39,18 @@ const cleanupDuplicateRanks = async () => {
                 const [, ...duplicateRanks] = ranks;
 
                 for (const duplicateRank of duplicateRanks) {
-                    logger.info(`Removing duplicate rank: ${duplicateRank._id}`);
+
                     await MarketRank.findByIdAndDelete(duplicateRank._id);
                     duplicatesRemoved++;
                 }
             }
         }
 
-        if (duplicatesFound > 0) {
-            logger.info(`Found ${duplicatesFound} groups with duplicates`);
-            logger.info(`Removed ${duplicatesRemoved} duplicate market ranks`);
-        } else {
-            logger.info('No duplicate market ranks found');
-        }
+
 
         // Verify the cleanup
         const finalCount = await MarketRank.countDocuments();
-        logger.info(`Final market rank count: ${finalCount}`);
+
 
         process.exit(0);
     } catch (error) {

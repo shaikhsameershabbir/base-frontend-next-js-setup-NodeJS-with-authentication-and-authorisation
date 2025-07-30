@@ -9,24 +9,20 @@ const cleanupMarketAssignments = async () => {
     try {
         // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
-        logger.info('Connected to MongoDB');
+
 
         // Find assignments with null marketId
         const orphanedAssignments = await UserMarketAssignment.find({
             marketId: null
         });
 
-        logger.info(`Found ${orphanedAssignments.length} orphaned market assignments`);
+
 
         if (orphanedAssignments.length > 0) {
             // Delete orphaned assignments
-            const result = await UserMarketAssignment.deleteMany({
+            await UserMarketAssignment.deleteMany({
                 marketId: null
             });
-
-            logger.info(`Deleted ${result.deletedCount} orphaned market assignments`);
-        } else {
-            logger.info('No orphaned market assignments found');
         }
 
         // Also check for assignments with invalid marketId references
@@ -47,11 +43,7 @@ const cleanupMarketAssignments = async () => {
             }
         }
 
-        if (invalidAssignments > 0) {
-            logger.warn(`Found ${invalidAssignments} assignments with invalid marketId references`);
-        } else {
-            logger.info('All market assignments have valid marketId references');
-        }
+
 
         process.exit(0);
     } catch (error) {

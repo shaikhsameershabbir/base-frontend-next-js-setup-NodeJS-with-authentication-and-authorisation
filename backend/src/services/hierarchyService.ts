@@ -79,7 +79,7 @@ export class HierarchyService {
             });
 
             await hierarchyEntry.save();
-            logger.info(`Created hierarchy entry for user ${userId} with role ${role}`);
+
         } catch (error) {
             logger.error('Error creating hierarchy entry:', error);
             throw error;
@@ -108,7 +108,7 @@ export class HierarchyService {
                 );
             }
 
-            logger.info(`Updated ancestor counts for user ${userId}`);
+
         } catch (error) {
             logger.error('Error updating ancestor counts:', error);
             throw error;

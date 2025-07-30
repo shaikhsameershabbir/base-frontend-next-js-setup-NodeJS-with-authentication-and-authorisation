@@ -1,5 +1,6 @@
 "use client";
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useGameData } from '@/contexts/GameDataContext';
 import { betAPI } from '@/lib/api/bet';
 import { findValidNumbers } from '@/lib/utils';
 import { singlePannaNumbers, doublePannaNumbers } from '@/app/constant/constant';
@@ -15,65 +16,49 @@ interface BaseMotorGameProps {
 
 const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'Market', gameType }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
   const [inputDigits, setInputDigits] = useState<string>('');
   const [validPannas, setValidPannas] = useState<string[]>([]);
 
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Fetch market status and current time
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
+
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
   // Generate valid pannas when input digits change
   useEffect(() => {
@@ -102,19 +87,6 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
       setAmounts({});
     }
   }, [inputDigits, gameType, selectedAmount]);
-
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -210,7 +182,8 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const marketStatusData = getMarketStatus(marketId);
+      const statusMessage = marketStatusData?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }
@@ -361,8 +334,8 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
             </div>
 
             <div className="flex gap-3">
-          <input
-            type="text"
+              <input
+                type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter digits (e.g., 12345) - Min 4 digits"
@@ -375,7 +348,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                 </span>
               </div>
             </div>
-        </div>
+          </div>
 
           {/* Valid Pannas Display */}
           {validPannas.length > 0 && (
@@ -383,7 +356,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">{gameType === 'SP' ? 'Single' : 'Double'} Pannas (Auto-placed)</h2>
-        </div>
+              </div>
 
               <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
                 {validPannas.map((panna) => (
@@ -405,15 +378,15 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                       </div>
                     </div>
                   </div>
-            ))}
+                ))}
               </div>
-      </div>
+            </div>
           )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
+            <button
+              type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -449,7 +422,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                   </>
                 )}
               </div>
-        </button>
+            </button>
           </div>
         </form>
       </div>

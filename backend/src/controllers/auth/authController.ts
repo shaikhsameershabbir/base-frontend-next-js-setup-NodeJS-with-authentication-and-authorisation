@@ -121,12 +121,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         };
 
         // Log successful login
-        logger.info(`User ${user.username} logged in successfully`, {
-            userId: user._id,
-            role: user.role,
-            ip: req.ip,
-            userAgent: req.get('User-Agent')
-        });
+
 
         // Get real IP address
         const realIp = req.headers['x-forwarded-for'] ||

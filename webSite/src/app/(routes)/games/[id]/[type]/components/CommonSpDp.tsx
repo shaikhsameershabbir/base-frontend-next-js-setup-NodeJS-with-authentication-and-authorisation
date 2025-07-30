@@ -5,6 +5,7 @@ import { singlePannaNumbers, doublePannaNumbers } from '@/app/constant/constant'
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface CommonSpDpProps {
   marketId: string;
@@ -13,6 +14,7 @@ interface CommonSpDpProps {
 
 const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
@@ -20,59 +22,44 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [selectedGameMode, setSelectedGameMode] = useState<'SP' | 'DP' | 'SP-DP'>('SP');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
   const [inputDigits, setInputDigits] = useState<string>('');
   const [validPannas, setValidPannas] = useState<string[]>([]);
+
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
 
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Fetch market status and current time
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
   // Filter pannas based on input digits and game mode
   useEffect(() => {
@@ -144,18 +131,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     }
   }, [inputDigits, selectedGameMode, selectedAmount]);
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
 
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -193,7 +169,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }
@@ -266,8 +242,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
               <div className="flex gap-2">
                 {isBetTypeAllowed('open') && (
-              <button
-                type="button"
+                  <button
+                    type="button"
                     onClick={() => setSelectedBetType('open')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
                       ? 'text-white bg-green-600 shadow-md scale-105'
@@ -278,8 +254,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </button>
                 )}
                 {isBetTypeAllowed('close') && (
-              <button
-                type="button"
+                  <button
+                    type="button"
                     onClick={() => setSelectedBetType('close')}
                     className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
                       ? 'text-white bg-blue-600 shadow-md scale-105'
@@ -322,7 +298,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                         </svg>
                       </div>
                     )}
-              </button>
+                  </button>
                 ))}
               </div>
             </div>
@@ -345,25 +321,25 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
             <div className="grid grid-cols-3 gap-3">
               {(['SP', 'DP', 'SP-DP'] as const).map((mode) => (
-              <button
+                <button
                   key={mode}
-                type="button"
+                  type="button"
                   onClick={() => setSelectedGameMode(mode)}
                   className={`flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg ${selectedGameMode === mode
                     ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white border-orange-500 shadow-lg'
                     : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50 hover:border-orange-300'
                     }`}
-              >
-                <span className="mr-2">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
+                >
+                  <span className="mr-2">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
                       <circle cx="10" cy="10" r="9" stroke={selectedGameMode === mode ? "#fff" : "#F97316"} strokeWidth="2" fill={selectedGameMode === mode ? "#fff" : "none"} />
                       {selectedGameMode === mode && (
-                      <circle cx="10" cy="10" r="5" fill="#F97316" />
-                    )}
-                  </svg>
-                </span>
+                        <circle cx="10" cy="10" r="5" fill="#F97316" />
+                      )}
+                    </svg>
+                  </span>
                   {mode}
-              </button>
+                </button>
               ))}
             </div>
           </div>
@@ -376,7 +352,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
             </div>
 
             <div className="flex gap-3">
-            <input
+              <input
                 type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
@@ -422,13 +398,13 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </div>
                 ))}
               </div>
-        </div>
+            </div>
           )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-          <button
-            type="button"
+            <button
+              type="button"
               onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -464,8 +440,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   </>
                 )}
               </div>
-          </button>
-        </div>
+            </button>
+          </div>
         </form>
       </div>
       <ToastContainer

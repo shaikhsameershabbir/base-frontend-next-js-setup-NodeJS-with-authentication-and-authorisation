@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers } from '@/app/constant/constant';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface SangamGameProps {
   marketId: string;
@@ -15,13 +16,14 @@ type SangamType = 'half_open' | 'half_close' | 'full';
 
 const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   // SangamGame specific state
   const [selectedSangamType, setSelectedSangamType] = useState<SangamType>('half_open');
@@ -39,48 +41,19 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status and current time
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       // SangamGame only allows 'both' betting type
       setSelectedBetType('both');
     }
-  }, [marketStatus]);
+  }, [marketId, getMarketStatus]);
 
   // Filter panna numbers based on input
   useEffect(() => {
@@ -245,12 +218,12 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   // Check if betting is allowed (only during open betting for Sangam)
   const isBettingAllowed = (): boolean => {
     if (!marketStatus) return false;
-    return marketStatus.status === 'open_betting';
+    return marketStatusData.status === 'open_betting';
   };
 
   // Check if sangam game is allowed (only before open time closes)
   const isSangamAllowed = (): boolean => {
-    return marketStatus?.status === 'open_betting';
+    return getMarketStatus(marketId)?.status === 'open_betting';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

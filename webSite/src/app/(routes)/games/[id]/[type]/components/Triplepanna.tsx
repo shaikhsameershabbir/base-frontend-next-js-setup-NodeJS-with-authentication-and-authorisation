@@ -4,6 +4,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useGameData } from '@/contexts/GameDataContext';
 
 interface TriplepannaProps {
   marketId: string;
@@ -18,6 +19,7 @@ const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
 const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
+  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
 
   // Store each triple panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({
@@ -26,70 +28,42 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [marketStatus, setMarketStatus] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState<string>('');
+
+
 
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Fetch market status and current time
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    const marketStatusData = getMarketStatus(marketId);
+    if (!marketStatusData) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatusData.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    }
+  };
+
+  // Fetch market status when component mounts
   useEffect(() => {
-    const fetchMarketData = async () => {
-      try {
-        const [timeResponse, statusResponse] = await Promise.all([
-          betAPI.getCurrentTime(),
-          betAPI.getMarketStatus(marketId)
-        ]);
-
-        if (timeResponse.success) {
-          setCurrentTime(timeResponse.data.formattedTime);
-        }
-
-        if (statusResponse.success) {
-          setMarketStatus(statusResponse.data);
-        }
-      } catch (error) {
-        console.error('Error fetching market data:', error);
-      }
-    };
-
-    fetchMarketData();
-
-    // Update time every minute
-    const timeInterval = setInterval(() => {
-      betAPI.getCurrentTime().then(response => {
-        if (response.success) {
-          setCurrentTime(response.data.formattedTime);
-        }
-      }).catch(console.error);
-    }, 60000);
-
-    return () => clearInterval(timeInterval);
-  }, [marketId]);
+    fetchMarketStatus(marketId);
+  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    if (marketStatus) {
+    const marketStatusData = getMarketStatus(marketId);
+    if (marketStatusData) {
       if (isBetTypeAllowed('open')) {
         setSelectedBetType('open');
       } else if (isBetTypeAllowed('close')) {
         setSelectedBetType('close');
       }
     }
-  }, [marketStatus]);
-
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
-  };
+  }, [marketId, getMarketStatus, isBetTypeAllowed]);
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -108,8 +82,8 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
       return;
     }
 
-      setAmounts(prev => ({
-        ...prev,
+    setAmounts(prev => ({
+      ...prev,
       [digit]: isRightClick
         ? Math.max(0, prev[digit] - selectedAmount)
         : prev[digit] + selectedAmount
@@ -180,7 +154,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
+      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
       toast.error(statusMessage);
       return;
     }
@@ -285,19 +259,19 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
-      </div>
+              </div>
 
               <div className="grid grid-cols-4 gap-3">
-          {amountOptions.map((amt) => (
-            <button
-              key={amt}
-              type="button"
+                {amountOptions.map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
                     className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
-              onClick={() => handleAmountSelect(amt)}
-            >
+                    onClick={() => handleAmountSelect(amt)}
+                  >
                     <div className="text-base font-bold">{amt}</div>
                     {selectedAmount === amt && (
                       <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -306,10 +280,10 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                         </svg>
                       </div>
                     )}
-            </button>
-          ))}
-        </div>
-      </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Compact Total Display */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
@@ -362,29 +336,29 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                       )}
                     </div>
                   </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={handleReset}
+            <button
+              type="button"
+              onClick={handleReset}
               disabled={isSubmitting}
               className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+            >
               <div className="flex items-center justify-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-          Reset
+                Reset
               </div>
-        </button>
-        
-        <button
-          type="submit"
+            </button>
+
+            <button
+              type="submit"
               disabled={total === 0 || isSubmitting}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
@@ -402,13 +376,13 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-          Submit
+                    Submit
                   </>
                 )}
               </div>
-        </button>
-      </div>
-    </form>
+            </button>
+          </div>
+        </form>
       </div>
       <ToastContainer
         position="top-right"

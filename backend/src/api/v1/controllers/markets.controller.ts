@@ -226,7 +226,7 @@ export class MarketsController {
                 return;
             }
 
-            logger.info(`Market ${updatedMarket.marketName} golden status updated to: ${isGolden}`);
+
 
             res.json({
                 success: true,
@@ -283,8 +283,6 @@ export class MarketsController {
 
             // If ranks already exist for all assigned markets, just return them
             if (totalExistingRanks >= totalAssignedMarkets) {
-                logger.info(`All ${totalAssignedMarkets} assigned markets already have ranks for user ${userId}. Returning existing ranks.`);
-
                 res.json({
                     success: true,
                     message: 'Market ranks retrieved successfully',
@@ -297,13 +295,6 @@ export class MarketsController {
                     }
                 });
                 return;
-            }
-
-            // Only create ranks if some markets don't have ranks yet
-            if (totalExistingRanks === 0 && totalAssignedMarkets > 0) {
-                logger.info(`No ranks exist for user ${userId}. Creating ranks for all ${totalAssignedMarkets} assigned markets starting from 1.`);
-            } else if (totalExistingRanks > 0 && totalExistingRanks < totalAssignedMarkets) {
-                logger.info(`Some markets don't have ranks for user ${userId}. Creating ranks for ${totalAssignedMarkets - totalExistingRanks} remaining markets.`);
             }
 
             // For markets without ranks, assign default ranks
@@ -341,8 +332,6 @@ export class MarketsController {
                     nextRank = maxRank + 1;
                 }
 
-                logger.info(`Creating ${marketsWithoutRanks.length} new ranks starting from rank ${nextRank}`);
-
                 // Use upsert operations instead of insertMany to avoid duplicates
                 const upsertPromises = marketsWithoutRanks
                     .filter(assignment => assignment.marketId) // Additional safety check
@@ -355,8 +344,6 @@ export class MarketsController {
                             logger.warn(`Assignment ${assignment._id} has invalid marketId data`);
                             return null;
                         }
-
-                        logger.info(`Assigning rank ${newRank} to market ${marketData.marketName}`);
 
                         return MarketRank.findOneAndUpdate(
                             {
@@ -380,7 +367,7 @@ export class MarketsController {
 
                 if (upsertPromises.length > 0) {
                     await Promise.all(upsertPromises);
-                    logger.info(`Successfully created ${upsertPromises.length} new market ranks`);
+
                 }
 
                 // Fetch updated ranks with pagination
@@ -477,7 +464,7 @@ export class MarketsController {
             const currentRank = currentRankDoc ? currentRankDoc.rank : null;
             const newRank = rank;
 
-            logger.info(`Updating market ${market.marketName} rank from ${currentRank} to ${newRank} for user ${userId}`);
+
 
             // If rank is not changing, just update and return
             if (currentRank === newRank) {
@@ -509,7 +496,7 @@ export class MarketsController {
                 userId: userId
             }).sort({ rank: 1 });
 
-            logger.info(`Found ${allRanks.length} existing ranks for user ${userId}`);
+
 
             try {
                 // Step 1: Temporarily set the target market to a very high rank to avoid conflicts
@@ -574,7 +561,7 @@ export class MarketsController {
                     }
                 );
 
-                logger.info(`Successfully reordered ranks for user ${userId}. Market ${market.marketName} moved from rank ${currentRank} to rank ${newRank}`);
+
 
                 // Fetch the updated rank
                 const updatedRank = await MarketRank.findOne({
@@ -614,7 +601,7 @@ export class MarketsController {
                 isActive: true
             }).select('_id username');
 
-            logger.info(`Found ${admins.length} admin users`);
+
 
             // Get market assignments for each admin
             const adminsWithMarkets = await Promise.all(
@@ -625,7 +612,7 @@ export class MarketsController {
                             isActive: true
                         }).populate('marketId');
 
-                        logger.info(`Found ${assignments.length} assignments for admin ${admin.username}`);
+
 
                         const markets = assignments
                             .filter(assignment => {

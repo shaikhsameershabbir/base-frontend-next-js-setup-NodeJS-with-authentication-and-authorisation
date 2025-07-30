@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import BottomNav from '@/app/components/BottomNav';
-import { betAPI } from '@/lib/api/bet';
+import { useGameData } from '@/contexts/GameDataContext';
 // Import game type components
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';
@@ -24,23 +24,16 @@ const GameTypePage = () => {
   const params = useParams();
   const gameId = params.id as string;
   const gameType = params.type as string;
+  const { getMarketStatus } = useGameData();
   const [marketName, setMarketName] = useState<string>('Market');
 
-  // Fetch market details
+  // Get market details from centralized context
   useEffect(() => {
-    const fetchMarketStatus = async () => {
-      try {
-        const response = await betAPI.getMarketStatus(gameId);
-        if (response.success && response.data) {
-          setMarketName(response.data.marketName || 'Market');
-        }
-      } catch (error) {
-        console.error('Error fetching market status:', error);
-      }
-    };
-
-    fetchMarketStatus();
-  }, [gameId]);
+    const marketStatusData = getMarketStatus(gameId);
+    if (marketStatusData) {
+      setMarketName(marketStatusData.marketName || 'Market');
+    }
+  }, [gameId, getMarketStatus]);
 
   const renderGameComponent = () => {
     switch (gameType) {
@@ -70,7 +63,7 @@ const GameTypePage = () => {
         return <FamilyPanel marketId={gameId} marketName={marketName} />;
       case 'sangam':
         return <SangamGame marketId={gameId} marketName={marketName} />;
-    
+
 
       default:
         return <div>Game type not found</div>;

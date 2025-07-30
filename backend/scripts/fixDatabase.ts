@@ -8,7 +8,7 @@ const fixDatabase = async () => {
     try {
         // Connect to MongoDB
         await mongoose.connect(MONGODB_URI);
-        logger.info('Connected to MongoDB');
+
 
         // Check if db connection exists
         if (!mongoose.connection.db) {
@@ -17,14 +17,13 @@ const fixDatabase = async () => {
 
         // Drop the users collection to remove old indexes
         await mongoose.connection.db.dropCollection('users');
-        logger.info('✅ Dropped users collection');
+
 
         // Recreate the collection with new schema
         await mongoose.connection.db.createCollection('users');
-        logger.info('✅ Recreated users collection');
 
-        logger.info('🎉 Database fixed successfully!');
-        logger.info('You can now run: npm run seed');
+
+
 
         process.exit(0);
     } catch (error) {

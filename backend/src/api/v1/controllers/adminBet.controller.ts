@@ -117,7 +117,7 @@ export class AdminBetController {
             // Calculate summary statistics
             const summary = await this.calculateBetSummary(betFilterQuery);
 
-            logger.info(`Admin bets retrieved: User ${req.user.userId}, Role ${req.user.role}, Page ${page}, Total ${totalBets}`);
+
 
             res.json({
                 success: true,
@@ -181,7 +181,7 @@ export class AdminBetController {
                 return;
             }
 
-            logger.info(`Bet details retrieved: Bet ${betId}, User ${req.user.userId}`);
+
 
             res.json({
                 success: true,
