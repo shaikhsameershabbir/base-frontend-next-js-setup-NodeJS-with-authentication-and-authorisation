@@ -706,6 +706,8 @@ export default function WinnerPage() {
                                     {(() => {
                                         // Calculate singles amount for each column based on selectedBetType filter
                                         const singlesAmounts = [];
+                                        const cuttingValue = parseFloat(cuttingAmount) || 0;
+
                                         for (let digit = 0; digit < 10; digit++) {
                                             const digitStr = digit.toString();
                                             let totalSingles = 0;
@@ -723,20 +725,31 @@ export default function WinnerPage() {
                                                 totalSingles = data?.data?.single?.close?.[digitStr] || 0;
                                             }
 
-                                            singlesAmounts.push(totalSingles);
+                                            // Apply cutting filter to singles amounts
+                                            if (totalSingles <= cuttingValue) {
+                                                singlesAmounts.push(null); // Empty column
+                                            } else {
+                                                singlesAmounts.push(totalSingles);
+                                            }
                                         }
 
                                         return singlesAmounts.map((amount, index) => (
                                             <th key={index} className="border border-gray-600 p-2 text-center text-white">
                                                 <div className="text-lg font-bold">{index}</div>
-                                                <div className="text-xs text-green-400">
-                                                    ₹{amount.toLocaleString()}
-                                                </div>
-                                                <div className="text-xs text-gray-400">
-                                                    {selectedBetType === 'all' ? 'Singles' :
-                                                        selectedBetType === 'open' ? 'Open Singles' :
-                                                            'Close Singles'}
-                                                </div>
+                                                {amount !== null ? (
+                                                    <>
+                                                        <div className="text-xs text-green-400">
+                                                            ₹{amount.toLocaleString()}
+                                                        </div>
+                                                        <div className="text-xs text-gray-400">
+                                                            {selectedBetType === 'all' ? 'Singles' :
+                                                                selectedBetType === 'open' ? 'Open Singles' :
+                                                                    'Close Singles'}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-xs text-gray-500">No data</div>
+                                                )}
                                             </th>
                                         ));
                                     })()}
