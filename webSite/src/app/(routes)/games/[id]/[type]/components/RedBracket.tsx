@@ -53,6 +53,12 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
       if (selectedBetType === null) {
         // RedBracket game only allows 'both' betting type
         setSelectedBetType('both');
+      } else {
+        // If current bet type is no longer allowed, switch to an allowed one
+        if (!isBettingAllowed()) {
+          // RedBracket game only allows 'both' betting type
+          setSelectedBetType('both');
+        }
       }
     }
   }, [marketId, getMarketStatus, selectedBetType]);

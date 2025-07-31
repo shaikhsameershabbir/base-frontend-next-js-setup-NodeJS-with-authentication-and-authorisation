@@ -50,6 +50,13 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
         if (isBetTypeAllowed('both')) {
           setSelectedBetType('both');
         }
+      } else {
+        // If current bet type is no longer allowed, switch to an allowed one
+        if (!isBetTypeAllowed(selectedBetType)) {
+          if (isBetTypeAllowed('both')) {
+            setSelectedBetType('both');
+          }
+        }
       }
     }
   }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);

@@ -72,6 +72,15 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
         } else if (isBetTypeAllowed('close')) {
           setSelectedBetType('close');
         }
+      } else {
+        // If current bet type is no longer allowed, switch to an allowed one
+        if (!isBetTypeAllowed(selectedBetType)) {
+          if (isBetTypeAllowed('open')) {
+            setSelectedBetType('open');
+          } else if (isBetTypeAllowed('close')) {
+            setSelectedBetType('close');
+          }
+        }
       }
     }
   }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);

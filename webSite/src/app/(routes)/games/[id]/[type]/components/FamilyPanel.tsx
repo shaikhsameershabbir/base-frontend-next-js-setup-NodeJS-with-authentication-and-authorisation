@@ -46,6 +46,12 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
       if (selectedBetType === null) {
         // FamilyPanel game only allows 'both' betting type
         setSelectedBetType('both');
+      } else {
+        // If current bet type is no longer allowed, switch to an allowed one
+        if (!isBettingAllowed()) {
+          // FamilyPanel game only allows 'both' betting type
+          setSelectedBetType('both');
+        }
       }
     }
   }, [marketId, getMarketStatus, selectedBetType]);
