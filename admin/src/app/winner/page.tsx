@@ -671,16 +671,28 @@ export default function WinnerPage() {
                         <table className="w-full border-collapse border border-gray-600">
                             <thead>
                                 <tr className="bg-gray-800">
-                                    <th className="border border-gray-600 p-2 text-center text-white">0</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">1</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">2</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">3</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">4</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">5</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">6</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">7</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">8</th>
-                                    <th className="border border-gray-600 p-2 text-center text-white">9</th>
+                                    {(() => {
+                                        // Calculate singles amount for each column from original data
+                                        const singlesAmounts = [];
+                                        for (let digit = 0; digit < 10; digit++) {
+                                            const digitStr = digit.toString();
+                                            // Access the original data structure
+                                            const openAmount = data?.data?.single?.open?.[digitStr] || 0;
+                                            const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
+                                            const totalSingles = openAmount + closeAmount;
+                                            singlesAmounts.push(totalSingles);
+                                        }
+
+                                        return singlesAmounts.map((amount, index) => (
+                                            <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                                <div className="text-lg font-bold">{index}</div>
+                                                <div className="text-xs text-green-400">
+                                                    ₹{amount.toLocaleString()}
+                                                </div>
+                                                <div className="text-xs text-gray-400">Singles</div>
+                                            </th>
+                                        ));
+                                    })()}
                                 </tr>
                             </thead>
                             <tbody>
