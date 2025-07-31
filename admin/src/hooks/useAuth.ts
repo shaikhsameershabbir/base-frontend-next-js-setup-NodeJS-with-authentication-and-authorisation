@@ -24,42 +24,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkAuth = async () => {
         try {
+            console.log('🔍 Starting auth check...');
             const storedAuth = localStorage.getItem('isAuthenticated');
             const storedUser = localStorage.getItem('user');
+            const accessToken = localStorage.getItem('accessToken');
+            const refreshToken = localStorage.getItem('refreshToken');
+
+            console.log('📊 Stored data:', {
+                storedAuth,
+                hasStoredUser: !!storedUser,
+                hasAccessToken: !!accessToken,
+                hasRefreshToken: !!refreshToken
+            });
 
             if (!storedAuth || !storedUser) {
+                console.log('❌ No stored auth data found');
                 setLoading(false);
                 return;
             }
 
-            // Only check if we have a token
-            if (!apiUtils.isAuthenticated()) {
-                localStorage.removeItem('isAuthenticated');
-                localStorage.removeItem('user');
-                setIsAuthenticated(false);
-                setLoading(false);
-                return;
-            }
-
-            const response = await authAPI.getProfile();
-
-            if (response.success && response.data) {
-                setUser(response.data);
+            // First, restore user data from localStorage
+            try {
+                const userData = JSON.parse(storedUser);
+                console.log('✅ Restored user data from localStorage:', userData);
+                setUser(userData);
                 setIsAuthenticated(true);
-                localStorage.setItem('user', JSON.stringify(response.data));
-            } else {
-                apiUtils.clearAuth();
+            } catch (parseError) {
+                console.error('❌ Failed to parse stored user data:', parseError);
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('user');
                 setIsAuthenticated(false);
+                setLoading(false);
+                return;
             }
+
+            // Check if we have tokens
+            const hasToken = apiUtils.isAuthenticated();
+            console.log('🔑 Token check:', hasToken);
+
+            if (!hasToken) {
+                console.log('❌ No valid token found');
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('user');
+                setIsAuthenticated(false);
+                setLoading(false);
+                return;
+            }
+
+            console.log('✅ Authentication check completed successfully');
         } catch (error) {
-            console.error('Auth check failed:', error);
+            console.error('❌ Auth check failed:', error);
+            // Only clear auth if there's a critical error
             apiUtils.clearAuth();
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('user');
             setIsAuthenticated(false);
         } finally {
+            console.log('🏁 Auth check completed');
             setLoading(false);
         }
     };

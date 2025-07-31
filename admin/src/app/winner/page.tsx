@@ -273,20 +273,46 @@ export default function WinnerPage() {
             fullSangam: {}
         };
 
-        // Process each result
-        rawData.data.forEach((result: any) => {
-            const { resultType, resultValue, amount } = result;
+        // Handle the correct data structure where rawData.data is an object with game types
+        if (typeof rawData.data === 'object' && !Array.isArray(rawData.data)) {
+            // Process each game type in the data
+            Object.entries(rawData.data).forEach(([gameType, betTypes]: [string, any]) => {
+                if (!organizedData[gameType]) {
+                    organizedData[gameType] = {};
+                }
 
-            if (!organizedData[resultType]) {
-                organizedData[resultType] = {};
-            }
+                // Process each bet type (open, close, both)
+                Object.entries(betTypes).forEach(([betType, numbers]: [string, any]) => {
+                    if (typeof numbers === 'object' && numbers !== null) {
+                        // Process each number and its amount
+                        Object.entries(numbers).forEach(([number, amount]: [string, any]) => {
+                            if (!organizedData[gameType][number]) {
+                                organizedData[gameType][number] = 0;
+                            }
+                            organizedData[gameType][number] += amount;
+                        });
+                    }
+                });
+            });
+        } else if (Array.isArray(rawData.data)) {
+            // Fallback for array structure (if it exists)
+            rawData.data.forEach((result: any) => {
+                const { resultType, resultValue, amount } = result;
 
-            if (!organizedData[resultType][resultValue]) {
-                organizedData[resultType][resultValue] = 0;
-            }
+                if (!organizedData[resultType]) {
+                    organizedData[resultType] = {};
+                }
 
-            organizedData[resultType][resultValue] += amount;
-        });
+                if (!organizedData[resultType][resultValue]) {
+                    organizedData[resultType][resultValue] = 0;
+                }
+
+                organizedData[resultType][resultValue] += amount;
+            });
+        } else {
+            console.warn('Unexpected data structure:', rawData.data);
+            return organizedData;
+        }
 
         return organizedData;
     };
@@ -515,7 +541,25 @@ export default function WinnerPage() {
                 // Skip single digits (0-9) and double digits (00-99)
                 if (number.length === 1 || number.length === 2) return;
 
+                // Validate number format
+                if (!/^\d+$/.test(number)) {
+                    console.warn('Invalid number format:', number);
+                    return;
+                }
+
                 const digitSum = getDigitSum(number);
+
+                // Validate digitSum is a valid number between 0-9
+                if (isNaN(digitSum) || digitSum < 0 || digitSum > 9) {
+                    console.warn('Invalid digit sum:', digitSum, 'for number:', number);
+                    return;
+                }
+
+                // Ensure tableData[digitSum] exists
+                if (!tableData[digitSum]) {
+                    tableData[digitSum] = [];
+                }
+
                 const { type, rate, amount: winningAmount } = getGameTypeAndAmount(number, amount);
 
                 // For triple digits, also calculate winning for the digit sum
