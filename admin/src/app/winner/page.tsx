@@ -647,14 +647,25 @@ export default function WinnerPage() {
                             <thead>
                                 <tr className="bg-gray-800">
                                     {(() => {
-                                        // Calculate singles amount for each column from original data
+                                        // Calculate singles amount for each column based on selectedBetType filter
                                         const singlesAmounts = [];
                                         for (let digit = 0; digit < 10; digit++) {
                                             const digitStr = digit.toString();
-                                            // Access the original data structure
-                                            const openAmount = data?.data?.single?.open?.[digitStr] || 0;
-                                            const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
-                                            const totalSingles = openAmount + closeAmount;
+                                            let totalSingles = 0;
+
+                                            if (selectedBetType === 'all') {
+                                                // Show both open and close
+                                                const openAmount = data?.data?.single?.open?.[digitStr] || 0;
+                                                const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
+                                                totalSingles = openAmount + closeAmount;
+                                            } else if (selectedBetType === 'open') {
+                                                // Show only open
+                                                totalSingles = data?.data?.single?.open?.[digitStr] || 0;
+                                            } else if (selectedBetType === 'close') {
+                                                // Show only close
+                                                totalSingles = data?.data?.single?.close?.[digitStr] || 0;
+                                            }
+
                                             singlesAmounts.push(totalSingles);
                                         }
 
@@ -664,7 +675,11 @@ export default function WinnerPage() {
                                                 <div className="text-xs text-green-400">
                                                     ₹{amount.toLocaleString()}
                                                 </div>
-                                           
+                                                <div className="text-xs text-gray-400">
+                                                    {selectedBetType === 'all' ? 'Singles' :
+                                                        selectedBetType === 'open' ? 'Open Singles' :
+                                                            'Close Singles'}
+                                                </div>
                                             </th>
                                         ));
                                     })()}
@@ -711,7 +726,7 @@ export default function WinnerPage() {
                                                             <div className="space-y-2 p-2 bg-gray-800 rounded">
                                                                 {/* Number and Game Type */}
                                                                 <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
-                                                       
+
 
                                                                 {/* Bet Amount */}
                                                                 <div className="text-xs">
@@ -719,7 +734,7 @@ export default function WinnerPage() {
                                                                     <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
                                                                 </div>
 
-                                                             
+
                                                                 {/* Winning Amount */}
                                                                 <div className="text-xs">
                                                                     <span className="text-gray-400">Win:</span>
@@ -738,7 +753,7 @@ export default function WinnerPage() {
                                                                                 '✅ SAFE'}
                                                                 </div>
 
-                                                      
+
 
                                                                 {/* Click to see details */}
                                                                 <button
