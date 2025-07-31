@@ -12,12 +12,13 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, state: { loading, error: authError, isAuthenticated } } = useAuthContext();
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated - only run once when isAuthenticated changes
   useEffect(() => {
     if (!loading && isAuthenticated) {
+      console.log('🔄 User is authenticated, redirecting to home...');
       router.replace('/home');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading]); // Removed router from dependencies
 
   // Show loading while checking authentication
   if (loading) {

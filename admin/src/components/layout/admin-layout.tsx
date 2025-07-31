@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Navbar } from "./navbar"
 import { Sidebar } from "./sidebar"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { authAPI, User } from "@/lib/api-service"
+import { useAuth } from "@/hooks/useAuth"
 
 interface AdminLayoutProps {
     children: React.ReactNode
@@ -13,49 +13,16 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const [user, setUser] = useState<User | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const { user, loading, isAuthenticated } = useAuth()
     const router = useRouter()
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            try {
-                // Check if user is authenticated in localStorage
-                const isAuthenticated = localStorage.getItem('isAuthenticated')
-                const storedUser = localStorage.getItem('user')
+    // Redirect to login if not authenticated
+    if (!loading && !isAuthenticated) {
+        router.push('/')
+        return null
+    }
 
-                if (!isAuthenticated || !storedUser) {
-                    router.push('/')
-                    return
-                }
-
-                // Verify authentication with server
-                const response = await authAPI.getProfile()
-                if (response.success && response.data?.user) {
-                    setUser(response.data.user)
-                    // Update stored user data
-                    localStorage.setItem('user', JSON.stringify(response.data.user))
-                } else {
-                    // Clear invalid authentication state
-                    localStorage.removeItem('isAuthenticated')
-                    localStorage.removeItem('user')
-                    router.push('/')
-                }
-            } catch (error) {
-                console.error('Authentication check failed:', error)
-                // Clear authentication state on error
-                localStorage.removeItem('isAuthenticated')
-                localStorage.removeItem('user')
-                router.push('/')
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
-        checkAuth()
-    }, [router])
-
-    if (isLoading) {
+    if (loading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="text-center">

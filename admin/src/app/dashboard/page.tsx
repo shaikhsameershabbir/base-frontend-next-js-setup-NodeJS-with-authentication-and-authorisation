@@ -1,7 +1,5 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { AdminLayout } from "@/components/layout/admin-layout"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
@@ -23,23 +21,6 @@ import {
 } from "lucide-react"
 
 export default function DashboardPage() {
-    const router = useRouter()
-    const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-    useEffect(() => {
-        // Check authentication
-        const auth = localStorage.getItem("isAuthenticated")
-        if (!auth) {
-            router.push("/")
-        } else {
-            setIsAuthenticated(true)
-        }
-    }, [router])
-
-    if (!isAuthenticated) {
-        return null
-    }
-
     return (
         <AdminLayout>
             <div className="space-y-8 animate-fade-in">

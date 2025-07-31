@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { authAPI, User } from "@/lib/api-service"
+import { User } from "@/lib/api-service"
+import { useAuth } from "@/hooks/useAuth"
 import { Menu, LogOut, User as UserIcon, Settings } from "lucide-react"
 
 interface NavbarProps {
@@ -15,24 +16,18 @@ interface NavbarProps {
 
 export function Navbar({ onSidebarToggle, user }: NavbarProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false)
+    const { logout } = useAuth()
     const router = useRouter()
 
     const handleLogout = async () => {
         try {
             setIsLoggingOut(true)
-            await authAPI.logout()
-
-            // Clear local storage
-            localStorage.removeItem('isAuthenticated')
-            localStorage.removeItem('user')
-
+            await logout()
             // Redirect to login
             router.push("/")
         } catch (error) {
             console.error("Logout error:", error)
-            // Even if logout fails, clear local state and redirect
-            localStorage.removeItem('isAuthenticated')
-            localStorage.removeItem('user')
+            // Even if logout fails, redirect to login
             router.push("/")
         } finally {
             setIsLoggingOut(false)

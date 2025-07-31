@@ -284,8 +284,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
             } else {
                 console.log('⚠️ Other error occurred:', err.message);
-                // For other errors, show the error message
-                dispatch({ type: 'SET_ERROR', payload: err.message || 'Failed to fetch user profile' });
+                // For other errors, just set loading to false without showing error
+                dispatch({ type: 'SET_LOADING', payload: false });
             }
         }
     };
@@ -422,17 +422,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     // Set user in state (this makes them "logged in")
                     dispatch({ type: 'SET_USER', payload: parsedUser });
 
-                    // Debounce the profile fetch to prevent rapid successive calls
-                    if (fetchTimeoutRef.current) {
-                        clearTimeout(fetchTimeoutRef.current);
+                    // Only fetch profile if we have a valid token and user data
+                    if (isMountedRef.current) {
+                        // Get fresh data from server (in case data changed)
+                        await fetchUserProfile();
                     }
-
-                    fetchTimeoutRef.current = setTimeout(async () => {
-                        if (isMountedRef.current) {
-                            // Get fresh data from server (in case data changed)
-                            await fetchUserProfile();
-                        }
-                    }, 200);
                 } catch (err) {
                     console.error('❌ Error parsing user data:', err);
                     // If stored data is corrupted, clear it
@@ -464,7 +458,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 clearTimeout(fetchTimeoutRef.current);
             }
         };
-    }, []);
+    }, []); // Empty dependency array to run only once
 
     // ============================================================================
     // PROVIDER VALUE

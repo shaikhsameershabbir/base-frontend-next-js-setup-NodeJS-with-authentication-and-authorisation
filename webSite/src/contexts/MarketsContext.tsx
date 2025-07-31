@@ -295,16 +295,16 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
                 clearTimeout(fetchTimeoutRef.current);
             }
 
-            // Debounce the fetch call by 200ms to prevent rapid successive calls (increased for React Strict Mode)
+            // Debounce the fetch call by 500ms to prevent rapid successive calls
             fetchTimeoutRef.current = setTimeout(() => {
                 if (isMountedRef.current) {
                     fetchMarkets();
                 }
-            }, 200);
+            }, 500);
         }
 
         // If user logs out, reset markets state
-        if (!authState.isAuthenticated) {
+        if (!authState.isAuthenticated && state.markets.length > 0) {
             dispatch({ type: 'RESET_MARKETS' });
         }
 
@@ -314,7 +314,7 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
                 clearTimeout(fetchTimeoutRef.current);
             }
         };
-    }, [authState.isAuthenticated, authState.user, state.hasTriedFetch, state.lastFetched, state.loading]);
+    }, [authState.isAuthenticated, state.hasTriedFetch, state.lastFetched, state.loading]); // Removed authState.user from dependencies
 
     const value: MarketsContextType = {
         state,

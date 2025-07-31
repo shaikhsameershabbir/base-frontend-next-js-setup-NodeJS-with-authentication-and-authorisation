@@ -7,15 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { authAPI } from "@/lib/api-service"
+import { useAuth } from "@/hooks/useAuth"
 
 export function LoginForm() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState("")
     const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
+    const { login } = useAuth()
     const router = useRouter()
 
     const validateForm = () => {
@@ -41,37 +40,15 @@ export function LoginForm() {
         e.preventDefault()
         if (!validateForm()) return
 
-        setIsLoading(true)
-        setError("")
-
         try {
-            const response = await authAPI.login({ username, password })
-
-            if (response.success && response.data) {
-                // Store authentication state
-                localStorage.setItem('isAuthenticated', 'true')
-                localStorage.setItem('user', JSON.stringify(response.data.user))
-
+            const success = await login(username, password)
+            if (success) {
                 // Redirect to dashboard on successful login
                 router.push("/dashboard")
-            } else {
-                setError(response.message || "Login failed")
             }
         } catch (err: any) {
             console.error("Login error:", err)
-
-            // Handle specific error cases
-            if (err.response?.status === 429) {
-                setError("Too many login attempts. Please try again later.")
-            } else if (err.response?.status === 401) {
-                setError("Invalid username or password")
-            } else if (err.response?.data?.message) {
-                setError(err.response.data.message)
-            } else {
-                setError("An error occurred during login. Please try again.")
-            }
-        } finally {
-            setIsLoading(false)
+            // Error handling is now managed by the useAuth hook
         }
     }
 
@@ -110,7 +87,6 @@ export function LoginForm() {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className={`pl-12 pr-4 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.username ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
-                                    disabled={isLoading}
                                 />
                             </div>
                             {errors.username && (
@@ -129,7 +105,6 @@ export function LoginForm() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.password ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
-                                    disabled={isLoading}
                                 />
                                 <Button
                                     type="button"
@@ -137,7 +112,6 @@ export function LoginForm() {
                                     size="icon"
                                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    disabled={isLoading}
                                 >
                                     {showPassword ? (
                                         <EyeOff className="h-4 w-4" />
@@ -167,25 +141,11 @@ export function LoginForm() {
                             </Button>
                         </div>
 
-                        {error && (
-                            <div className="text-sm text-destructive text-center bg-destructive/10 p-3 rounded-lg">
-                                {error}
-                            </div>
-                        )}
-
                         <Button
                             type="submit"
                             className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-                            disabled={isLoading}
                         >
-                            {isLoading ? (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    Signing in...
-                                </div>
-                            ) : (
-                                "Sign in"
-                            )}
+                            Sign in
                         </Button>
                     </form>
 

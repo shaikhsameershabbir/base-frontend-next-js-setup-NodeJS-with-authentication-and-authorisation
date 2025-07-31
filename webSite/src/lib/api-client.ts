@@ -91,23 +91,19 @@ apiClient.interceptors.response.use(
                     return apiClient(originalRequest)
                 } else {
                     processQueue(new Error('Token refresh failed'), null)
-                    // Clear all local/session storage and redirect to login
+                    // Clear all local/session storage but DON'T redirect automatically
                     if (typeof window !== 'undefined') {
                         localStorage.clear();
                         sessionStorage.clear();
-                        // alert('Your session has expired. Please log in again.')
-                        window.location.href = "/"
                     }
                     throw new Error('Token refresh failed')
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null)
-                // Clear all local/session storage and redirect to login
+                // Clear all local/session storage but DON'T redirect automatically
                 if (typeof window !== 'undefined') {
                     localStorage.clear();
                     sessionStorage.clear();
-                    // alert('Your session has expired. Please log in again.')
-                    window.location.href = "/"
                 }
                 return Promise.reject(refreshError)
             } finally {
@@ -115,17 +111,13 @@ apiClient.interceptors.response.use(
             }
         }
 
-        // Handle other errors
+        // Handle other errors without automatic redirects
         if (error.response?.status === 403) {
-            if (typeof window !== 'undefined') {
-                alert("You don't have permission to perform this action.")
-            }
+            console.warn("Permission denied for this action.")
         }
 
         if (error.response?.status === 429) {
-            if (typeof window !== 'undefined') {
-                alert("Too many requests. Please wait a moment before trying again.")
-            }
+            console.warn("Too many requests. Please wait a moment before trying again.")
         }
 
         return Promise.reject(error)

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { authAPI, apiUtils, User } from '@/lib/api-service';
 
 interface AuthContextType {
@@ -18,27 +18,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Check authentication status on mount
     useEffect(() => {
         checkAuth();
     }, []);
 
     const checkAuth = async () => {
         try {
+            const storedAuth = localStorage.getItem('isAuthenticated');
+            const storedUser = localStorage.getItem('user');
+
+            if (!storedAuth || !storedUser) {
+                setLoading(false);
+                return;
+            }
+
             if (apiUtils.isAuthenticated()) {
                 const response = await authAPI.getProfile();
                 if (response.success && response.data?.user) {
                     setUser(response.data.user);
                     setIsAuthenticated(true);
+                    localStorage.setItem('user', JSON.stringify(response.data.user));
                 } else {
-                    // Invalid token, clear auth
                     apiUtils.clearAuth();
+                    localStorage.removeItem('isAuthenticated');
+                    localStorage.removeItem('user');
                     setIsAuthenticated(false);
                 }
+            } else {
+                localStorage.removeItem('isAuthenticated');
+                localStorage.removeItem('user');
+                setIsAuthenticated(false);
             }
         } catch (error) {
             console.error('Auth check failed:', error);
             apiUtils.clearAuth();
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('user');
             setIsAuthenticated(false);
         } finally {
             setLoading(false);
@@ -53,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (response.success && response.data?.user) {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
+                localStorage.setItem('isAuthenticated', 'true');
+                localStorage.setItem('user', JSON.stringify(response.data.user));
                 return true;
             } else {
                 throw new Error(response.message || 'Login failed');
@@ -61,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Login error:', error);
             setUser(null);
             setIsAuthenticated(false);
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('user');
             throw error;
         } finally {
             setLoading(false);
@@ -76,6 +95,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(null);
             setIsAuthenticated(false);
             apiUtils.clearAuth();
+            localStorage.removeItem('isAuthenticated');
+            localStorage.removeItem('user');
         }
     };
 
@@ -84,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await authAPI.updateProfile(data);
             if (response.success && response.data?.user) {
                 setUser(response.data.user);
+                localStorage.setItem('user', JSON.stringify(response.data.user));
                 return true;
             }
             return false;
@@ -102,11 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
     };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return React.createElement(AuthContext.Provider, { value }, children);
 }
 
 export function useAuth() {
