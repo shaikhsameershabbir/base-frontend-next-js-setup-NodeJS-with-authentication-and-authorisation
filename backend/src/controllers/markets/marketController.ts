@@ -37,9 +37,16 @@ export const getMarkets = async (req: AuthenticatedRequest, res: Response): Prom
 
 export const createMarket = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        console.log('------------------------------------------------->>');
-        const { marketName, openTime, closeTime } = req.body;
-        const createdBy = req.user?.username || req.user?.userId;
+        const { marketName, openTime, closeTime, isActive = true } = req.body;
+        const currentUser = req.user;
+
+        if (!currentUser) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+            return;
+        }
         if (!marketName || !openTime || !closeTime) {
             res.status(400).json({ success: false, message: 'All fields required' });
             return;

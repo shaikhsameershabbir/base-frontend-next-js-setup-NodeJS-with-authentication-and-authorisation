@@ -133,33 +133,25 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
     }, []);
 
     // Fetch current time
-    const fetchCurrentTime = async () => {
-        // Prevent multiple simultaneous calls
+    const fetchCurrentTime = useCallback(async () => {
         if (state.loading) {
-            console.log('🕐 Current time fetch already in progress, skipping...');
             return;
         }
 
-        // Prevent API calls if component is unmounted
         if (!isMountedRef.current) {
-            console.log('🕐 Component not mounted, skipping current time fetch...');
             return;
         }
 
         try {
-            console.log('🕐 Fetching current time...');
             dispatch({ type: 'FETCH_DATA_START' });
 
             const response = await betAPI.getCurrentTime();
 
-            // Check if component is still mounted before updating state
             if (!isMountedRef.current) {
-                console.log('🕐 Component unmounted during fetch, skipping state update...');
                 return;
             }
 
             if (response.success && response.data) {
-                console.log('✅ Current time fetched successfully');
                 dispatch({
                     type: 'FETCH_CURRENT_TIME_SUCCESS',
                     payload: response.data
@@ -168,20 +160,12 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
                 throw new Error(response.message || 'Failed to fetch current time');
             }
         } catch (error: any) {
-            console.error('❌ Error fetching current time:', error);
-
-            // Check if component is still mounted before updating state
-            if (!isMountedRef.current) {
-                console.log('🕐 Component unmounted during error, skipping state update...');
-                return;
-            }
-
             dispatch({
                 type: 'FETCH_DATA_ERROR',
                 payload: error.message || 'Failed to fetch current time'
             });
         }
-    };
+    }, [state.loading]);
 
     // Fetch market status
     const fetchMarketStatus = useCallback(async (marketId: string) => {
@@ -189,44 +173,37 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
         const now = Date.now();
         const lastFetch = lastFetchRef.current[marketId];
         if (lastFetch && (now - lastFetch) < 30000) {
-            console.log(`📊 Market status for ${marketId} was fetched recently, skipping...`);
             return;
         }
 
         // Check if there's already a pending request for this market
         if (pendingRequestsRef.current[marketId] !== undefined) {
-            console.log(`📊 Market status for ${marketId} already being fetched, waiting...`);
             try {
                 await pendingRequestsRef.current[marketId];
                 return;
             } catch (error) {
                 // If the pending request failed, we'll continue with a new request
-                console.log(`📊 Pending request for ${marketId} failed, retrying...`);
             }
         }
 
         // Prevent API calls if component is unmounted
         if (!isMountedRef.current) {
-            console.log('📊 Component not mounted, skipping market status fetch...');
             return;
         }
 
         // Create a new request promise
         const requestPromise = (async () => {
             try {
-                console.log(`📊 Fetching market status for ${marketId}...`);
                 dispatch({ type: 'FETCH_DATA_START' });
 
                 const response = await betAPI.getMarketStatus(marketId);
 
                 // Check if component is still mounted before updating state
                 if (!isMountedRef.current) {
-                    console.log('📊 Component unmounted during fetch, skipping state update...');
                     return;
                 }
 
                 if (response.success && response.data) {
-                    console.log(`✅ Market status for ${marketId} fetched successfully`);
                     // Update the last fetch time
                     lastFetchRef.current[marketId] = now;
                     dispatch({
@@ -237,14 +214,6 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
                     throw new Error(response.message || 'Failed to fetch market status');
                 }
             } catch (error: any) {
-                console.error(`❌ Error fetching market status for ${marketId}:`, error);
-
-                // Check if component is still mounted before updating state
-                if (!isMountedRef.current) {
-                    console.log('📊 Component unmounted during error, skipping state update...');
-                    return;
-                }
-
                 dispatch({
                     type: 'FETCH_DATA_ERROR',
                     payload: error.message || 'Failed to fetch market status'

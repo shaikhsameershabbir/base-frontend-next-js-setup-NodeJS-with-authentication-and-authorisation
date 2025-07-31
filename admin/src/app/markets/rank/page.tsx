@@ -54,31 +54,24 @@ export default function MarketRankPage() {
   };
 
   // Fetch market ranks for selected admin
-  const fetchMarketRanks = async (page = 1) => {
-    if (!selectedAdmin) return;
-
-    setLoading(true);
+  const fetchMarketRanks = async (page: number) => {
     try {
-      console.log('Fetching market ranks for page:', page, 'limit:', pagination.limit);
-      const response = await marketsAPI.getMarketRanks(selectedAdmin, page, pagination.limit);
+      setLoading(true);
+      const response = await marketsAPI.getMarketRanks(page, pagination.limit);
+
       if (response.success) {
-        console.log('Market ranks response:', response);
-        setMarketRanks(response.data);
-        setPagination({
-          page: response.pagination.page,
-          limit: response.pagination.limit,
-          total: response.pagination.total,
-          totalPages: response.pagination.totalPages
-        });
-        console.log('Updated pagination:', {
-          page: response.pagination.page,
-          limit: response.pagination.limit,
-          total: response.pagination.total,
-          totalPages: response.pagination.totalPages
-        });
+        setMarketRanks(response.data.marketRanks);
+        setPagination(prev => ({
+          ...prev,
+          page,
+          total: response.data.pagination.total,
+          totalPages: response.data.pagination.totalPages
+        }));
+      } else {
+        setError(response.message || 'Failed to fetch market ranks');
       }
-    } catch (error) {
-      console.error('Error fetching market ranks:', error);
+    } catch (error: any) {
+      setError(error.message || 'Failed to fetch market ranks');
     } finally {
       setLoading(false);
     }

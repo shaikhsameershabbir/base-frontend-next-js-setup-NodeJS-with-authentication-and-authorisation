@@ -14,11 +14,10 @@ export default function LoginPage() {
 
   // Redirect if already authenticated - only run once when isAuthenticated changes
   useEffect(() => {
-    if (!loading && isAuthenticated) {
-      console.log('🔄 User is authenticated, redirecting to home...');
-      router.replace('/home');
+    if (isAuthenticated) {
+      router.push('/home');
     }
-  }, [isAuthenticated, loading]); // Removed router from dependencies
+  }, [isAuthenticated, router]);
 
   // Show loading while checking authentication
   if (loading) {

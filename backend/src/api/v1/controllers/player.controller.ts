@@ -543,10 +543,9 @@ export class PlayerController {
                 });
                 return;
             }
-            console.log('------------------------->>', market.openTime, market.closeTime);
-            const status = getMarketStatus(market.openTime, market.closeTime);
-            console.log('------------------------->>', status);
 
+            // Get market status
+            const status = getMarketStatus(market.openTime, market.closeTime);
 
             res.json({
                 success: true,

@@ -147,9 +147,6 @@ export class UsersController {
         try {
             const authReq = req as AuthenticatedRequest;
             const { username, password, role, parentId } = req.body;
-            console.log('---------------------------------->');
-            console.log(username, password, role, parentId);
-            console.log('---------------------------------->');
 
             // Validate that user is authenticated
             if (!authReq.user) {
@@ -217,14 +214,18 @@ export class UsersController {
                 }
             }
 
-            // Create new user (password will be hashed by the model's pre-save hook)
+            const hashedPassword = await bcrypt.hash(password, 12);
+            const currentUser = authReq.user;
+
+            // Create new user
             const newUser = new User({
                 username,
-                password,
+                password: hashedPassword,
                 role,
-                parentId: finalParentId,
+                parentId,
+                balance: 0,
                 isActive: true,
-                balance: 0
+                createdBy: currentUser.userId
             });
 
             await newUser.save();

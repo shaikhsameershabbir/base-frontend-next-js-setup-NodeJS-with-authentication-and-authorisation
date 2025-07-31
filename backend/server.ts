@@ -1,24 +1,18 @@
 
 
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { connectDB } from './src/config/database';
 import app from './src/app';
-import { Config } from './src/config';
-import { logger } from './src/config/logger';
 
-const startServer = () => {
-    const PORT = Config.PORT
-    try {
-        app.listen(PORT, () => {
+dotenv.config();
 
-            console.log('smasher')
+const PORT = process.env.PORT || 5000;
 
-        });
-    } catch (error) {
-        logger.error(`Error while starting server: ${error}`);
-        // process.exit(1);
-    }
-
-
-}
-
-startServer();
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+});
 

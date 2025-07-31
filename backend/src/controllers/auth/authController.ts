@@ -88,11 +88,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Verify password
-        console.log('Attempting password comparison...');
+        // Compare password
         const isPasswordValid = await user.comparePassword(sanitizedPassword);
-        console.log('Password valid:', isPasswordValid);
-
         if (!isPasswordValid) {
             res.status(401).json({
                 success: false,

@@ -12,13 +12,6 @@ import { Button } from "@/components/ui/button";
 
 export default function Home() {
     const { state, getMarketStatus, getMarketStatusColor, fetchMarkets } = useMarkets();
-    console.log('Markets state:', {
-        loading: state.loading,
-        error: state.error,
-        marketsCount: state.markets.length,
-        markets: state.markets,
-        hasTriedFetch: state.hasTriedFetch
-    });
     return (
         <main className="min-h-screen bg-gray-100">
             <div className="pt-16">

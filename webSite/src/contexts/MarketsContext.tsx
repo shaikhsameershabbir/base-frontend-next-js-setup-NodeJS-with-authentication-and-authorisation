@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, ReactNode, useRef, useCallback } from 'react';
 import { marketsAPI } from '@/lib/api/auth';
 import { useAuthContext } from './AuthContext';
 
@@ -164,21 +164,17 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
     }, []);
 
     // Fetch markets from server
-    const fetchMarkets = async () => {
-        // Prevent multiple simultaneous calls
+    const fetchMarkets = useCallback(async () => {
         if (state.loading) {
-            console.log('🔄 Markets fetch already in progress, skipping...');
             return;
         }
 
         // Prevent API calls if component is unmounted (React Strict Mode)
         if (!isMountedRef.current) {
-            console.log('🔄 Component not mounted, skipping markets fetch...');
             return;
         }
 
         try {
-            console.log('🔄 Fetching markets...');
             dispatch({ type: 'FETCH_MARKETS_START' });
             dispatch({ type: 'SET_HAS_TRIED_FETCH' });
 
@@ -186,29 +182,23 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
 
             // Check if component is still mounted before updating state
             if (!isMountedRef.current) {
-                console.log('🔄 Component unmounted during fetch, skipping state update...');
                 return;
             }
 
             if (response.success && response.data) {
-                console.log('✅ Markets fetched successfully');
                 dispatch({
                     type: 'FETCH_MARKETS_SUCCESS',
                     payload: { assignments: response.data.assignments }
                 });
             } else {
-                console.log('❌ Markets fetch failed:', response.message);
                 dispatch({
                     type: 'FETCH_MARKETS_ERROR',
                     payload: response.message || 'Failed to fetch markets'
                 });
             }
         } catch (error: any) {
-            console.error('❌ Error fetching markets:', error);
-
             // Check if component is still mounted before updating state
             if (!isMountedRef.current) {
-                console.log('🔄 Component unmounted during error, skipping state update...');
                 return;
             }
 
@@ -226,7 +216,7 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
                 });
             }
         }
-    };
+    }, [state.loading]); // Removed authState.user from dependencies
 
     // Refresh markets
     const refreshMarkets = () => {
@@ -314,7 +304,7 @@ export const MarketsProvider: React.FC<MarketsProviderProps> = ({ children }) =>
                 clearTimeout(fetchTimeoutRef.current);
             }
         };
-    }, [authState.isAuthenticated, state.hasTriedFetch, state.lastFetched, state.loading]); // Removed authState.user from dependencies
+    }, [authState.isAuthenticated, state.hasTriedFetch, state.lastFetched, state.loading, fetchMarkets]); // Removed authState.user from dependencies
 
     const value: MarketsContextType = {
         state,

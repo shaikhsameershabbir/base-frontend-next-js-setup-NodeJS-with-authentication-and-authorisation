@@ -47,10 +47,22 @@ export default function SettingsPage() {
         }
     }, [router])
 
-    const handleSave = () => {
-        // In a real app, you'd save to an API
-        console.log("Saving settings:", settings)
-    }
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            const response = await settingsAPI.updateSettings(settings);
+
+            if (response.success) {
+                setMessage({ type: 'success', text: 'Settings saved successfully!' });
+            } else {
+                setMessage({ type: 'error', text: response.message || 'Failed to save settings' });
+            }
+        } catch (error: any) {
+            setMessage({ type: 'error', text: error.message || 'Failed to save settings' });
+        } finally {
+            setSaving(false);
+        }
+    };
 
     if (!isAuthenticated) {
         return null

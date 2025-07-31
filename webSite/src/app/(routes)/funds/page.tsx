@@ -32,7 +32,6 @@ function Page() {
 
   const handleBankFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", bankFormData);
     setShowBankForm(false);
   };
 
@@ -134,11 +133,11 @@ function Page() {
 
       {/* Modal */}
       {isModalOpen && selectedFund && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => setIsModalOpen(false)}
         >
-          <div 
+          <div
             className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -147,8 +146,8 @@ function Page() {
                 {activeSection === "add"
                   ? selectedFund.addfund.boxname
                   : activeSection === "withdraw"
-                  ? selectedFund.withdrawfund.boxname
-                  : "Bank Details"}
+                    ? selectedFund.withdrawfund.boxname
+                    : "Bank Details"}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}

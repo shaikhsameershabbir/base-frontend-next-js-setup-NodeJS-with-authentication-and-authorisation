@@ -33,25 +33,7 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         }
 
         // Validate hierarchy permissions
-        console.log('=== DEBUG: Market Assignment Permission Check ===');
-        console.log('Current user:', {
-            userId: currentUser.userId,
-            username: currentUser.username,
-            role: currentUser.role
-        });
-        console.log('Target user:', {
-            _id: String(targetUser._id),
-            username: targetUser.username,
-            role: targetUser.role
-        });
-
-        const canAssign = await validateAssignmentPermission(currentUser, {
-            _id: String(targetUser._id),
-            role: targetUser.role
-        });
-
-        console.log('Can assign result:', canAssign);
-        console.log('=== END DEBUG ===');
+        const canAssign = validateAssignmentPermission(currentUser, targetUser);
 
         if (!canAssign) {
             res.status(403).json({
@@ -84,8 +66,6 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
                 .map(assignment => assignment.marketId as unknown as IMarket);
         }
 
-        console.log('=--------------------------------------->>', availableMarkets);
-
         // Get already assigned markets
         const existingAssignments = await UserMarketAssignment.find({
             assignedTo: userId,
@@ -100,7 +80,7 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         const assignedMarketIds = validExistingAssignments.map(assignment =>
             String((assignment.marketId as unknown as IMarket)._id)
         );
-        
+
 
         const assignedMarkets = validExistingAssignments.map(assignment => {
             const market = assignment.marketId as unknown as IMarket;
@@ -192,10 +172,7 @@ export const assignMarketsToUser = async (req: AuthenticatedRequest, res: Respon
         }
 
         // Validate hierarchy permissions
-        const canAssign = await validateAssignmentPermission(currentUser, {
-            _id: String(targetUser._id),
-            role: targetUser.role
-        });
+        const canAssign = validateAssignmentPermission(currentUser, targetUser);
         if (!canAssign) {
             res.status(403).json({
                 success: false,
@@ -323,10 +300,7 @@ export const getAssignedMarkets = async (req: AuthenticatedRequest, res: Respons
         }
 
         // Validate access permissions
-        const canView = await validateViewPermission(currentUser, {
-            _id: String(targetUser._id),
-            role: targetUser.role
-        });
+        const canView = validateViewPermission(currentUser, targetUser);
         if (!canView) {
             res.status(403).json({
                 success: false,
@@ -435,10 +409,7 @@ export const removeMarketAssignments = async (req: AuthenticatedRequest, res: Re
         }
 
         // Validate hierarchy permissions
-        const canAssign = await validateAssignmentPermission(currentUser, {
-            _id: String(targetUser._id),
-            role: targetUser.role
-        });
+        const canAssign = validateAssignmentPermission(currentUser, targetUser);
         if (!canAssign) {
             res.status(403).json({
                 success: false,
@@ -482,14 +453,9 @@ export const removeMarketAssignments = async (req: AuthenticatedRequest, res: Re
 };
 
 // Helper function to validate assignment permissions
-const validateAssignmentPermission = async (currentUser: { userId: string; role: string }, targetUser: { _id: string; role: string }): Promise<boolean> => {
-    console.log('validateAssignmentPermission called with:');
-    console.log('currentUser.role:', currentUser.role, 'type:', typeof currentUser.role);
-    console.log('targetUser.role:', targetUser.role, 'type:', typeof targetUser.role);
-
+const validateAssignmentPermission = (currentUser: { userId: string; role: string }, targetUser: { _id: string; role: string }): boolean => {
     // Superadmin can assign to anyone
     if (currentUser.role === 'superadmin' || currentUser.role === 'Superadmin' || currentUser.role === 'SUPERADMIN') {
-        console.log('Superadmin detected, returning true');
         return true;
     }
 
@@ -513,7 +479,7 @@ const validateAssignmentPermission = async (currentUser: { userId: string; role:
 };
 
 // Helper function to validate view permissions
-const validateViewPermission = async (currentUser: { userId: string; role: string }, targetUser: { _id: string; role: string }): Promise<boolean> => {
+const validateViewPermission = (currentUser: { userId: string; role: string }, targetUser: { _id: string; role: string }): boolean => {
     // Superadmin can view anyone
     if (currentUser.role === 'superadmin' || currentUser.role === 'Superadmin' || currentUser.role === 'SUPERADMIN') {
         return true;

@@ -26,7 +26,9 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
     const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
+    if (!marketStatusData) {
+      return false;
+    }
 
     if (betType === 'open') {
       // Open betting is only allowed during open_betting period
@@ -48,17 +50,31 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     fetchMarketStatus(marketId);
   }, [marketId, fetchMarketStatus]);
 
+  // Update selectedBetType when it changes
+  useEffect(() => {
+    if (selectedBetType) {
+      // Reset digit inputs when bet type changes
+      setAmounts({
+        0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+      });
+      setSelectedAmount(null);
+    }
+  }, [selectedBetType]);
+
   // Set default bet type when market status changes
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        if (isBetTypeAllowed('open')) {
+          setSelectedBetType('open');
+        } else if (isBetTypeAllowed('close')) {
+          setSelectedBetType('close');
+        }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
@@ -271,30 +287,42 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('open')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                      ? 'text-white bg-green-600 shadow-md scale-105'
-                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                      }`}
-                  >
-                    OPEN
-                  </button>
-                )}
-                {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('close')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                      ? 'text-white bg-blue-600 shadow-md scale-105'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                      }`}
-                  >
-                    CLOSE
-                  </button>
-                )}
+                {(() => {
+                  const openAllowed = isBetTypeAllowed('open');
+                  const closeAllowed = isBetTypeAllowed('close');
+                  return (
+                    <>
+                      {openAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('open');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                            ? 'text-white bg-green-600 shadow-md scale-105'
+                            : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                            }`}
+                        >
+                          OPEN
+                        </button>
+                      )}
+                      {closeAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('close');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                            ? 'text-white bg-blue-600 shadow-md scale-105'
+                            : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                            }`}
+                        >
+                          CLOSE
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
 

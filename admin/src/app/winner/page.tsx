@@ -264,114 +264,29 @@ export default function WinnerPage() {
     const organizeDataByGameTypes = (rawData: any) => {
         if (!rawData || !rawData.data) return null;
 
+        // Organize data by result type
         const organizedData: any = {
-            single: {},
-            double: {},
             singlePanna: {},
             doublePanna: {},
             triplePanna: {},
-            sangam: {}
+            halfSangam: {},
+            fullSangam: {}
         };
 
-        // Debug tracking for specific numbers
-        const debugTracking: any = {};
+        // Process each result
+        rawData.data.forEach((result: any) => {
+            const { resultType, resultValue, amount } = result;
 
-        // Helper function to add values (aggregate if same number exists)
-        const addToCategory = (category: string, number: string, amount: number, source: string) => {
-            // Debug tracking
-            if (!debugTracking[number]) {
-                debugTracking[number] = [];
-            }
-            debugTracking[number].push({ category, amount, source });
-
-            if (organizedData[category][number]) {
-                organizedData[category][number] += amount;
-            } else {
-                organizedData[category][number] = amount;
-            }
-        };
-
-        // Process each game type
-        Object.entries(rawData.data).forEach(([gameType, gameData]: [string, any]) => {
-            // Handle sangam games separately
-            if (gameType === 'half_sangam_open' || gameType === 'half_sangam_close' || gameType === 'full_sangam') {
-                // For sangam games, always use 'both' data
-                const sangamData = gameData.both || {};
-                Object.entries(sangamData).forEach(([number, amount]: [string, any]) => {
-                    if (!organizedData.sangam[gameType]) {
-                        organizedData.sangam[gameType] = {};
-                    }
-                    organizedData.sangam[gameType][number] = amount;
-                });
-                return; // Skip further processing for sangam games
+            if (!organizedData[resultType]) {
+                organizedData[resultType] = {};
             }
 
-            // Determine which bet type to use based on filter
-            let betTypeData: any = {};
-
-            if (selectedBetType === 'all') {
-                // Combine open and close data properly by adding values
-                const openData = gameData.open || {};
-                const closeData = gameData.close || {};
-
-                // Merge by adding values for same keys
-                betTypeData = { ...openData };
-                Object.entries(closeData).forEach(([key, value]) => {
-                    if (betTypeData[key]) {
-                        betTypeData[key] += value;
-                    } else {
-                        betTypeData[key] = value;
-                    }
-                });
-            } else if (selectedBetType === 'open' && gameData.open) {
-                betTypeData = gameData.open;
-            } else if (selectedBetType === 'close' && gameData.close) {
-                betTypeData = gameData.close;
+            if (!organizedData[resultType][resultValue]) {
+                organizedData[resultType][resultValue] = 0;
             }
 
-            // Process regular numbers
-            Object.entries(betTypeData).forEach(([number, amount]: [string, any]) => {
-                const numLength = number.length;
-                const numValue = parseInt(number);
-
-                if (numLength === 1) {
-                    // Single digit (0-9)
-                    addToCategory('single', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                } else if (numLength === 2) {
-                    // Double digit (00-99) - always goes to double
-                    addToCategory('double', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                } else if (numLength === 3) {
-                    // Triple digit - categorize based on panna arrays
-                    // Handle "000" specially - it's a triple panna but different from 0
-                    if (number === "000") {
-                        addToCategory('triplePanna', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                    } else if (triplePannaNumbers.includes(numValue)) {
-                        addToCategory('triplePanna', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                    } else if (singlePannaNumbers.includes(numValue)) {
-                        addToCategory('singlePanna', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                    } else if (doublePannaNumbers.includes(numValue)) {
-                        addToCategory('doublePanna', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                    } else {
-                        // If not in any panna array, put in double
-                        addToCategory('double', number, amount, `${gameType}.${selectedBetType === 'all' ? 'open+close' : selectedBetType}`);
-                    }
-                }
-            });
-
-            // Handle "both" data separately - it always goes to double
-            if (gameData.both) {
-                Object.entries(gameData.both).forEach(([number, amount]: [string, any]) => {
-                    // Both data always goes to double category
-                    addToCategory('double', number, amount, `${gameType}.both`);
-                });
-            }
+            organizedData[resultType][resultValue] += amount;
         });
-
-        // Debug log for specific numbers
-        if (debugTracking['120']) {
-            console.log('Debug for 120:', debugTracking['120']);
-            console.log('Final value for 120:', organizedData.singlePanna['120']);
-        }
 
         return organizedData;
     };
@@ -594,7 +509,7 @@ export default function WinnerPage() {
 
         // Process all numbers and categorize by digit sum
         Object.entries(organizedData).forEach(([category, numbers]) => {
-            if (category === 'sangam') return; // Skip sangam for now
+            if (category === 'halfSangam' || category === 'fullSangam') return; // Skip sangam for now
 
             Object.entries(numbers as Record<string, number>).forEach(([number, amount]) => {
                 // Skip single digits (0-9) and double digits (00-99)

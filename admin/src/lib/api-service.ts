@@ -213,7 +213,7 @@ export const authAPI = {
         return response.data;
     },
 
-    getProfile: async (): Promise<ApiResponse<{ user: User }>> => {
+    getProfile: async (): Promise<ApiResponse<User>> => {
         const response = await apiClient.get('/auth/profile');
         return response.data;
     },
@@ -279,7 +279,6 @@ export const usersAPI = {
     // Market assignment APIs
     getAvailableMarkets: async (userId: string): Promise<ApiResponse<{ markets: Market[] }>> => {
         const response = await apiClient.get(`/users/${userId}/available-markets`);
-        console.log(response.data)
         return response.data;
     },
 

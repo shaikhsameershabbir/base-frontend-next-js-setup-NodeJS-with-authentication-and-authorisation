@@ -6,8 +6,6 @@ import { AuthenticatedRequest } from '../../api/v1/middlewares/auth.middleware';
 
 export const createUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        console.log(req.body);
-
         const { username, password, balance, role, parentId } = req.body;
         const currentUser = req.user;
 

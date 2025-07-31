@@ -226,18 +226,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const fetchUserProfile = async (): Promise<void> => {
         // Prevent multiple simultaneous calls
         if (state.loading) {
-            console.log('🔄 Profile fetch already in progress, skipping...');
             return;
         }
 
         // Prevent API calls if component is unmounted (React Strict Mode)
         if (!isMountedRef.current) {
-            console.log('🔄 Component not mounted, skipping profile fetch...');
             return;
         }
 
         try {
-            console.log('🔄 Fetching user profile from server...');
             // Start loading
             dispatch({ type: 'SET_LOADING', payload: true });
 
@@ -246,29 +243,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
             // Check if component is still mounted before updating state
             if (!isMountedRef.current) {
-                console.log('🔄 Component unmounted during fetch, skipping state update...');
                 return;
             }
 
             if (response.success && response.data) {
-                console.log('✅ User profile fetched successfully');
                 // If successful, set the user data
                 dispatch({ type: 'SET_USER', payload: response.data.user });
             } else {
                 throw new Error(response.message || 'Failed to fetch user profile');
             }
         } catch (err: any) {
-            console.error('❌ Error fetching user profile:', err);
-
             // Check if component is still mounted before updating state
             if (!isMountedRef.current) {
-                console.log('🔄 Component unmounted during error, skipping state update...');
                 return;
             }
 
             // If it's an authentication error (401/403), user is not logged in
             if (err.response?.status === 401 || err.response?.status === 403) {
-                console.log('🚫 Authentication error, clearing user data');
                 // Clear all authentication data
                 dispatch({ type: 'LOGOUT' });
                 localStorage.removeItem('isAuthenticated');
@@ -283,7 +274,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 }
             } else {
-                console.log('⚠️ Other error occurred:', err.message);
                 // For other errors, just set loading to false without showing error
                 dispatch({ type: 'SET_LOADING', payload: false });
             }
@@ -330,8 +320,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 return false;
             }
         } catch (err: any) {
-            console.error('Login error:', err);
-
             // Handle different types of errors
             let errorMessage = 'Login failed. Please try again.';
 
@@ -403,19 +391,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      */
     useEffect(() => {
         const initializeAuth = async () => {
-            console.log('🔐 Initializing authentication...');
-
             // Check if user was logged in before
             const isAuth = localStorage.getItem('isAuthenticated');
             const userData = localStorage.getItem('user');
             const accessToken = localStorage.getItem('accessToken');
 
-            console.log('📊 Stored auth data:', { isAuth, hasUserData: !!userData, hasToken: !!accessToken });
-
             if (isAuth && userData && accessToken) {
                 try {
-                    console.log('🔄 Found stored auth data, attempting to restore session...');
-
                     // Parse stored user data
                     const parsedUser = JSON.parse(userData);
 
@@ -438,7 +420,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     dispatch({ type: 'SET_LOADING', payload: false });
                 }
             } else {
-                console.log('🚫 No stored auth data found, user is not logged in');
                 // No stored data, user is not logged in
                 // Clear any partial data
                 localStorage.removeItem('isAuthenticated');

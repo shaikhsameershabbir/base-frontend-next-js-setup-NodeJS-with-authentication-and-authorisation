@@ -12,45 +12,40 @@ export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
             const { username, password, loginSource = 'unknown' } = req.body;
-            // Find user by username
+            // Check if user exists
             const user = await User.findOne({ username });
             if (!user) {
-                console.log('user not found ')
                 res.status(401).json({
                     success: false,
-                    message: 'Invalid username or password'
+                    message: 'Invalid credentials'
                 });
                 return;
             }
 
             // Check if user is active
             if (!user.isActive) {
-                console.log('user is not active')
                 res.status(401).json({
-
                     success: false,
-                    message: 'Your account has been deactivated. Please contact support.'
+                    message: 'Account is deactivated'
                 });
                 return;
             }
 
-            // For web application, only allow player role
-            if (loginSource === 'web' && user.role !== 'player') {
-                console.log('user is not a player')
-                res.status(403).json({
+            // Check if user is a player
+            if (user.role !== 'player') {
+                res.status(401).json({
                     success: false,
-                    message: 'Access denied. This application is only for players.'
+                    message: 'Access denied. Only players can login here.'
                 });
                 return;
             }
 
             // Verify password
-            const isValidPassword = await bcrypt.compare(password, user.password);
-            if (!isValidPassword) {
-                console.log('invalid password')
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
                 res.status(401).json({
                     success: false,
-                    message: 'Invalid username or password'
+                    message: 'Invalid credentials'
                 });
                 return;
             }
