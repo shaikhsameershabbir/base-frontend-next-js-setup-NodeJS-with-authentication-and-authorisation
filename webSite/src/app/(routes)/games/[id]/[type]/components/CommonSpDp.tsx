@@ -3,9 +3,8 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import { singlePannaNumbers, doublePannaNumbers } from '@/app/constant/constant';
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface CommonSpDpProps {
   marketId: string;
@@ -15,14 +14,14 @@ interface CommonSpDpProps {
 const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { showError, showSuccess, showInfo } = useNotification();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({});
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close' | null>(null);
   const [selectedGameMode, setSelectedGameMode] = useState<'SP' | 'DP' | 'SP-DP'>('SP');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
 
   const [inputDigits, setInputDigits] = useState<string>('');
   const [validPannas, setValidPannas] = useState<string[]>([]);
@@ -49,17 +48,31 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     fetchMarketStatus(marketId);
   }, [marketId, fetchMarketStatus]);
 
+  // Update selectedBetType when it changes
+  useEffect(() => {
+    if (selectedBetType) {
+      // Reset digit inputs when bet type changes
+      setAmounts({});
+      setSelectedAmount(null);
+      setInputDigits('');
+      setValidPannas([]);
+    }
+  }, [selectedBetType]);
+
   // Set default bet type when market status changes
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        if (isBetTypeAllowed('open')) {
+          setSelectedBetType('open');
+        } else if (isBetTypeAllowed('close')) {
+          setSelectedBetType('close');
+        }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
 
   // Filter pannas based on input digits and game mode
   useEffect(() => {
@@ -104,8 +117,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           })
           .map(num => num.toString().padStart(3, '0'));
 
-        // Combine and remove duplicates
-        filteredPannas = Array.from(new Set([...spPannas, ...dpPannas]));
+        filteredPannas = [...spPannas, ...dpPannas];
       }
 
       setValidPannas(filteredPannas);
@@ -131,8 +143,6 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     }
   }, [inputDigits, selectedGameMode, selectedAmount]);
 
-
-
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
     return isBetTypeAllowed('open') || isBetTypeAllowed('close');
@@ -148,46 +158,57 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
     // Check if user has sufficient balance
     if (!user) {
-      toast.error('User not authenticated. Please login again.');
+      showError('Authentication Error', 'User not authenticated. Please login again.');
       return;
     }
 
     if (user.balance < total) {
-      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      showError('Insufficient Balance', `You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
       return;
     }
 
     if (total === 0) {
-      toast.error('Please select at least one panna to bet on.');
+      showError('No Selection', 'Please select at least one panna to bet on.');
       return;
     }
 
     if (!inputDigits || inputDigits.length === 0) {
-      toast.error('Please enter digits to generate pannas.');
+      showError('Invalid Input', 'Please enter digits to generate pannas.');
       return;
     }
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
-      toast.error(statusMessage);
+      const marketStatusData = getMarketStatus(marketId);
+      const statusMessage = marketStatusData?.message || 'Betting is not allowed at this time';
+      showError('Betting Not Allowed', statusMessage);
       return;
     }
 
     // Use the user's selected bet type
-    if (!isBetTypeAllowed(selectedBetType)) {
-      toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
+    if (!isBetTypeAllowed(selectedBetType!)) {
+      showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Determine game type based on selected mode
+      let gameType: string;
+      if (selectedGameMode === 'SP') {
+        gameType = 'common_sp';
+      } else if (selectedGameMode === 'DP') {
+        gameType = 'common_dp';
+      } else {
+        gameType = 'common_sp_dp';
+      }
+
       // Call the bet API
       const response = await betAPI.placeBet({
         marketId,
-        gameType: selectedGameMode === 'SP' ? 'common_sp' : selectedGameMode === 'DP' ? 'common_dp' : 'common_sp_dp',
-        betType: selectedBetType,
+        gameType,
+        betType: selectedBetType!,
         numbers: amounts,
         amount: total
       });
@@ -196,7 +217,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
         // Update user balance with the new balance from the response
         updateBalance(response.data.userAfterAmount);
 
-        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+        showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
         setAmounts({});
@@ -204,11 +225,11 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
         setInputDigits('');
         setValidPannas([]);
       } else {
-        toast.error(response.message || 'Failed to place bet');
+        showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
       console.error('Bet placement error:', error);
-      toast.error(error.message || 'Failed to place bet. Please try again.');
+      showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -238,33 +259,45 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-bold text-gray-800">{marketName} - Common SP/DP</span>
+              <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('open')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                      ? 'text-white bg-green-600 shadow-md scale-105'
-                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                      }`}
-                  >
-                    OPEN
-                  </button>
-                )}
-                {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('close')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                      ? 'text-white bg-blue-600 shadow-md scale-105'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                      }`}
-                  >
-                    CLOSE
-                  </button>
-                )}
+                {(() => {
+                  const openAllowed = isBetTypeAllowed('open');
+                  const closeAllowed = isBetTypeAllowed('close');
+                  return (
+                    <>
+                      {openAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('open');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                            ? 'text-white bg-green-600 shadow-md scale-105'
+                            : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                            }`}
+                        >
+                          OPEN
+                        </button>
+                      )}
+                      {closeAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('close');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                            ? 'text-white bg-blue-600 shadow-md scale-105'
+                            : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                            }`}
+                        >
+                          CLOSE
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -316,7 +349,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Choose Game Mode</h2>
+              <h2 className="text-base font-bold text-gray-800">Select Game Mode</h2>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -325,19 +358,11 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                   key={mode}
                   type="button"
                   onClick={() => setSelectedGameMode(mode)}
-                  className={`flex items-center justify-center py-3 rounded-lg border transition-all font-semibold text-lg ${selectedGameMode === mode
-                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white border-orange-500 shadow-lg'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-orange-50 hover:border-orange-300'
+                  className={`p-3 rounded-xl font-semibold transition-all duration-200 ${selectedGameMode === mode
+                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg scale-105'
+                    : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-orange-300 hover:shadow-md'
                     }`}
                 >
-                  <span className="mr-2">
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
-                      <circle cx="10" cy="10" r="9" stroke={selectedGameMode === mode ? "#fff" : "#F97316"} strokeWidth="2" fill={selectedGameMode === mode ? "#fff" : "none"} />
-                      {selectedGameMode === mode && (
-                        <circle cx="10" cy="10" r="5" fill="#F97316" />
-                      )}
-                    </svg>
-                  </span>
                   {mode}
                 </button>
               ))}
@@ -347,7 +372,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           {/* Input Digits Section */}
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
               <h2 className="text-base font-bold text-gray-800">Enter Digits</h2>
             </div>
 
@@ -356,9 +381,9 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
                 type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
-                placeholder="Enter digits (e.g., 123)"
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-black"
-                maxLength={9}
+                placeholder="Enter digits (e.g., 12345)"
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black"
+                maxLength={10}
               />
               <div className="flex items-center">
                 <span className="text-sm text-gray-600">
@@ -372,7 +397,7 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           {validPannas.length > 0 && (
             <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-base font-bold text-gray-800">Filtered Pannas (Auto-placed)</h2>
               </div>
 
@@ -444,18 +469,6 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
           </div>
         </form>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

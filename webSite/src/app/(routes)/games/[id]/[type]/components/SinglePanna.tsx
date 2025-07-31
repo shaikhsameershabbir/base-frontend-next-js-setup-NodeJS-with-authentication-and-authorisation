@@ -2,9 +2,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface SubRangeType {
   [key: string]: number[];
@@ -18,15 +17,14 @@ interface SinglePannaProps {
 const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { showError, showSuccess, showInfo } = useNotification();
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedNumber, setSelectedNumber] = useState<number>(0);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-
 
   const subRanges: SubRangeType = {
     "0": [127, 136, 145, 190, 235, 280, 370, 389, 460, 479, 569, 578],
@@ -67,13 +65,22 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        if (isBetTypeAllowed('open')) {
+          setSelectedBetType('open');
+        } else if (isBetTypeAllowed('close')) {
+          setSelectedBetType('close');
+        }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+
+  // Reset amounts and selectedAmount when selectedBetType changes
+  useEffect(() => {
+    setAmounts({});
+    setSelectedAmount(null);
+  }, [selectedBetType]);
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -88,7 +95,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
   // When a panna is clicked, if amount is selected, add that amount to the panna's value
   const handlePannaClick = (panna: number, isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      toast.error('Please select an amount first.');
+      showError('Amount Required', 'Please select an amount first.');
       return;
     }
 
@@ -115,7 +122,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     const timer = setTimeout(() => {
       setIsLongPressing(true);
       subtractAction();
-      toast.info('Long press to subtract amount');
+      showInfo('Long Press', 'Long press to subtract amount');
     }, 500); // 500ms long press
     setLongPressTimer(timer);
   };
@@ -148,30 +155,30 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
 
     // Check if user has sufficient balance
     if (!user) {
-      toast.error('User not authenticated. Please login again.');
+      showError('Authentication Error', 'User not authenticated. Please login again.');
       return;
     }
 
     if (user.balance < total) {
-      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      showError('Insufficient Balance', `You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
       return;
     }
 
     if (total === 0) {
-      toast.error('Please select at least one panna to bet on.');
+      showError('No Selection', 'Please select at least one panna to bet on.');
       return;
     }
 
     // Frontend time validation
     if (!isBettingAllowed()) {
       const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
-      toast.error(statusMessage);
+      showError('Betting Not Allowed', statusMessage);
       return;
     }
 
     // Use the user's selected bet type
-    if (!isBetTypeAllowed(selectedBetType)) {
-      toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
+    if (!isBetTypeAllowed(selectedBetType!)) {
+      showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
 
@@ -182,7 +189,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'single_panna',
-        betType: selectedBetType,
+        betType: selectedBetType!,
         numbers: amounts,
         amount: total
       });
@@ -191,17 +198,17 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
         // Update user balance with the new balance from the response
         updateBalance(response.data.userAfterAmount);
 
-        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+        showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
         setAmounts({});
         setSelectedAmount(null);
       } else {
-        toast.error(response.message || 'Failed to place bet');
+        showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
       console.error('Bet placement error:', error);
-      toast.error(error.message || 'Failed to place bet. Please try again.');
+      showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -418,18 +425,6 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
           </div>
         </form>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

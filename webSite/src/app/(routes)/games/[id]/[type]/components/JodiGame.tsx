@@ -1,9 +1,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface JodiGameProps {
   marketId: string;
@@ -13,16 +12,15 @@ interface JodiGameProps {
 const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { showError, showSuccess, showInfo } = useNotification();
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
   const [total, setTotal] = useState<number>(0);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedRange, setSelectedRange] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
+  const [selectedBetType, setSelectedBetType] = useState<'both' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-
 
   // Calculate total whenever amounts change
   useEffect(() => {
@@ -47,11 +45,20 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      if (isBetTypeAllowed('both')) {
-        setSelectedBetType('both');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        if (isBetTypeAllowed('both')) {
+          setSelectedBetType('both');
+        }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+
+  // Reset amounts and selectedAmount when selectedBetType changes
+  useEffect(() => {
+    setAmounts({});
+    setSelectedAmount(null);
+  }, [selectedBetType]);
 
   // Automatically determine the current bet type based on market status
   const getCurrentBetType = (): 'both' | null => {
@@ -72,8 +79,6 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
     return marketStatusData.status === 'open_betting';
   };
 
-
-
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
     setSelectedAmount(amt);
@@ -82,7 +87,7 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
   // When a digit input is clicked, if amount is selected, add that amount to the digit's value
   const handleDigitClick = (digit: number, isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      toast.error('Please select an amount first.');
+      showError('Amount Required', 'Please select an amount first.');
       return;
     }
 
@@ -109,7 +114,7 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
     const timer = setTimeout(() => {
       setIsLongPressing(true);
       subtractAction();
-      toast.info('Long press to subtract amount');
+      showInfo('Long Press', 'Long press to subtract amount');
     }, 500); // 500ms long press
     setLongPressTimer(timer);
   };
@@ -142,24 +147,24 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
 
     // Check if user has sufficient balance
     if (!user) {
-      toast.error('User not authenticated. Please login again.');
+      showError('Authentication Error', 'User not authenticated. Please login again.');
       return;
     }
 
     if (user.balance < total) {
-      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      showError('Insufficient Balance', `You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
       return;
     }
 
     if (total === 0) {
-      toast.error('Please select at least one number to bet on.');
+      showError('No Selection', 'Please select at least one number to bet on.');
       return;
     }
 
     // Frontend time validation
     if (!isBettingAllowed()) {
       const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
-      toast.error(statusMessage);
+      showError('Betting Not Allowed', statusMessage);
       return;
     }
 
@@ -168,7 +173,7 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
     try {
       // Jodi game only allows betting during open betting period
       if (!isBettingAllowed()) {
-        toast.error('Jodi betting is only available during open betting period');
+        showError('Betting Not Available', 'Jodi betting is only available during open betting period');
         return;
       }
 
@@ -185,18 +190,18 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
         // Update user balance with the new balance from the response
         updateBalance(response.data.userAfterAmount);
 
-        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+        showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
         setAmounts({});
         setSelectedAmount(null);
         setSelectedRange(null);
       } else {
-        toast.error(response.message || 'Failed to place bet');
+        showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
       console.error('Bet placement error:', error);
-      toast.error(error.message || 'Failed to place bet. Please try again.');
+      showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -404,18 +409,6 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
           </div>
         </form>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

@@ -2,9 +2,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface RedBracketProps {
   marketId: string;
@@ -14,13 +13,12 @@ interface RedBracketProps {
 const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { showError, showSuccess, showInfo } = useNotification();
 
   // Core state from SingleGame
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
+  const [selectedBetType, setSelectedBetType] = useState<'both' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-
 
   // RedBracket specific state
   const [selectedBracketType, setSelectedBracketType] = useState<'half' | 'full' | ''>('');
@@ -51,10 +49,19 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      // RedBracket game only allows 'both' betting type
-      setSelectedBetType('both');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        // RedBracket game only allows 'both' betting type
+        setSelectedBetType('both');
+      }
     }
-  }, [marketId, getMarketStatus]);
+  }, [marketId, getMarketStatus, selectedBetType]);
+
+  // Reset amounts and selectedAmount when selectedBetType changes
+  useEffect(() => {
+    setAmounts({});
+    setSelectedAmount(null);
+  }, [selectedBetType]);
 
   // Generate bracket numbers when type or number changes
   useEffect(() => {
@@ -114,39 +121,39 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
     e.preventDefault();
 
     if (!user) {
-      toast.error('User not authenticated. Please login again.');
+      showError('Authentication Error', 'User not authenticated. Please login again.');
       return;
     }
 
     if (!selectedBracketType) {
-      toast.error('Please select a bracket type.');
+      showError('Selection Required', 'Please select a bracket type.');
       return;
     }
 
     if (selectedBracketType === 'half' && !bracketNumber) {
-      toast.error('Please enter a bracket number (1-9).');
+      showError('Input Required', 'Please enter a bracket number (1-9).');
       return;
     }
 
     if (user.balance < total) {
-      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      showError('Insufficient Balance', `You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
       return;
     }
 
     if (total === 0) {
-      toast.error('Please select an amount to bet.');
+      showError('No Selection', 'Please select an amount to bet.');
       return;
     }
 
     if (!isBettingAllowed()) {
       const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
-      toast.error(statusMessage);
+      showError('Betting Not Allowed', statusMessage);
       return;
     }
 
     // RedBracket game only allows betting during open betting period
     if (!isBettingAllowed()) {
-      toast.error('RedBracket betting is only available during open betting period');
+      showError('Betting Not Available', 'RedBracket betting is only available during open betting period');
       return;
     }
 
@@ -164,7 +171,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
 
       if (response.success && response.data) {
         updateBalance(response.data.userAfterAmount);
-        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+        showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
         setSelectedBracketType('');
@@ -173,11 +180,11 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
         setAmounts({});
         setSelectedAmount(null);
       } else {
-        toast.error(response.message || 'Failed to place bet');
+        showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
       console.error('Bet placement error:', error);
-      toast.error(error.message || 'Failed to place bet. Please try again.');
+      showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -401,18 +408,6 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
           </div>
         </form>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };

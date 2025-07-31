@@ -2,9 +2,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { toast, ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useGameData } from '@/contexts/GameDataContext';
+import { useNotification } from '@/contexts/NotificationContext';
 
 interface TriplepannaProps {
   marketId: string;
@@ -20,16 +19,15 @@ const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Market' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { showError, showSuccess, showInfo } = useNotification();
 
   // Store each triple panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: string]: number }>({
     '000': 0, '111': 0, '222': 0, '333': 0, '444': 0, '555': 0, '666': 0, '777': 0, '888': 0, '999': 0
   });
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-
 
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
@@ -53,17 +51,31 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     fetchMarketStatus(marketId);
   }, [marketId, fetchMarketStatus]);
 
+  // Update selectedBetType when it changes
+  useEffect(() => {
+    if (selectedBetType) {
+      // Reset digit inputs when bet type changes
+      setAmounts({
+        '000': 0, '111': 0, '222': 0, '333': 0, '444': 0, '555': 0, '666': 0, '777': 0, '888': 0, '999': 0
+      });
+      setSelectedAmount(null);
+    }
+  }, [selectedBetType]);
+
   // Set default bet type when market status changes
   useEffect(() => {
     const marketStatusData = getMarketStatus(marketId);
     if (marketStatusData) {
-      if (isBetTypeAllowed('open')) {
-        setSelectedBetType('open');
-      } else if (isBetTypeAllowed('close')) {
-        setSelectedBetType('close');
+      // Only set default if no bet type is currently selected
+      if (selectedBetType === null) {
+        if (isBetTypeAllowed('open')) {
+          setSelectedBetType('open');
+        } else if (isBetTypeAllowed('close')) {
+          setSelectedBetType('close');
+        }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed]);
+  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
 
   // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
@@ -78,7 +90,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
   // When a triple panna is clicked, if amount is selected, add that amount to the panna's value
   const handlePannaClick = (digit: string, isRightClick: boolean = false) => {
     if (selectedAmount === null) {
-      toast.error('Please select an amount first.');
+      showError('Amount Required', 'Please select an amount first.');
       return;
     }
 
@@ -105,7 +117,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     const timer = setTimeout(() => {
       setIsLongPressing(true);
       subtractAction();
-      toast.info('Long press to subtract amount');
+      showInfo('Long Press', 'Long press to subtract amount');
     }, 500); // 500ms long press
     setLongPressTimer(timer);
   };
@@ -138,30 +150,30 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
 
     // Check if user has sufficient balance
     if (!user) {
-      toast.error('User not authenticated. Please login again.');
+      showError('Authentication Error', 'User not authenticated. Please login again.');
       return;
     }
 
     if (user.balance < total) {
-      toast.error(`Insufficient balance. You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
+      showError('Insufficient Balance', `You have ₹${user.balance.toLocaleString()} but need ₹${total.toLocaleString()}`);
       return;
     }
 
     if (total === 0) {
-      toast.error('Please select at least one triple panna to bet on.');
+      showError('No Selection', 'Please select at least one triple panna to bet on.');
       return;
     }
 
     // Frontend time validation
     if (!isBettingAllowed()) {
       const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
-      toast.error(statusMessage);
+      showError('Betting Not Allowed', statusMessage);
       return;
     }
 
     // Use the user's selected bet type
-    if (!isBetTypeAllowed(selectedBetType)) {
-      toast.error(`${selectedBetType.toUpperCase()} betting is not available at this time`);
+    if (!isBetTypeAllowed(selectedBetType!)) {
+      showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
 
@@ -172,7 +184,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'triple_panna',
-        betType: selectedBetType,
+        betType: selectedBetType!,
         numbers: amounts,
         amount: total
       });
@@ -181,7 +193,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
         // Update user balance with the new balance from the response
         updateBalance(response.data.userAfterAmount);
 
-        toast.success(`Bet placed successfully! Amount: ₹${total.toLocaleString()}`);
+        showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
         setAmounts({
@@ -189,11 +201,11 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
         });
         setSelectedAmount(null);
       } else {
-        toast.error(response.message || 'Failed to place bet');
+        showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
       console.error('Bet placement error:', error);
-      toast.error(error.message || 'Failed to place bet. Please try again.');
+      showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -223,30 +235,42 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('open')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                      ? 'text-white bg-green-600 shadow-md scale-105'
-                      : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                      }`}
-                  >
-                    OPEN
-                  </button>
-                )}
-                {isBetTypeAllowed('close') && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBetType('close')}
-                    className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                      ? 'text-white bg-blue-600 shadow-md scale-105'
-                      : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                      }`}
-                  >
-                    CLOSE
-                  </button>
-                )}
+                {(() => {
+                  const openAllowed = isBetTypeAllowed('open');
+                  const closeAllowed = isBetTypeAllowed('close');
+                  return (
+                    <>
+                      {openAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('open');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                            ? 'text-white bg-green-600 shadow-md scale-105'
+                            : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                            }`}
+                        >
+                          OPEN
+                        </button>
+                      )}
+                      {closeAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('close');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                            ? 'text-white bg-blue-600 shadow-md scale-105'
+                            : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                            }`}
+                        >
+                          CLOSE
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -384,18 +408,6 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
           </div>
         </form>
       </div>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
     </div>
   );
 };
