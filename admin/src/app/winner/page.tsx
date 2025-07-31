@@ -138,6 +138,9 @@ export default function WinnerPage() {
     // Sorting state
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
+    // Cutting filter state
+    const [cuttingAmount, setCuttingAmount] = useState<string>('');
+
     useEffect(() => {
         fetchWinnerData();
         fetchFilters();
@@ -256,6 +259,7 @@ export default function WinnerPage() {
         setSelectedAgent('all');
         setSelectedPlayer('all');
         setSelectedBetType('all');
+        setCuttingAmount(''); // Clear cutting amount
         setCurrentDataUser('all');
         fetchWinnerData();
     };
@@ -383,6 +387,21 @@ export default function WinnerPage() {
                                     <SelectItem value="close">Close Bets</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* Cutting Filter */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300 font-medium">Cutting Filter</Label>
+                            <Input
+                                type="number"
+                                placeholder="Enter minimum bet amount"
+                                value={cuttingAmount}
+                                onChange={(e) => setCuttingAmount(e.target.value)}
+                                className="w-full"
+                            />
+                            <div className="text-xs text-gray-400">
+                                Show only numbers with bet amount greater than this value
+                            </div>
                         </div>
 
                         {/* Hierarchical User Selection */}
@@ -541,6 +560,10 @@ export default function WinnerPage() {
                 // Skip single digits (0-9) and double digits (00-99)
                 if (number.length === 1 || number.length === 2) return;
 
+                // Apply cutting filter
+                const cuttingValue = parseFloat(cuttingAmount) || 0;
+                if (amount <= cuttingValue) return;
+
                 // Validate number format
                 if (!/^\d+$/.test(number)) {
                     console.warn('Invalid number format:', number);
@@ -643,6 +666,40 @@ export default function WinnerPage() {
                         </Button>
                     </div>
                     <div className="overflow-x-auto">
+                        {/* Single Section Header */}
+                        {(() => {
+                            // Calculate total singles amount
+                            let totalSinglesAmount = 0;
+                            for (let digit = 0; digit < 10; digit++) {
+                                const digitStr = digit.toString();
+                                let digitSingles = 0;
+
+                                if (selectedBetType === 'all') {
+                                    const openAmount = data?.data?.single?.open?.[digitStr] || 0;
+                                    const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
+                                    digitSingles = openAmount + closeAmount;
+                                } else if (selectedBetType === 'open') {
+                                    digitSingles = data?.data?.single?.open?.[digitStr] || 0;
+                                } else if (selectedBetType === 'close') {
+                                    digitSingles = data?.data?.single?.close?.[digitStr] || 0;
+                                }
+                                totalSinglesAmount += digitSingles;
+                            }
+
+                            return (
+                                <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
+                                    <div className="flex items-center justify-center space-x-4">
+                                        <div className="font-bold text-white text-lg">
+                                            🎯 Single
+                                        </div>
+                                        <div className="text-green-400 font-bold">
+                                            Total: ₹{totalSinglesAmount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
                         <table className="w-full border-collapse border border-gray-600">
                             <thead>
                                 <tr className="bg-gray-800">
@@ -688,13 +745,29 @@ export default function WinnerPage() {
                             <tbody>
                                 {/* Separate rows by game types */}
                                 {(() => {
-                                    const gameTypes = ['singlePanna', 'doublePanna', 'triplePanna'];
+                                    const gameTypes = [
+                                        { key: 'singlePanna', label: 'Single Panna', icon: '🎯' },
+                                        { key: 'doublePanna', label: 'Double Panna', icon: '🎲' },
+                                        { key: 'triplePanna', label: 'Triple Panna', icon: '👑' }
+                                    ];
                                     const rows: JSX.Element[] = [];
 
-                                    gameTypes.forEach((gameType, gameTypeIndex) => {
+                                    gameTypes.forEach((gameType) => {
+                                        // Calculate total bet amount for this game type from organized data
+                                        let totalBetAmount = 0;
+
+                                        // Sum up all bet amounts for this game type from the organized data
+                                        Object.values(tableData).forEach(columnEntries => {
+                                            columnEntries.forEach(entry => {
+                                                if (entry.gameType === gameType.key) {
+                                                    totalBetAmount += entry.amount;
+                                                }
+                                            });
+                                        });
+
                                         // Find the maximum number of entries for this game type across all columns
                                         const maxEntriesForGameType = Math.max(...Object.values(tableData).map(col =>
-                                            col.filter(entry => entry.gameType === gameType).length
+                                            col.filter(entry => entry.gameType === gameType.key).length
                                         ));
 
                                         for (let i = 0; i < maxEntriesForGameType; i++) {
@@ -704,20 +777,23 @@ export default function WinnerPage() {
                                             if (i === 0) {
                                                 row.push(
                                                     <td key="header" colSpan={10} className="border border-gray-600 p-2 text-center bg-gray-700">
-                                                        <div className="font-bold text-white text-lg">
-                                                            {gameType === 'singlePanna' ? '🎯 Single Panna' :
-                                                                gameType === 'doublePanna' ? '🎲 Double Panna' :
-                                                                    '👑 Triple Panna'}
+                                                        <div className="flex items-center justify-center space-x-4">
+                                                            <div className="font-bold text-white text-lg">
+                                                                {gameType.icon} {gameType.label}
+                                                            </div>
+                                                            <div className="text-green-400 font-bold">
+                                                                Total: ₹{totalBetAmount.toLocaleString()}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 );
-                                                rows.push(<tr key={`${gameType}-header`}>{row}</tr>);
+                                                rows.push(<tr key={`${gameType.key}-header`}>{row}</tr>);
                                             }
 
                                             // Create data row for this game type
                                             const dataRow: JSX.Element[] = [];
                                             for (let col = 0; col < 10; col++) {
-                                                const entriesForGameType = tableData[col].filter(entry => entry.gameType === gameType);
+                                                const entriesForGameType = tableData[col].filter(entry => entry.gameType === gameType.key);
                                                 const entry = entriesForGameType[i];
 
                                                 dataRow.push(
@@ -754,7 +830,6 @@ export default function WinnerPage() {
                                                                 </div>
 
 
-
                                                                 {/* Click to see details */}
                                                                 <button
                                                                     onClick={() => {
@@ -770,7 +845,7 @@ export default function WinnerPage() {
                                                     </td>
                                                 );
                                             }
-                                            rows.push(<tr key={`${gameType}-${i}`}>{dataRow}</tr>);
+                                            rows.push(<tr key={`${gameType.key}-${i}`}>{dataRow}</tr>);
                                         }
                                     });
 
