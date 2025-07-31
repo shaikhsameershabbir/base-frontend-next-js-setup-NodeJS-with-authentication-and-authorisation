@@ -631,10 +631,6 @@ export default function WinnerPage() {
             <Card className="mb-6 bg-gray-900 border-gray-700">
                 <CardHeader>
                     <CardTitle className="text-white">Winning Calculation Table</CardTitle>
-                    <div className="text-sm text-gray-400">
-                        <p><strong>Rates:</strong> Single=9, Double=90, Single Panna=150, Double Panna=300, Triple Panna=1000</p>
-                        <p><strong>Note:</strong> Numbers are categorized by their digit sum (last digit of sum of all digits)</p>
-                    </div>
                 </CardHeader>
                 <CardContent>
                     {/* Sort Controls */}
@@ -646,27 +642,6 @@ export default function WinnerPage() {
                             Descending
                         </Button>
                     </div>
-
-                    {/* Game Type Breakdown */}
-                    <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-                        <h3 className="text-lg font-bold text-white mb-3">📊 Game Type Breakdown by Column</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                            {columnStats.map((stat) => (
-                                <div key={stat.digit} className="p-3 bg-gray-700 rounded">
-                                    <div className="text-center font-bold text-white mb-2">Column {stat.digit}</div>
-                                    <div className="text-xs space-y-1">
-                                        {Object.entries(stat.gameTypeBreakdown).map(([type, amount]) => (
-                                            <div key={type} className="flex justify-between">
-                                                <span className="text-gray-300">{type}:</span>
-                                                <span className="text-green-400">₹{amount.toLocaleString()}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse border border-gray-600">
                             <thead>
@@ -689,7 +664,7 @@ export default function WinnerPage() {
                                                 <div className="text-xs text-green-400">
                                                     ₹{amount.toLocaleString()}
                                                 </div>
-                                                <div className="text-xs text-gray-400">Singles</div>
+                                           
                                             </th>
                                         ));
                                     })()}
@@ -736,9 +711,7 @@ export default function WinnerPage() {
                                                             <div className="space-y-2 p-2 bg-gray-800 rounded">
                                                                 {/* Number and Game Type */}
                                                                 <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
-                                                                <div className="text-xs text-purple-400 bg-purple-900/20 px-1 rounded">
-                                                                    {entry.gameType}
-                                                                </div>
+                                                       
 
                                                                 {/* Bet Amount */}
                                                                 <div className="text-xs">
@@ -746,12 +719,7 @@ export default function WinnerPage() {
                                                                     <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
                                                                 </div>
 
-                                                                {/* Rate */}
-                                                                <div className="text-xs">
-                                                                    <span className="text-gray-400">Rate:</span>
-                                                                    <span className="text-blue-400 font-bold ml-1">₹{entry.rate.toLocaleString()}</span>
-                                                                </div>
-
+                                                             
                                                                 {/* Winning Amount */}
                                                                 <div className="text-xs">
                                                                     <span className="text-gray-400">Win:</span>
@@ -770,10 +738,7 @@ export default function WinnerPage() {
                                                                                 '✅ SAFE'}
                                                                 </div>
 
-                                                                {/* Bet Breakdown */}
-                                                                <div className="text-xs text-gray-300">
-                                                                    <strong>Source:</strong> {entry.betBreakdown}
-                                                                </div>
+                                                      
 
                                                                 {/* Click to see details */}
                                                                 <button
