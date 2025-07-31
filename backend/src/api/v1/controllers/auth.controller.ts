@@ -33,7 +33,7 @@ export class AuthController {
             }
 
             // Check if user is a player
-            if (user.role !== 'player' && loginSource !== 'admin') {
+            if (user.role !== 'player' && loginSource === 'web') {
                 res.status(401).json({
                     success: false,
                     message: 'Access denied. Only players can login here.'

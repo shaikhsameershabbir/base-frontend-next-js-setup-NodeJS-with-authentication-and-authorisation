@@ -98,10 +98,8 @@ export const getChildUsers = async (): Promise<ChildUser[]> => {
         if (data && data.success && Array.isArray(data.data)) {
             return data.data;
         }
-        console.warn('Unexpected response structure for child users:', data);
         return [];
     } catch (error) {
-        console.error('Error fetching child users:', error);
         return [];
     }
 };
@@ -112,7 +110,6 @@ export const processTransfer = async (transferData: TransferRequest): Promise<Tr
         const response = await apiClient.post('/transfers/process', transferData);
         return response.data;
     } catch (error) {
-        console.error('Error processing transfer:', error);
         throw error;
     }
 };
@@ -128,7 +125,6 @@ export const getTransferHistory = async (params?: {
         const response = await apiClient.get('/transfers/history', { params });
         return response.data;
     } catch (error) {
-        console.error('Error fetching transfer history:', error);
         throw error;
     }
 };
@@ -139,7 +135,6 @@ export const getTransferStats = async (): Promise<TransferStatsResponse> => {
         const response = await apiClient.get('/transfers/stats');
         return response.data;
     } catch (error) {
-        console.error('Error fetching transfer stats:', error);
         throw error;
     }
 }; 

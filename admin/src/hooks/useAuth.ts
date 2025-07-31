@@ -19,27 +19,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        console.log('🚀 AuthProvider mounted, checking auth...');
         checkAuth();
     }, []);
 
     const checkAuth = async () => {
         try {
-            console.log('🔍 Checking authentication...');
             const storedAuth = localStorage.getItem('isAuthenticated');
             const storedUser = localStorage.getItem('user');
 
-            console.log('📊 Stored auth data:', { storedAuth, hasStoredUser: !!storedUser });
-
             if (!storedAuth || !storedUser) {
-                console.log('❌ No stored auth data found');
                 setLoading(false);
                 return;
             }
 
             // Only check if we have a token
             if (!apiUtils.isAuthenticated()) {
-                console.log('❌ No access token found');
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('user');
                 setIsAuthenticated(false);
@@ -47,24 +41,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            console.log('✅ Token found, fetching profile...');
             const response = await authAPI.getProfile();
-            console.log('📋 Profile response:', response);
 
             if (response.success && response.data) {
-                console.log('✅ Profile fetched successfully');
                 setUser(response.data);
                 setIsAuthenticated(true);
                 localStorage.setItem('user', JSON.stringify(response.data));
             } else {
-                console.log('❌ Profile fetch failed');
                 apiUtils.clearAuth();
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('user');
                 setIsAuthenticated(false);
             }
         } catch (error) {
-            console.error('❌ Auth check failed:', error);
+            console.error('Auth check failed:', error);
             apiUtils.clearAuth();
             localStorage.removeItem('isAuthenticated');
             localStorage.removeItem('user');
@@ -76,26 +66,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
-            console.log('🔐 Starting login process...');
             setLoading(true);
-            const response = await authAPI.login({ username, password, loginSource: 'admin' });
-
-            console.log('📋 Login response:', response);
+            const response = await authAPI.login({ username, password, login: 'admin' });
 
             if (response.success && response.data?.user) {
-                console.log('✅ Login successful, setting user data...');
                 setUser(response.data.user);
                 setIsAuthenticated(true);
                 localStorage.setItem('isAuthenticated', 'true');
                 localStorage.setItem('user', JSON.stringify(response.data.user));
-                console.log('✅ User data set successfully');
                 return true;
             } else {
-                console.log('❌ Login failed:', response.message);
                 throw new Error(response.message || 'Login failed');
             }
         } catch (error) {
-            console.error('❌ Login error:', error);
+            console.error('Login error:', error);
             setUser(null);
             setIsAuthenticated(false);
             localStorage.removeItem('isAuthenticated');

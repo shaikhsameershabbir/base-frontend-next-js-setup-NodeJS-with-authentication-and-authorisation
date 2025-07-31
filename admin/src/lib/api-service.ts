@@ -101,7 +101,7 @@ export interface Activity {
 export interface LoginRequest {
     username: string;
     password: string;
-    loginSource: 'admin' | 'admin';
+    login: 'admin' | 'web';
 }
 
 export interface RegisterRequest {
@@ -450,7 +450,6 @@ export const apiUtils = {
 
     // Handle API errors consistently
     handleError: (error: any, defaultMessage = 'An error occurred'): string => {
-        console.error('API Error:', error);
         return apiUtils.formatError(error) || defaultMessage;
     }
 }; 

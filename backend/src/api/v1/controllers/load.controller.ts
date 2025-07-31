@@ -259,6 +259,21 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
             const type = bet.type;
             const betType = bet.betType || 'open'; // Default to 'open' if not specified
 
+            // Ensure the type and betType exist in result
+            if (!result[type]) {
+                // Initialize based on game type
+                if (bothOnlyGames.includes(type)) {
+                    result[type] = { both: {} };
+                } else {
+                    result[type] = { open: {}, close: {} };
+                }
+            }
+
+            // Ensure the betType exists in the type
+            if (!result[type][betType]) {
+                result[type][betType] = {};
+            }
+
             // Special handling for sangam
             if (type === 'sangam') {
                 let numbersObj: Record<string, number> = {};
@@ -390,10 +405,8 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
                 numbersObj = { [String(bet.selectedNumbers || 'unknown')]: bet.amount };
             }
 
-
             // Merge the numbers object into the result by bet type
             // Only include relevant bet types for each game
-            const bothOnlyGames = ['jodi', 'half_bracket', 'full_bracket', 'family_panel'];
             if (bothOnlyGames.includes(type)) {
                 // Games that only have 'both' bet type
                 for (const [key, value] of Object.entries(numbersObj)) {

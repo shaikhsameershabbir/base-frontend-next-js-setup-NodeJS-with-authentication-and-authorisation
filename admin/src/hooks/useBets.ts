@@ -50,7 +50,6 @@ export function useBets(): UseBetsReturn {
                 setError(response.message || 'Failed to fetch bets');
             }
         } catch (err) {
-            console.error('Error fetching bets:', err);
             setError('Failed to fetch bets. Please try again.');
         } finally {
             setLoading(false);
@@ -70,7 +69,6 @@ export function useBets(): UseBetsReturn {
                 return null;
             }
         } catch (err) {
-            console.error('Error fetching bet details:', err);
             setError('Failed to fetch bet details. Please try again.');
             return null;
         }
@@ -89,7 +87,6 @@ export function useBets(): UseBetsReturn {
                 return [];
             }
         } catch (err) {
-            console.error('Error fetching hierarchy options:', err);
             setError('Failed to fetch hierarchy options. Please try again.');
             return [];
         }
@@ -108,7 +105,6 @@ export function useBets(): UseBetsReturn {
                 return [];
             }
         } catch (err) {
-            console.error('Error fetching hierarchy options:', err);
             setError('Failed to fetch hierarchy options. Please try again.');
             return [];
         }
