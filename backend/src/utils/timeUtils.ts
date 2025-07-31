@@ -26,7 +26,20 @@ export const parseTimeToIndianMoment = (timeString: string, date?: Date): moment
     // Check if it's an ISO format string
     if (timeString.includes('T') && timeString.includes('Z')) {
         // Parse ISO string and convert to Indian timezone
-        return moment(timeString).tz(INDIAN_TIMEZONE);
+        const parsedMoment = moment(timeString).tz(INDIAN_TIMEZONE);
+
+        // If the date is from a different day, update it to today
+        const today = getCurrentIndianTime();
+        if (parsedMoment.date() !== today.date() || parsedMoment.month() !== today.month() || parsedMoment.year() !== today.year()) {
+            console.log('🔄 Updating market time from', parsedMoment.format('YYYY-MM-DD HH:mm:ss'), 'to today');
+            return parsedMoment.set({
+                year: today.year(),
+                month: today.month(),
+                date: today.date()
+            });
+        }
+
+        return parsedMoment;
     } else {
         // Parse HH:mm format
         const baseDate = date || getCurrentIndianTimeAsDate();
@@ -52,12 +65,14 @@ export const isBettingAllowed = (
     bufferMinutes: number = 15
 ): { allowed: boolean; message?: string; nextBetTime?: Date } => {
     const now = getCurrentIndianTime();
+
+    // Parse the times using the improved function that handles date updates
     const openMoment = parseTimeToIndianMoment(openTime);
     const closeMoment = parseTimeToIndianMoment(closeTime);
 
     // Calculate the no-betting windows
-    const openNoBettingStart = openMoment.clone().subtract(bufferMinutes, 'minutes'); // 12:15 PM
-    const closeNoBettingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes'); // 3:45 PM
+    const openNoBettingStart = openMoment.clone().subtract(bufferMinutes, 'minutes');
+    const closeNoBettingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
 
     if (betType === 'open') {
         // Open betting: 12:00 AM to 12:15 PM
@@ -109,12 +124,33 @@ export const getMarketStatus = (openTime: string, closeTime: string): {
     nextEvent?: { type: string; time: Date };
 } => {
     const now = getCurrentIndianTime();
-    const openMoment = parseTimeToIndianMoment(openTime);
-    const closeMoment = parseTimeToIndianMoment(closeTime);
+
+    // Parse the times - handle both UTC ISO strings and HH:mm format
+    let openMoment: moment.Moment;
+    let closeMoment: moment.Moment;
+
+    // Check if times are in ISO format (UTC)
+    if (openTime.includes('T') && openTime.includes('Z')) {
+        // Convert UTC to Indian timezone and update to today if needed
+        openMoment = parseTimeToIndianMoment(openTime);
+        closeMoment = parseTimeToIndianMoment(closeTime);
+    } else {
+        // Parse as HH:mm format in Indian timezone
+        openMoment = parseTimeToIndianMoment(openTime);
+        closeMoment = parseTimeToIndianMoment(closeTime);
+    }
+
+    console.log('🔍 Market Status Debug:');
+    console.log('Current time (IST):', now.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('Open time (IST):', openMoment.format('YYYY-MM-DD HH:mm:ss'));
+    console.log('Close time (IST):', closeMoment.format('YYYY-MM-DD HH:mm:ss'));
 
     // Calculate the no-betting windows
-    const openNoBettingStart = openMoment.clone().subtract(15, 'minutes'); // 12:15 PM
-    const closeNoBettingStart = closeMoment.clone().subtract(15, 'minutes'); // 3:45 PM
+    const openNoBettingStart = openMoment.clone().subtract(15, 'minutes');
+    const closeNoBettingStart = closeMoment.clone().subtract(15, 'minutes');
+
+    console.log('Open betting ends at (IST):', openNoBettingStart.format('HH:mm:ss'));
+    console.log('Close betting ends at (IST):', closeNoBettingStart.format('HH:mm:ss'));
 
     // Open betting: 12:00 AM to 12:15 PM
     if (now.isBefore(openNoBettingStart)) {
@@ -180,11 +216,15 @@ export const getTimeUntilNextBetting = (
 ): { hours: number; minutes: number; seconds: number } | null => {
     const now = getCurrentIndianTime();
 
+    // Parse the times using the improved function that handles date updates
+    const openMoment = parseTimeToIndianMoment(openTime);
+    const closeMoment = parseTimeToIndianMoment(closeTime);
+
     let targetTime: moment.Moment;
     if (betType === 'open') {
-        targetTime = parseTimeToIndianMoment(openTime);
+        targetTime = openMoment;
     } else {
-        targetTime = parseTimeToIndianMoment(closeTime);
+        targetTime = closeMoment;
     }
 
     const bettingStart = targetTime.clone().subtract(15, 'minutes');
