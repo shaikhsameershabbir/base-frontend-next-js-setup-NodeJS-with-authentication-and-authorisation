@@ -33,7 +33,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { username, password, login } = req.body;
 
-
+        console.log('login', login);
         // Input validation
         if (!username || !password) {
             res.status(400).json({

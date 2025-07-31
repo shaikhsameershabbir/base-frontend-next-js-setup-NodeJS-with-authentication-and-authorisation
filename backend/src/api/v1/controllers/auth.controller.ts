@@ -11,7 +11,8 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
-            const { username, password, loginSource = 'unknown' } = req.body;
+            console.log('----------------------------->>>> login', req.body);
+            const { username, password, loginSource  } = req.body;
             // Check if user exists
             const user = await User.findOne({ username });
             if (!user) {
@@ -32,7 +33,7 @@ export class AuthController {
             }
 
             // Check if user is a player
-            if (user.role !== 'player') {
+            if (user.role !== 'player' && loginSource !== 'admin') {
                 res.status(401).json({
                     success: false,
                     message: 'Access denied. Only players can login here.'

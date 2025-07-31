@@ -101,6 +101,7 @@ export interface Activity {
 export interface LoginRequest {
     username: string;
     password: string;
+    loginSource: 'admin' | 'admin';
 }
 
 export interface RegisterRequest {
@@ -174,7 +175,7 @@ export interface ActivitiesResponse {
 
 export const authAPI = {
     login: async (credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> => {
-        const response = await apiClient.post('/auth/', credentials);
+        const response = await apiClient.post('/auth', credentials);
 
         // Store tokens in localStorage
         if (response.data.success && typeof window !== 'undefined') {

@@ -49,8 +49,27 @@ apiClient.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as any
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        console.log('🚨 API Error:', {
+            status: error.response?.status,
+            url: originalRequest?.url,
+            method: originalRequest?.method,
+            isAuthEndpoint: originalRequest?.url?.includes('/auth/'),
+            isLoginRequest: originalRequest?.url?.endsWith('/auth') && originalRequest?.method === 'post'
+        });
+
+        // Don't attempt token refresh for login requests that fail
+        if (error.response?.status === 401 && originalRequest?.url?.endsWith('/auth') && originalRequest?.method === 'post') {
+            console.log('❌ Login failed - not attempting token refresh');
+            return Promise.reject(error);
+        }
+
+        // Only attempt refresh for 401 errors and not for auth endpoints
+        if (error.response?.status === 401 && !originalRequest._retry &&
+            !originalRequest.url?.includes('/auth/')) {
+            console.log('🔄 Attempting token refresh...');
+
             if (isRefreshing) {
+                console.log('⏳ Already refreshing, queuing request...');
                 // If already refreshing, queue this request
                 return new Promise((resolve, reject) => {
                     failedQueue.push({ resolve, reject })
@@ -68,9 +87,11 @@ apiClient.interceptors.response.use(
                 // Get refresh token from localStorage
                 const refreshToken = localStorage.getItem('refreshToken')
                 if (!refreshToken) {
+                    console.log('❌ No refresh token available');
                     throw new Error('No refresh token available')
                 }
 
+                console.log('🔄 Refreshing token...');
                 // Attempt to refresh the token
                 const refreshResponse = await axios.post(
                     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5555/api/v1"}/auth/refresh`,
@@ -78,7 +99,10 @@ apiClient.interceptors.response.use(
                     { withCredentials: true }
                 )
 
+                console.log('📋 Refresh response:', refreshResponse.data);
+
                 if (refreshResponse.data.success) {
+                    console.log('✅ Token refresh successful');
                     // Store new access token
                     if (typeof window !== 'undefined') {
                         localStorage.setItem('accessToken', refreshResponse.data.data.accessToken)
@@ -90,6 +114,7 @@ apiClient.interceptors.response.use(
                     processQueue(null, 'refreshed')
                     return apiClient(originalRequest)
                 } else {
+                    console.log('❌ Token refresh failed');
                     processQueue(new Error('Token refresh failed'), null)
                     // Clear all local/session storage and redirect to login
                     if (typeof window !== 'undefined') {
@@ -101,6 +126,7 @@ apiClient.interceptors.response.use(
                     throw new Error('Token refresh failed')
                 }
             } catch (refreshError) {
+                console.log('❌ Token refresh error:', refreshError);
                 processQueue(refreshError, null)
                 // Clear all local/session storage and redirect to login
                 if (typeof window !== 'undefined') {
