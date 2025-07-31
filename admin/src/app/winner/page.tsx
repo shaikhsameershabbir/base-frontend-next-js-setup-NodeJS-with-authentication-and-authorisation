@@ -482,44 +482,44 @@ export default function WinnerPage() {
         );
     };
 
-    const renderJsonData = () => {
-        if (!data) return null;
+    // const renderJsonData = () => {
+    //     if (!data) return null;
 
-        // Organize data by game types
-        const organizedData = organizeDataByGameTypes(data);
+    //     // Organize data by game types
+    //     const organizedData = organizeDataByGameTypes(data);
 
-        const displayData = {
-            originalData: data,
-            organizedByGameTypes: organizedData,
-            filters: {
-                selectedBetType,
-                selectedDate,
-                selectedMarket,
-                selectedUser,
-                selectedAdmin,
-                selectedDistributor,
-                selectedAgent,
-                selectedPlayer
-            }
-        };
+    //     const displayData = {
+    //         originalData: data,
+    //         organizedByGameTypes: organizedData,
+    //         filters: {
+    //             selectedBetType,
+    //             selectedDate,
+    //             selectedMarket,
+    //             selectedUser,
+    //             selectedAdmin,
+    //             selectedDistributor,
+    //             selectedAgent,
+    //             selectedPlayer
+    //         }
+    //     };
 
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <CardTitle className="text-white">
-                        Winner Data (JSON Format) - {selectedBetType !== 'all' ? `${selectedBetType.toUpperCase()} Bets` : 'All Bets'}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
-                        <pre className="text-green-400 text-sm whitespace-pre-wrap">
-                            {JSON.stringify(displayData, null, 2)}
-                        </pre>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
+    //     return (
+    //         <Card className="mb-6 bg-gray-900 border-gray-700">
+    //             <CardHeader>
+    //                 <CardTitle className="text-white">
+    //                     Winner Data (JSON Format) - {selectedBetType !== 'all' ? `${selectedBetType.toUpperCase()} Bets` : 'All Bets'}
+    //                 </CardTitle>
+    //             </CardHeader>
+    //             <CardContent>
+    //                 <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
+    //                     <pre className="text-green-400 text-sm whitespace-pre-wrap">
+    //                         {JSON.stringify(displayData, null, 2)}
+    //                     </pre>
+    //                 </div>
+    //             </CardContent>
+    //         </Card>
+    //     );
+    // };
 
     const renderWinningCalculationTable = () => {
         if (!data) return null;
@@ -1010,7 +1010,7 @@ export default function WinnerPage() {
                 {renderFilters()}
 
                 {/* JSON Data Display */}
-                {renderJsonData()}
+                {/* {renderJsonData()} */}
 
                 {/* Winning Calculation Table */}
                 {renderWinningCalculationTable()}
