@@ -167,12 +167,16 @@ export default function WinnerPage() {
                 if (category === 'halfSangam' || category === 'fullSangam') return; // Skip sangam for now
 
                 Object.entries(numbers as Record<string, number>).forEach(([number, amount]) => {
-                    // Skip single digits (0-9) and double digits (00-99)
-                    if (number.length === 1 || number.length === 2) return;
+                    // For single game type, include single digits (0-9)
+                    // For other game types, skip single digits (0-9) and double digits (00-99)
+                    if (gameType !== 'single' && (number.length === 1 || number.length === 2)) return;
 
                     // Apply cutting filter
                     const cuttingValue = parseFloat(cuttingAmount) || 0;
                     if (amount <= cuttingValue) return;
+
+                    // Filter out "1 60" entries
+                    if (number === "1" && amount === 60) return;
 
                     // Validate number format
                     if (!/^\d+$/.test(number)) {
@@ -193,11 +197,12 @@ export default function WinnerPage() {
 
                     const { type, rate, amount: winningAmount } = getGameTypeAndAmount(number, amount);
 
-                    // For triple digits, also calculate winning for the digit sum
+                    // For single digits, use the number as is
                     let totalWinningAmount = winningAmount;
                     let combinedNumbers = number;
                     let betBreakdown = `${category}: ₹${amount.toLocaleString()} = ₹${winningAmount.toLocaleString()}`;
 
+                    // For triple digits, also calculate winning for the digit sum
                     if (number.length === 3) {
                         const digitSumStr = digitSum.toString();
                         const digitSumAmount = organizedData.single?.[digitSumStr] || 0;
