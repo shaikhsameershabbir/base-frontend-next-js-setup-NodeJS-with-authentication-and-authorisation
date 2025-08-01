@@ -129,6 +129,7 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
 
         // Process Double data (2-digit numbers from various bet types) - same as web interface
         if (gameType === 'double') {
+            const cuttingValue = parseFloat(cuttingAmount) || 0;
             const betTypesToCheck = [
                 'jodi', 'half_bracket', 'full_bracket', 'family_panel'
             ];
@@ -170,7 +171,7 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
                                     tableData[digitSum].push({
                                         number: number,
                                         amount: numAmount,
-                                        gameType: betType,
+                                        gameType: 'double',
                                         rate: WINNING_RATES.double,
                                         winningAmount: winningAmount,
                                         betBreakdown: `${betType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: ₹${numAmount.toLocaleString()} × ${WINNING_RATES.double} = ₹${winningAmount.toLocaleString()}`
@@ -181,6 +182,59 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
                     });
                 }
             });
+        }
+
+        // Process Sangam data (Half Sangam and Full Sangam) - same as web interface
+        if (gameType === 'halfSangam' || gameType === 'fullSangam') {
+            const cuttingValue = parseFloat(cuttingAmount) || 0;
+
+            // Process Half Sangam data
+            if (gameType === 'halfSangam' && data?.data?.half_sangam_open?.both) {
+                Object.entries(data.data.half_sangam_open.both).forEach(([number, amount]) => {
+                    const numAmount = amount as number;
+
+                    if (numAmount > cuttingValue) {
+                        // Extract the first digit for categorization
+                        const firstDigit = parseInt(number.charAt(0));
+                        if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                            const winningAmount = numAmount * 1000; // Half Sangam rate
+
+                            tableData[firstDigit].push({
+                                number: number,
+                                amount: numAmount,
+                                gameType: 'halfSangam',
+                                rate: 1000,
+                                winningAmount: winningAmount,
+                                betBreakdown: `Half Sangam: ₹${numAmount.toLocaleString()} × 1000 = ₹${winningAmount.toLocaleString()}`
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Process Full Sangam data
+            if (gameType === 'fullSangam' && data?.data?.full_sangam?.both) {
+                Object.entries(data.data.full_sangam.both).forEach(([number, amount]) => {
+                    const numAmount = amount as number;
+
+                    if (numAmount > cuttingValue) {
+                        // Extract the first digit for categorization
+                        const firstDigit = parseInt(number.charAt(0));
+                        if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                            const winningAmount = numAmount * 10000; // Full Sangam rate
+
+                            tableData[firstDigit].push({
+                                number: number,
+                                amount: numAmount,
+                                gameType: 'fullSangam',
+                                rate: 10000,
+                                winningAmount: winningAmount,
+                                betBreakdown: `Full Sangam: ₹${numAmount.toLocaleString()} × 10000 = ₹${winningAmount.toLocaleString()}`
+                            });
+                        }
+                    }
+                });
+            }
         }
 
         // Extract data for the specific game type (same as web interface)
@@ -294,7 +348,9 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
             { key: 'double', label: 'Double' },
             { key: 'singlePanna', label: 'Single Panna' },
             { key: 'doublePanna', label: 'Double Panna' },
-            { key: 'triplePanna', label: 'Triple Panna' }
+            { key: 'triplePanna', label: 'Triple Panna' },
+            { key: 'halfSangam', label: 'Half Sangam' },
+            { key: 'fullSangam', label: 'Full Sangam' }
         ];
 
         // Export each game type
@@ -383,6 +439,7 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
 
             // Process Double data (2-digit numbers from various bet types) - same as web interface
             if (gameType.key === 'double') {
+                const cuttingValue = parseFloat(cuttingAmount) || 0;
                 const betTypesToCheck = [
                     'jodi', 'half_bracket', 'full_bracket', 'family_panel'
                 ];
@@ -424,7 +481,7 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
                                         tableData[digitSum].push({
                                             number: number,
                                             amount: numAmount,
-                                            gameType: betType,
+                                            gameType: 'double',
                                             rate: WINNING_RATES.double,
                                             winningAmount: winningAmount,
                                             betBreakdown: `${betType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: ₹${numAmount.toLocaleString()} × ${WINNING_RATES.double} = ₹${winningAmount.toLocaleString()}`
@@ -435,6 +492,59 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
                         });
                     }
                 });
+            }
+
+            // Process Sangam data (Half Sangam and Full Sangam) - same as web interface
+            if (gameType.key === 'halfSangam' || gameType.key === 'fullSangam') {
+                const cuttingValue = parseFloat(cuttingAmount) || 0;
+
+                // Process Half Sangam data
+                if (gameType.key === 'halfSangam' && data?.data?.half_sangam_open?.both) {
+                    Object.entries(data.data.half_sangam_open.both).forEach(([number, amount]) => {
+                        const numAmount = amount as number;
+
+                        if (numAmount > cuttingValue) {
+                            // Extract the first digit for categorization
+                            const firstDigit = parseInt(number.charAt(0));
+                            if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                                const winningAmount = numAmount * 1000; // Half Sangam rate
+
+                                tableData[firstDigit].push({
+                                    number: number,
+                                    amount: numAmount,
+                                    gameType: 'halfSangam',
+                                    rate: 1000,
+                                    winningAmount: winningAmount,
+                                    betBreakdown: `Half Sangam: ₹${numAmount.toLocaleString()} × 1000 = ₹${winningAmount.toLocaleString()}`
+                                });
+                            }
+                        }
+                    });
+                }
+
+                // Process Full Sangam data
+                if (gameType.key === 'fullSangam' && data?.data?.full_sangam?.both) {
+                    Object.entries(data.data.full_sangam.both).forEach(([number, amount]) => {
+                        const numAmount = amount as number;
+
+                        if (numAmount > cuttingValue) {
+                            // Extract the first digit for categorization
+                            const firstDigit = parseInt(number.charAt(0));
+                            if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                                const winningAmount = numAmount * 10000; // Full Sangam rate
+
+                                tableData[firstDigit].push({
+                                    number: number,
+                                    amount: numAmount,
+                                    gameType: 'fullSangam',
+                                    rate: 10000,
+                                    winningAmount: winningAmount,
+                                    betBreakdown: `Full Sangam: ₹${numAmount.toLocaleString()} × 10000 = ₹${winningAmount.toLocaleString()}`
+                                });
+                            }
+                        }
+                    });
+                }
             }
 
             // Extract data for the specific game type (same as web interface)
