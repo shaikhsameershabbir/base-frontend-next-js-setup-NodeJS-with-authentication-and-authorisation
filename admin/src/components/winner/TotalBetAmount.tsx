@@ -131,11 +131,53 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
             breakdown.single = singlesTotal;
         }
 
+        // Calculate Double (2-digit numbers from various bet types)
+        let doubleTotal = 0;
+        const betTypesToCheck = ['jodi', 'half_bracket', 'full_bracket', 'family_panel'];
+
+        betTypesToCheck.forEach(betType => {
+            if (data?.data?.[betType]) {
+                const betData = data.data[betType];
+
+                // Handle different data structures
+                let entries: [string, number][] = [];
+
+                if (betData.both) {
+                    entries = Object.entries(betData.both);
+                } else if (betData.open || betData.close) {
+                    const openData = betData.open || {};
+                    const closeData = betData.close || {};
+
+                    if (selectedBetType === 'all' || selectedBetType === 'open') {
+                        entries.push(...Object.entries(openData));
+                    }
+                    if (selectedBetType === 'all' || selectedBetType === 'close') {
+                        entries.push(...Object.entries(closeData));
+                    }
+                }
+
+                entries.forEach(([number, amount]) => {
+                    const numAmount = amount as number;
+
+                    // Only process 2-digit numbers
+                    if (number.length === 2 && /^\d{2}$/.test(number)) {
+                        if (numAmount > cuttingValue && !(number === "1" && numAmount === 60)) {
+                            doubleTotal += numAmount;
+                        }
+                    }
+                });
+            }
+        });
+
+        if (doubleTotal > 0) {
+            breakdown.double = doubleTotal;
+        }
+
         // Calculate all other bet types
         if (data?.data) {
             Object.entries(data.data).forEach(([betType, betData]) => {
-                // Skip singles as it's already processed
-                if (betType === 'single') return;
+                // Skip singles and double bet types as they're already processed
+                if (betType === 'single' || betTypesToCheck.includes(betType)) return;
 
                 let betTypeTotal = 0;
 
@@ -196,101 +238,27 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
     const breakdown = calculateBreakdown();
 
     return (
-        <Card className="mb-6 bg-gray-900 border-gray-700">
-            <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Complete Grand Total */}
-                    <div className="text-center p-4 bg-red-900/20 rounded-lg border border-red-700">
-                        <div className="text-2xl font-bold text-red-400">
-                            ₹{completeGrandTotal.toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1">
-                            Complete Grand Total
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            All Bet Types Combined
-                        </div>
-                    </div>
-
-                    {/* Single Game Type */}
-                    <div className="text-center p-4 bg-green-900/20 rounded-lg border border-green-700">
-                        <div className="text-xl font-bold text-green-400">
-                            ₹{(breakdown.single || 0).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1">
-                            Single
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            {breakdown.single ? `${((breakdown.single / completeGrandTotal) * 100).toFixed(1)}%` : '0%'}
-                        </div>
-                    </div>
-
-                    {/* Single Panna */}
-                    <div className="text-center p-4 bg-purple-900/20 rounded-lg border border-purple-700">
-                        <div className="text-xl font-bold text-purple-400">
-                            ₹{(breakdown.single_panna || 0).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1">
-                            Single Panna
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            {breakdown.single_panna ? `${((breakdown.single_panna / completeGrandTotal) * 100).toFixed(1)}%` : '0%'}
-                        </div>
-                    </div>
-
-                    {/* Double Panna */}
-                    <div className="text-center p-4 bg-orange-900/20 rounded-lg border border-orange-700">
-                        <div className="text-xl font-bold text-orange-400">
-                            ₹{(breakdown.double_panna || 0).toLocaleString()}
-                        </div>
-                        <div className="text-sm text-gray-300 mt-1">
-                            Double Panna
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                            {breakdown.double_panna ? `${((breakdown.double_panna / completeGrandTotal) * 100).toFixed(1)}%` : '0%'}
-                        </div>
-                    </div>
+        <div className="mb-4 p-3 bg-gray-800 rounded-lg border border-gray-600">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <span className="text-sm text-gray-300">Complete Grand Total:</span>
+                    <span className="text-xl font-bold text-red-400">
+                        ₹{completeGrandTotal.toLocaleString()}
+                    </span>
                 </div>
-
-                {/* Additional breakdown for other game types */}
-                {Object.entries(breakdown).filter(([key]) =>
-                    !['single', 'single_panna', 'double_panna'].includes(key)
-                ).length > 0 && (
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {Object.entries(breakdown).filter(([key]) =>
-                                !['single', 'single_panna', 'double_panna'].includes(key)
-                            ).map(([key, amount]) => (
-                                <div key={key} className="text-center p-3 bg-gray-800 rounded-lg border border-gray-600">
-                                    <div className="text-lg font-bold text-gray-300">
-                                        ₹{amount.toLocaleString()}
-                                    </div>
-                                    <div className="text-sm text-gray-300">
-                                        {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                                    </div>
-                                    <div className="text-xs text-gray-400">
-                                        {((amount / completeGrandTotal) * 100).toFixed(1)}%
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                {/* Filter Summary */}
-                <div className="mt-4 p-3 bg-gray-800 rounded-lg">
-                    <div className="text-sm text-gray-300">
-                        <span className="font-semibold">Active Filters:</span>
+                <div className="text-xs text-gray-400">
+                    <span>Filters: </span>
+                    <span>
+                        {selectedBetType === 'all' ? 'All Bets' :
+                            selectedBetType === 'open' ? 'Open Bets' : 'Close Bets'}
+                    </span>
+                    {cuttingAmount && (
                         <span className="ml-2">
-                            {selectedBetType === 'all' ? 'All Bets' :
-                                selectedBetType === 'open' ? 'Open Bets' : 'Close Bets'}
+                            • Min: ₹{parseFloat(cuttingAmount).toLocaleString()}
                         </span>
-                        {cuttingAmount && (
-                            <span className="ml-2">
-                                • Min Amount: ₹{parseFloat(cuttingAmount).toLocaleString()}
-                            </span>
-                        )}
-                    </div>
+                    )}
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }; 

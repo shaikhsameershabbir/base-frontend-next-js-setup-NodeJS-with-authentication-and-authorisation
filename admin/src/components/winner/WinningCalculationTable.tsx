@@ -4,6 +4,7 @@ import { organizeDataByGameTypes, getDigitSum, getGameTypeAndAmount } from './ut
 import { WINNING_RATES } from './constants';
 import { exportToPDF } from './pdfExport';
 import { useState } from 'react';
+import { TotalBetAmount } from './TotalBetAmount';
 
 interface WinningCalculationTableProps {
     data: any;
@@ -292,7 +293,11 @@ export const WinningCalculationTable = ({
     return (
         <Card className="mb-6 bg-gray-900 border-gray-700">
             <CardHeader>
-                <CardTitle className="text-white">Winning Calculation Table</CardTitle>
+            <TotalBetAmount
+                    data={data}
+                    selectedBetType={selectedBetType}
+                    cuttingAmount={cuttingAmount}
+                />
             </CardHeader>
             <CardContent>
                 {/* Sort Controls */}
@@ -554,118 +559,7 @@ export const WinningCalculationTable = ({
                         return sections;
                     })()}
 
-                    {/* Double Section Header */}
-                    {(() => {
-                        // Calculate total double amount from the processed double data
-                        let totalDoubleAmount = 0;
-                        Object.values(doubleData).forEach(columnEntries => {
-                            columnEntries.forEach(entry => {
-                                totalDoubleAmount += entry.amount;
-                            });
-                        });
 
-                        return (
-                            <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="font-bold text-white text-lg">
-                                            🎲 Double
-                                        </div>
-                                        <div className="text-green-400 font-bold">
-                                            Total: ₹{totalDoubleAmount.toLocaleString()}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Button
-                                            onClick={() => toggleSection('double')}
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs"
-                                        >
-                                            {expandedSections.double ? 'Collapse' : 'Expand'}
-                                        </Button>
-                                        <Button
-                                            onClick={() => onExportPDF('double', 'Double')}
-                                            size="sm"
-                                            className="bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            📄 Export PDF
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    {/* Double Table - Collapsible */}
-                    {expandedSections.double && (
-                        <table className="w-full border-collapse border border-gray-600 mb-6">
-                            <thead>
-                                <tr className="bg-gray-800">
-                                    {Array.from({ length: 10 }, (_, index) => (
-                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
-                                            <div className="text-lg font-bold">{index}</div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Array.from({ length: 10 }, (_, rowIndex) => (
-                                    <tr key={rowIndex}>
-                                        {Array.from({ length: 10 }, (_, colIndex) => {
-                                            const entriesForDouble = doubleData[colIndex];
-                                            const entry = entriesForDouble ? entriesForDouble[rowIndex] : null;
-
-                                            return (
-                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
-                                                    {entry ? (
-                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
-                                                            {/* Number and Game Type */}
-                                                            <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
-
-                                                            {/* Bet Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Bet:</span>
-                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Winning Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Win:</span>
-                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Risk Level Indicator */}
-                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 1000000 ? 'bg-red-900/50 text-red-300' :
-                                                                entry.winningAmount > 500000 ? 'bg-orange-900/50 text-orange-300' :
-                                                                    entry.winningAmount > 100000 ? 'bg-yellow-900/50 text-yellow-300' :
-                                                                        'bg-green-900/50 text-green-300'
-                                                                }`}>
-                                                                {entry.winningAmount > 1000000 ? '🔥 HIGH RISK' :
-                                                                    entry.winningAmount > 500000 ? '⚠️ MEDIUM RISK' :
-                                                                        entry.winningAmount > 100000 ? '⚡ LOW RISK' :
-                                                                            '✅ SAFE'}
-                                                            </div>
-
-                                                            {/* Click to see details */}
-                                                            <button
-                                                                onClick={() => onShowModal(entry)}
-                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
-                                                            >
-                                                                📊 View Details
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-gray-500 text-xs">-</div>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
 
                     {/* Sangam Sections */}
                     {(() => {
@@ -799,6 +693,119 @@ export const WinningCalculationTable = ({
 
                         return sections;
                     })()}
+
+                    {/* Double Section Header */}
+                    {(() => {
+                        // Calculate total double amount from the processed double data
+                        let totalDoubleAmount = 0;
+                        Object.values(doubleData).forEach(columnEntries => {
+                            columnEntries.forEach(entry => {
+                                totalDoubleAmount += entry.amount;
+                            });
+                        });
+
+                        return (
+                            <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="font-bold text-white text-lg">
+                                            🎲 Double
+                                        </div>
+                                        <div className="text-green-400 font-bold">
+                                            Total: ₹{totalDoubleAmount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Button
+                                            onClick={() => toggleSection('double')}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                        >
+                                            {expandedSections.double ? 'Collapse' : 'Expand'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => onExportPDF('double', 'Double')}
+                                            size="sm"
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            📄 Export PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* Double Table - Collapsible */}
+                    {expandedSections.double && (
+                        <table className="w-full border-collapse border border-gray-600 mb-6">
+                            <thead>
+                                <tr className="bg-gray-800">
+                                    {Array.from({ length: 10 }, (_, index) => (
+                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                            <div className="text-lg font-bold">{index}</div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {Array.from({ length: 10 }, (_, colIndex) => {
+                                            const entriesForDouble = doubleData[colIndex];
+                                            const entry = entriesForDouble ? entriesForDouble[rowIndex] : null;
+
+                                            return (
+                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
+                                                    {entry ? (
+                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
+                                                            {/* Number and Game Type */}
+                                                            <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
+
+                                                            {/* Bet Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Bet:</span>
+                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Winning Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Win:</span>
+                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Risk Level Indicator */}
+                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 1000000 ? 'bg-red-900/50 text-red-300' :
+                                                                entry.winningAmount > 500000 ? 'bg-orange-900/50 text-orange-300' :
+                                                                    entry.winningAmount > 100000 ? 'bg-yellow-900/50 text-yellow-300' :
+                                                                        'bg-green-900/50 text-green-300'
+                                                                }`}>
+                                                                {entry.winningAmount > 1000000 ? '🔥 HIGH RISK' :
+                                                                    entry.winningAmount > 500000 ? '⚠️ MEDIUM RISK' :
+                                                                        entry.winningAmount > 100000 ? '⚡ LOW RISK' :
+                                                                            '✅ SAFE'}
+                                                            </div>
+
+                                                            {/* Click to see details */}
+                                                            <button
+                                                                onClick={() => onShowModal(entry)}
+                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                                                            >
+                                                                📊 View Details
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs">-</div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
 
                 {/* Detailed Statistics */}

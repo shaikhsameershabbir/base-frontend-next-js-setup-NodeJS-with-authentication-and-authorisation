@@ -262,13 +262,6 @@ export default function WinnerPage() {
                 {/* JSON Data Viewer */}
                 <JsonDataViewer data={data} />
 
-                {/* Total Bet Amount Summary */}
-                <TotalBetAmount
-                    data={data}
-                    selectedBetType={selectedBetType}
-                    cuttingAmount={cuttingAmount}
-                />
-
                 {/* Filters */}
                 <WinnerFilters
                     selectedDate={selectedDate}
@@ -298,6 +291,9 @@ export default function WinnerPage() {
                     onPlayerChange={handlePlayerChange}
                     onClearFilters={clearFilters}
                 />
+
+                {/* Total Bet Amount Summary */}
+          
 
                 {/* Winning Calculation Table */}
                 <WinningCalculationTable
