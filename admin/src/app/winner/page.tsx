@@ -273,24 +273,47 @@ export default function WinnerPage() {
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
             doc.text('Bet Number', 14, 65);
-            doc.text('Bet Amount', 100, 65);
+            doc.text('Bet Amount', 45, 65);
+            doc.text('Bet Number', 85, 65);
+            doc.text('Bet Amount', 116, 65);
+            doc.text('Bet Number', 156, 65);
+            doc.text('Bet Amount', 187, 65);
 
             // Add table data
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
             let yPosition = 75;
 
-            gameData.forEach((item: { number: string; amount: number; winningAmount: number }, index: number) => {
+            // Process data in groups of 3 for 3 columns
+            for (let i = 0; i < gameData.length; i += 3) {
                 if (yPosition > 280) {
                     // Add new page if running out of space
                     doc.addPage();
                     yPosition = 20;
                 }
 
-                doc.text(item.number, 14, yPosition);
-                doc.text(`${item.amount.toLocaleString()}`, 100, yPosition);
+                const row = gameData.slice(i, i + 3);
+
+                // First column
+                if (row[0]) {
+                    doc.text(row[0].number, 14, yPosition);
+                    doc.text(`${row[0].amount.toLocaleString()}`, 45, yPosition);
+                }
+
+                // Second column
+                if (row[1]) {
+                    doc.text(row[1].number, 85, yPosition);
+                    doc.text(`${row[1].amount.toLocaleString()}`, 116, yPosition);
+                }
+
+                // Third column
+                if (row[2]) {
+                    doc.text(row[2].number, 156, yPosition);
+                    doc.text(`${row[2].amount.toLocaleString()}`, 187, yPosition);
+                }
+
                 yPosition += 7;
-            });
+            }
 
             // Save PDF
             doc.save(`${gameTypeLabel}_${selectedDate || 'today'}.pdf`);
