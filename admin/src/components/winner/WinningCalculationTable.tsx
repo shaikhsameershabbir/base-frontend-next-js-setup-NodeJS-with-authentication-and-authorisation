@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { organizeDataByGameTypes, getDigitSum, getGameTypeAndAmount } from './utils';
 import { WINNING_RATES } from './constants';
 import { exportToPDF } from './pdfExport';
+import { useState } from 'react';
 
 interface WinningCalculationTableProps {
     data: any;
@@ -23,6 +24,22 @@ export const WinningCalculationTable = ({
     onExportPDF,
     onShowModal
 }: WinningCalculationTableProps) => {
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        single: true,
+        singlePanna: true,
+        doublePanna: true,
+        triplePanna: true,
+        halfSangam: true,
+        fullSangam: true
+    });
+
+    const toggleSection = (sectionKey: string) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionKey]: !prev[sectionKey]
+        }));
+    };
+
     if (!data) return null;
 
     // Organize data by game types
@@ -251,303 +268,356 @@ export const WinningCalculationTable = ({
                                             Total: ₹{totalSinglesAmount.toLocaleString()}
                                         </div>
                                     </div>
-                                    <Button
-                                        onClick={() => onExportPDF('single', 'Single')}
-                                        size="sm"
-                                        className="bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        📄 Export PDF
-                                    </Button>
+                                    <div className="flex items-center space-x-2">
+                                        <Button
+                                            onClick={() => toggleSection('single')}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                        >
+                                            {expandedSections.single ? 'Collapse' : 'Expand'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => onExportPDF('single', 'Single')}
+                                            size="sm"
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            📄 Export PDF
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         );
                     })()}
 
-                    <table className="w-full border-collapse border border-gray-600">
-                        <thead>
-                            <tr className="bg-gray-800">
-                                {(() => {
-                                    // Calculate singles amount for each column based on selectedBetType filter
-                                    const singlesAmounts = [];
-                                    const cuttingValue = parseFloat(cuttingAmount) || 0;
+                    {/* Single Table - Collapsible */}
+                    {expandedSections.single && (
+                        <table className="w-full border-collapse border border-gray-600 mb-6">
+                            <thead>
+                                <tr className="bg-gray-800">
+                                    {(() => {
+                                        // Calculate singles amount for each column based on selectedBetType filter
+                                        const singlesAmounts = [];
+                                        const cuttingValue = parseFloat(cuttingAmount) || 0;
 
-                                    for (let digit = 0; digit < 10; digit++) {
-                                        const digitStr = digit.toString();
-                                        let totalSingles = 0;
+                                        for (let digit = 0; digit < 10; digit++) {
+                                            const digitStr = digit.toString();
+                                            let totalSingles = 0;
 
-                                        if (selectedBetType === 'all') {
-                                            // Show both open and close
-                                            const openAmount = data?.data?.single?.open?.[digitStr] || 0;
-                                            const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
-                                            totalSingles = openAmount + closeAmount;
-                                        } else if (selectedBetType === 'open') {
-                                            // Show only open
-                                            totalSingles = data?.data?.single?.open?.[digitStr] || 0;
-                                        } else if (selectedBetType === 'close') {
-                                            // Show only close
-                                            totalSingles = data?.data?.single?.close?.[digitStr] || 0;
-                                        }
-
-                                        // Apply cutting filter to singles amounts
-                                        if (totalSingles <= cuttingValue) {
-                                            singlesAmounts.push(null); // Empty column
-                                        } else {
-                                            singlesAmounts.push(totalSingles);
-                                        }
-                                    }
-
-                                    return singlesAmounts.map((amount, index) => (
-                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
-                                            <div className="text-lg font-bold">{index}</div>
-                                            {amount !== null ? (
-                                                <>
-                                                    <div className="text-xs text-green-400">
-                                                        ₹{amount.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-xs text-gray-400">
-                                                        {selectedBetType === 'all' ? 'Singles' :
-                                                            selectedBetType === 'open' ? 'Open Singles' :
-                                                                'Close Singles'}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="text-xs text-gray-500">No data</div>
-                                            )}
-                                        </th>
-                                    ));
-                                })()}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {/* Separate rows by game types */}
-                            {(() => {
-                                const gameTypes = [
-                                    { key: 'singlePanna', label: 'Single Panna', icon: '🎯' },
-                                    { key: 'doublePanna', label: 'Double Panna', icon: '🎲' },
-                                    { key: 'triplePanna', label: 'Triple Panna', icon: '👑' }
-                                ];
-                                const rows: JSX.Element[] = [];
-
-                                gameTypes.forEach((gameType) => {
-                                    // Calculate total bet amount for this game type from organized data
-                                    let totalBetAmount = 0;
-
-                                    // Sum up all bet amounts for this game type from the organized data
-                                    Object.values(tableData).forEach(columnEntries => {
-                                        columnEntries.forEach(entry => {
-                                            if (entry.gameType === gameType.key) {
-                                                totalBetAmount += entry.amount;
+                                            if (selectedBetType === 'all') {
+                                                // Show both open and close
+                                                const openAmount = data?.data?.single?.open?.[digitStr] || 0;
+                                                const closeAmount = data?.data?.single?.close?.[digitStr] || 0;
+                                                totalSingles = openAmount + closeAmount;
+                                            } else if (selectedBetType === 'open') {
+                                                // Show only open
+                                                totalSingles = data?.data?.single?.open?.[digitStr] || 0;
+                                            } else if (selectedBetType === 'close') {
+                                                // Show only close
+                                                totalSingles = data?.data?.single?.close?.[digitStr] || 0;
                                             }
-                                        });
-                                    });
 
-                                    // Find the maximum number of entries for this game type across all columns
-                                    const maxEntriesForGameType = Math.max(...Object.values(tableData).map(col =>
-                                        col.filter(entry => entry.gameType === gameType.key).length
-                                    ));
-
-                                    for (let i = 0; i < maxEntriesForGameType; i++) {
-                                        const row: JSX.Element[] = [];
-
-                                        // Add game type header for first row of each game type
-                                        if (i === 0) {
-                                            row.push(
-                                                <td key="header" colSpan={10} className="border border-gray-600 p-2 text-center bg-gray-700">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center space-x-4">
-                                                            <div className="font-bold text-white text-lg">
-                                                                {gameType.icon} {gameType.label}
-                                                            </div>
-                                                            <div className="text-green-400 font-bold">
-                                                                Total: ₹{totalBetAmount.toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            onClick={() => onExportPDF(gameType.key, gameType.label)}
-                                                            size="sm"
-                                                            className="bg-blue-600 hover:bg-blue-700"
-                                                        >
-                                                            📄 Export PDF
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            );
-                                            rows.push(<tr key={`${gameType.key}-header`}>{row}</tr>);
+                                            // Apply cutting filter to singles amounts
+                                            if (totalSingles <= cuttingValue) {
+                                                singlesAmounts.push(null); // Empty column
+                                            } else {
+                                                singlesAmounts.push(totalSingles);
+                                            }
                                         }
 
-                                        // Create data row for this game type
-                                        const dataRow: JSX.Element[] = [];
-                                        for (let col = 0; col < 10; col++) {
-                                            const entriesForGameType = tableData[col].filter(entry => entry.gameType === gameType.key);
-                                            const entry = entriesForGameType[i];
-
-                                            dataRow.push(
-                                                <td key={col} className="border border-gray-600 p-2 text-center text-sm">
-                                                    {entry ? (
-                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
-                                                            {/* Number and Game Type */}
-                                                            <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
-
-                                                            {/* Bet Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Bet:</span>
-                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Winning Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Win:</span>
-                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Risk Level Indicator */}
-                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 1000000 ? 'bg-red-900/50 text-red-300' :
-                                                                entry.winningAmount > 500000 ? 'bg-orange-900/50 text-orange-300' :
-                                                                    entry.winningAmount > 100000 ? 'bg-yellow-900/50 text-yellow-300' :
-                                                                        'bg-green-900/50 text-green-300'
-                                                                }`}>
-                                                                {entry.winningAmount > 1000000 ? '🔥 HIGH RISK' :
-                                                                    entry.winningAmount > 500000 ? '⚠️ MEDIUM RISK' :
-                                                                        entry.winningAmount > 100000 ? '⚡ LOW RISK' :
-                                                                            '✅ SAFE'}
-                                                            </div>
-
-                                                            {/* Click to see details */}
-                                                            <button
-                                                                onClick={() => onShowModal(entry)}
-                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
-                                                            >
-                                                                📊 View Details
-                                                            </button>
+                                        return singlesAmounts.map((amount, index) => (
+                                            <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                                <div className="text-lg font-bold">{index}</div>
+                                                {amount !== null ? (
+                                                    <>
+                                                        <div className="text-xs text-green-400">
+                                                            ₹{amount.toLocaleString()}
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-gray-500 text-xs">-</div>
-                                                    )}
-                                                </td>
-                                            );
-                                        }
-                                        rows.push(<tr key={`${gameType.key}-${i}`}>{dataRow}</tr>);
+                                                        <div className="text-xs text-gray-400">
+                                                            {selectedBetType === 'all' ? 'Singles' :
+                                                                selectedBetType === 'open' ? 'Open Singles' :
+                                                                    'Close Singles'}
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="text-xs text-gray-500">No data</div>
+                                                )}
+                                            </th>
+                                        ));
+                                    })()}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {/* Single data rows would go here if needed */}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {/* Panna Sections */}
+                    {(() => {
+                        const gameTypes = [
+                            { key: 'singlePanna', label: 'Single Panna', icon: '🎯' },
+                            { key: 'doublePanna', label: 'Double Panna', icon: '🎲' },
+                            { key: 'triplePanna', label: 'Triple Panna', icon: '👑' }
+                        ];
+                        const sections: JSX.Element[] = [];
+
+                        gameTypes.forEach((gameType) => {
+                            // Calculate total bet amount for this game type from organized data
+                            let totalBetAmount = 0;
+
+                            // Sum up all bet amounts for this game type from the organized data
+                            Object.values(tableData).forEach(columnEntries => {
+                                columnEntries.forEach(entry => {
+                                    if (entry.gameType === gameType.key) {
+                                        totalBetAmount += entry.amount;
                                     }
                                 });
+                            });
 
-                                return rows;
-                            })()}
+                            // Find the maximum number of entries for this game type across all columns
+                            const maxEntriesForGameType = Math.max(...Object.values(tableData).map(col =>
+                                col.filter(entry => entry.gameType === gameType.key).length
+                            ));
 
-                            {/* Sangam Section */}
-                            {(() => {
-                                const sangamTypes = [
-                                    { key: 'halfSangam', label: 'Half Sangam', icon: '🎪', rate: 1000 },
-                                    { key: 'fullSangam', label: 'Full Sangam', icon: '🎭', rate: 10000 }
-                                ];
-                                const rows: JSX.Element[] = [];
+                            sections.push(
+                                <div key={gameType.key} className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="font-bold text-white text-lg">
+                                                {gameType.icon} {gameType.label}
+                                            </div>
+                                            <div className="text-green-400 font-bold">
+                                                Total: ₹{totalBetAmount.toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Button
+                                                onClick={() => toggleSection(gameType.key)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs"
+                                            >
+                                                {expandedSections[gameType.key] ? 'Collapse' : 'Expand'}
+                                            </Button>
+                                            <Button
+                                                onClick={() => onExportPDF(gameType.key, gameType.label)}
+                                                size="sm"
+                                                className="bg-blue-600 hover:bg-blue-700"
+                                            >
+                                                📄 Export PDF
+                                            </Button>
+                                        </div>
+                                    </div>
 
-                                sangamTypes.forEach((sangamType) => {
-                                    // Calculate total bet amount for this sangam type
-                                    let totalBetAmount = 0;
-                                    Object.values(sangamData).forEach(columnEntries => {
-                                        columnEntries.forEach(entry => {
-                                            if (entry.gameType === sangamType.key) {
-                                                totalBetAmount += entry.amount;
-                                            }
-                                        });
-                                    });
+                                    {/* Panna Table - Collapsible */}
+                                    {expandedSections[gameType.key] && maxEntriesForGameType > 0 && (
+                                        <table className="w-full border-collapse border border-gray-600 mt-3">
+                                            <thead>
+                                                <tr className="bg-gray-800">
+                                                    {Array.from({ length: 10 }, (_, index) => (
+                                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                                            <div className="text-lg font-bold">{index}</div>
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {Array.from({ length: maxEntriesForGameType }, (_, rowIndex) => (
+                                                    <tr key={rowIndex}>
+                                                        {Array.from({ length: 10 }, (_, colIndex) => {
+                                                            const entriesForGameType = tableData[colIndex].filter(entry => entry.gameType === gameType.key);
+                                                            const entry = entriesForGameType[rowIndex];
 
-                                    // Find the maximum number of entries for this sangam type across all columns
-                                    const maxEntriesForSangamType = Math.max(...Object.values(sangamData).map(col =>
-                                        col.filter(entry => entry.gameType === sangamType.key).length
-                                    ));
+                                                            return (
+                                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
+                                                                    {entry ? (
+                                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
+                                                                            {/* Number and Game Type */}
+                                                                            <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
 
-                                    for (let i = 0; i < maxEntriesForSangamType; i++) {
-                                        const row: JSX.Element[] = [];
+                                                                            {/* Bet Amount */}
+                                                                            <div className="text-xs">
+                                                                                <span className="text-gray-400">Bet:</span>
+                                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
+                                                                            </div>
 
-                                        // Add sangam type header for first row of each sangam type
-                                        if (i === 0) {
-                                            row.push(
-                                                <td key="header" colSpan={10} className="border border-gray-600 p-2 text-center bg-purple-700">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center space-x-4">
-                                                            <div className="font-bold text-white text-lg">
-                                                                {sangamType.icon} {sangamType.label}
-                                                            </div>
-                                                            <div className="text-green-400 font-bold">
-                                                                Total: ₹{totalBetAmount.toLocaleString()}
-                                                            </div>
-                                                            <div className="text-yellow-400 text-sm">
-                                                                Rate: {sangamType.rate.toLocaleString()}
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            onClick={() => onExportPDF(sangamType.key, sangamType.label)}
-                                                            size="sm"
-                                                            className="bg-purple-600 hover:bg-purple-700"
-                                                        >
-                                                            📄 Export PDF
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            );
-                                            rows.push(<tr key={`${sangamType.key}-header`}>{row}</tr>);
-                                        }
+                                                                            {/* Winning Amount */}
+                                                                            <div className="text-xs">
+                                                                                <span className="text-gray-400">Win:</span>
+                                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
+                                                                            </div>
 
-                                        // Create data row for this sangam type
-                                        const dataRow: JSX.Element[] = [];
-                                        for (let col = 0; col < 10; col++) {
-                                            const entriesForSangamType = sangamData[col].filter(entry => entry.gameType === sangamType.key);
-                                            const entry = entriesForSangamType[i];
+                                                                            {/* Risk Level Indicator */}
+                                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 1000000 ? 'bg-red-900/50 text-red-300' :
+                                                                                entry.winningAmount > 500000 ? 'bg-orange-900/50 text-orange-300' :
+                                                                                    entry.winningAmount > 100000 ? 'bg-yellow-900/50 text-yellow-300' :
+                                                                                        'bg-green-900/50 text-green-300'
+                                                                                }`}>
+                                                                                {entry.winningAmount > 1000000 ? '🔥 HIGH RISK' :
+                                                                                    entry.winningAmount > 500000 ? '⚠️ MEDIUM RISK' :
+                                                                                        entry.winningAmount > 100000 ? '⚡ LOW RISK' :
+                                                                                            '✅ SAFE'}
+                                                                            </div>
 
-                                            dataRow.push(
-                                                <td key={col} className="border border-gray-600 p-2 text-center text-sm">
-                                                    {entry ? (
-                                                        <div className="space-y-2 p-2 bg-purple-800 rounded">
-                                                            {/* Number and Game Type */}
-                                                            <div className="font-bold text-purple-300 text-lg">{entry.number}</div>
+                                                                            {/* Click to see details */}
+                                                                            <button
+                                                                                onClick={() => onShowModal(entry)}
+                                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                                                                            >
+                                                                                📊 View Details
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-gray-500 text-xs">-</div>
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            );
+                        });
 
-                                                            {/* Bet Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Bet:</span>
-                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
-                                                            </div>
+                        return sections;
+                    })()}
 
-                                                            {/* Winning Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Win:</span>
-                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
-                                                            </div>
+                    {/* Sangam Sections */}
+                    {(() => {
+                        const sangamTypes = [
+                            { key: 'halfSangam', label: 'Half Sangam', icon: '🎪', rate: 1000 },
+                            { key: 'fullSangam', label: 'Full Sangam', icon: '🎭', rate: 10000 }
+                        ];
+                        const sections: JSX.Element[] = [];
 
-                                                            {/* Risk Level Indicator */}
-                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 10000000 ? 'bg-red-900/50 text-red-300' :
-                                                                entry.winningAmount > 5000000 ? 'bg-orange-900/50 text-orange-300' :
-                                                                    entry.winningAmount > 1000000 ? 'bg-yellow-900/50 text-yellow-300' :
-                                                                        'bg-green-900/50 text-green-300'
-                                                                }`}>
-                                                                {entry.winningAmount > 10000000 ? '🔥 EXTREME RISK' :
-                                                                    entry.winningAmount > 5000000 ? '⚠️ HIGH RISK' :
-                                                                        entry.winningAmount > 1000000 ? '⚡ MEDIUM RISK' :
-                                                                            '✅ LOW RISK'}
-                                                            </div>
-
-                                                            {/* Click to see details */}
-                                                            <button
-                                                                onClick={() => onShowModal(entry)}
-                                                                className="text-xs text-purple-300 hover:text-purple-200 underline cursor-pointer"
-                                                            >
-                                                                📊 View Details
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-gray-500 text-xs">-</div>
-                                                    )}
-                                                </td>
-                                            );
-                                        }
-                                        rows.push(<tr key={`${sangamType.key}-${i}`}>{dataRow}</tr>);
+                        sangamTypes.forEach((sangamType) => {
+                            // Calculate total bet amount for this sangam type
+                            let totalBetAmount = 0;
+                            Object.values(sangamData).forEach(columnEntries => {
+                                columnEntries.forEach(entry => {
+                                    if (entry.gameType === sangamType.key) {
+                                        totalBetAmount += entry.amount;
                                     }
                                 });
+                            });
 
-                                return rows;
-                            })()}
-                        </tbody>
-                    </table>
+                            // Find the maximum number of entries for this sangam type across all columns
+                            const maxEntriesForSangamType = Math.max(...Object.values(sangamData).map(col =>
+                                col.filter(entry => entry.gameType === sangamType.key).length
+                            ));
+
+                            sections.push(
+                                <div key={sangamType.key} className="mb-4 border border-gray-600 bg-purple-700 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="font-bold text-white text-lg">
+                                                {sangamType.icon} {sangamType.label}
+                                            </div>
+                                            <div className="text-green-400 font-bold">
+                                                Total: ₹{totalBetAmount.toLocaleString()}
+                                            </div>
+                                            <div className="text-yellow-400 text-sm">
+                                                Rate: {sangamType.rate.toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Button
+                                                onClick={() => toggleSection(sangamType.key)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs"
+                                            >
+                                                {expandedSections[sangamType.key] ? 'Collapse' : 'Expand'}
+                                            </Button>
+                                            <Button
+                                                onClick={() => onExportPDF(sangamType.key, sangamType.label)}
+                                                size="sm"
+                                                className="bg-purple-600 hover:bg-purple-700"
+                                            >
+                                                📄 Export PDF
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    {/* Sangam Table - Collapsible */}
+                                    {expandedSections[sangamType.key] && maxEntriesForSangamType > 0 && (
+                                        <table className="w-full border-collapse border border-gray-600 mt-3">
+                                            <thead>
+                                                <tr className="bg-gray-800">
+                                                    {Array.from({ length: 10 }, (_, index) => (
+                                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                                            <div className="text-lg font-bold">{index}</div>
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {Array.from({ length: maxEntriesForSangamType }, (_, rowIndex) => (
+                                                    <tr key={rowIndex}>
+                                                        {Array.from({ length: 10 }, (_, colIndex) => {
+                                                            const entriesForSangamType = sangamData[colIndex].filter(entry => entry.gameType === sangamType.key);
+                                                            const entry = entriesForSangamType[rowIndex];
+
+                                                            return (
+                                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
+                                                                    {entry ? (
+                                                                        <div className="space-y-2 p-2 bg-purple-800 rounded">
+                                                                            {/* Number and Game Type */}
+                                                                            <div className="font-bold text-purple-300 text-lg">{entry.number}</div>
+
+                                                                            {/* Bet Amount */}
+                                                                            <div className="text-xs">
+                                                                                <span className="text-gray-400">Bet:</span>
+                                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
+                                                                            </div>
+
+                                                                            {/* Winning Amount */}
+                                                                            <div className="text-xs">
+                                                                                <span className="text-gray-400">Win:</span>
+                                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
+                                                                            </div>
+
+                                                                            {/* Risk Level Indicator */}
+                                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 10000000 ? 'bg-red-900/50 text-red-300' :
+                                                                                entry.winningAmount > 5000000 ? 'bg-orange-900/50 text-orange-300' :
+                                                                                    entry.winningAmount > 1000000 ? 'bg-yellow-900/50 text-yellow-300' :
+                                                                                        'bg-green-900/50 text-green-300'
+                                                                                }`}>
+                                                                                {entry.winningAmount > 10000000 ? '🔥 EXTREME RISK' :
+                                                                                    entry.winningAmount > 5000000 ? '⚠️ HIGH RISK' :
+                                                                                        entry.winningAmount > 1000000 ? '⚡ MEDIUM RISK' :
+                                                                                            '✅ LOW RISK'}
+                                                                            </div>
+
+                                                                            {/* Click to see details */}
+                                                                            <button
+                                                                                onClick={() => onShowModal(entry)}
+                                                                                className="text-xs text-purple-300 hover:text-purple-200 underline cursor-pointer"
+                                                                            >
+                                                                                📊 View Details
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-gray-500 text-xs">-</div>
+                                                                    )}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            );
+                        });
+
+                        return sections;
+                    })()}
                 </div>
 
                 {/* Detailed Statistics */}
