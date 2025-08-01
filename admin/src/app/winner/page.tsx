@@ -147,65 +147,140 @@ export default function WinnerPage() {
         try {
             const doc = new jsPDF();
 
-            // Get data for the specific game type
-            const gameData: Array<{ number: string; amount: number }> = [];
+            // Use the exact same logic as the web interface to get the data
+            const gameData: Array<{ number: string; amount: number; winningAmount: number }> = [];
 
-            // We need to access the organized data for the specific game type
-            if (data?.data?.[gameType]) {
-                const gameTypeData = data.data[gameType];
-
-                if (selectedBetType === 'all') {
-                    // Combine open and close data
-                    Object.entries(gameTypeData.open || {}).forEach(([number, amount]) => {
-                        gameData.push({ number, amount: amount as number });
-                    });
-                    Object.entries(gameTypeData.close || {}).forEach(([number, amount]) => {
-                        gameData.push({ number, amount: amount as number });
-                    });
-                } else if (selectedBetType === 'open') {
-                    Object.entries(gameTypeData.open || {}).forEach(([number, amount]) => {
-                        gameData.push({ number, amount: amount as number });
-                    });
-                } else if (selectedBetType === 'close') {
-                    Object.entries(gameTypeData.close || {}).forEach(([number, amount]) => {
-                        gameData.push({ number, amount: amount as number });
-                    });
-                }
-            }
-
-            // Apply cutting filter
-            const cuttingValue = parseFloat(cuttingAmount) || 0;
-            const filteredGameData = gameData.filter(item => item.amount > cuttingValue);
-
-            if (filteredGameData.length === 0) {
+            // Organize data by game types (same as web interface)
+            const organizedData = organizeDataByGameTypes(data);
+            if (!organizedData) {
                 alert(`No data available for ${gameTypeLabel}`);
                 return;
             }
+
+            // Create table data organized by digit sum (0-9) - same as web interface
+            const tableData: Record<number, Array<{ number: string, amount: number, gameType: string, rate: number, winningAmount: number, betBreakdown: string }>> = {
+                0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+            };
+
+            // Process all numbers and categorize by digit sum (same as web interface)
+            Object.entries(organizedData).forEach(([category, numbers]) => {
+                if (category === 'halfSangam' || category === 'fullSangam') return; // Skip sangam for now
+
+                Object.entries(numbers as Record<string, number>).forEach(([number, amount]) => {
+                    // Skip single digits (0-9) and double digits (00-99)
+                    if (number.length === 1 || number.length === 2) return;
+
+                    // Apply cutting filter
+                    const cuttingValue = parseFloat(cuttingAmount) || 0;
+                    if (amount <= cuttingValue) return;
+
+                    // Validate number format
+                    if (!/^\d+$/.test(number)) {
+                        return;
+                    }
+
+                    const digitSum = getDigitSum(number);
+
+                    // Validate digitSum is a valid number between 0-9
+                    if (isNaN(digitSum) || digitSum < 0 || digitSum > 9) {
+                        return;
+                    }
+
+                    // Ensure tableData[digitSum] exists
+                    if (!tableData[digitSum]) {
+                        tableData[digitSum] = [];
+                    }
+
+                    const { type, rate, amount: winningAmount } = getGameTypeAndAmount(number, amount);
+
+                    // For triple digits, also calculate winning for the digit sum
+                    let totalWinningAmount = winningAmount;
+                    let combinedNumbers = number;
+                    let betBreakdown = `${category}: ₹${amount.toLocaleString()} = ₹${winningAmount.toLocaleString()}`;
+
+                    if (number.length === 3) {
+                        const digitSumStr = digitSum.toString();
+                        const digitSumAmount = organizedData.single?.[digitSumStr] || 0;
+                        const digitSumWinning = digitSumAmount * WINNING_RATES.single;
+                        totalWinningAmount += digitSumWinning;
+                        combinedNumbers = `${number}-${digitSum}`;
+
+                        if (digitSumAmount > 0) {
+                            betBreakdown += ` | Single(${digitSum}): ₹${digitSumAmount.toLocaleString()} = ₹${digitSumWinning.toLocaleString()}`;
+                        }
+                    }
+
+                    // Add total calculation
+                    betBreakdown += ` | Total Win = ₹${totalWinningAmount.toLocaleString()}`;
+
+                    tableData[digitSum].push({
+                        number: combinedNumbers,
+                        amount,
+                        gameType: type,
+                        rate,
+                        winningAmount: totalWinningAmount,
+                        betBreakdown
+                    });
+                });
+            });
+
+            // Extract data for the specific game type (same as web interface)
+            Object.values(tableData).forEach(columnEntries => {
+                columnEntries.forEach(entry => {
+                    if (entry.gameType === gameType) {
+                        gameData.push({
+                            number: entry.number,
+                            amount: entry.amount,
+                            winningAmount: entry.winningAmount
+                        });
+                    }
+                });
+            });
+
+
+
+            if (gameData.length === 0) {
+                alert(`No data available for ${gameTypeLabel}`);
+                return;
+            }
+
+            // Get market name
+            const selectedMarketName = selectedMarket !== 'all'
+                ? assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets'
+                : 'All Markets';
+
+            // Get current date and time
+            const now = new Date();
+            const currentDate = now.toLocaleDateString('en-IN');
+            const currentTime = now.toLocaleTimeString('en-IN');
 
             // Add title
             doc.setFontSize(16);
             doc.text(`${gameTypeLabel} - Bet Data`, 14, 20);
 
-            // Add date and filters info
+            // Add market name
             doc.setFontSize(10);
-            doc.text(`Date: ${selectedDate || 'Today'}`, 14, 30);
-            doc.text(`Bet Type: ${selectedBetType}`, 14, 35);
-            if (cuttingAmount) {
-                doc.text(`Cutting Amount: ₹${cuttingAmount}`, 14, 40);
-            }
+            doc.text(`Market: ${selectedMarketName}`, 14, 30);
+
+            // Add date and filters info
+            doc.text(`Date: ${selectedDate || 'Today'}`, 14, 35);
+            doc.text(`Bet Type: ${selectedBetType}`, 14, 40);
+
+            // Add PDF creation time
+            doc.text(`Generated on: ${currentDate} at ${currentTime}`, 14, 45);
 
             // Add table header
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('Bet Number', 14, 55);
-            doc.text('Bet Amount', 100, 55);
+            doc.text('Bet Number', 14, 65);
+            doc.text('Bet Amount', 100, 65);
 
             // Add table data
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            let yPosition = 65;
+            let yPosition = 75;
 
-            filteredGameData.forEach((item, index) => {
+            gameData.forEach((item: { number: string; amount: number; winningAmount: number }, index: number) => {
                 if (yPosition > 280) {
                     // Add new page if running out of space
                     doc.addPage();
@@ -213,7 +288,7 @@ export default function WinnerPage() {
                 }
 
                 doc.text(item.number, 14, yPosition);
-                doc.text(`₹${item.amount.toLocaleString()}`, 100, yPosition);
+                doc.text(`${item.amount.toLocaleString()}`, 100, yPosition);
                 yPosition += 7;
             });
 
