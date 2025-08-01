@@ -556,23 +556,13 @@ export const WinningCalculationTable = ({
 
                     {/* Double Section Header */}
                     {(() => {
-                        // Calculate total double amount
+                        // Calculate total double amount from the processed double data
                         let totalDoubleAmount = 0;
-                        for (let digit = 0; digit < 10; digit++) {
-                            const digitStr = digit.toString();
-                            let digitDoubles = 0;
-
-                            if (selectedBetType === 'all') {
-                                const openAmount = data?.data?.double?.open?.[digitStr] || 0;
-                                const closeAmount = data?.data?.double?.close?.[digitStr] || 0;
-                                digitDoubles = openAmount + closeAmount;
-                            } else if (selectedBetType === 'open') {
-                                digitDoubles = data?.data?.double?.open?.[digitStr] || 0;
-                            } else if (selectedBetType === 'close') {
-                                digitDoubles = data?.data?.double?.close?.[digitStr] || 0;
-                            }
-                            totalDoubleAmount += digitDoubles;
-                        }
+                        Object.values(doubleData).forEach(columnEntries => {
+                            columnEntries.forEach(entry => {
+                                totalDoubleAmount += entry.amount;
+                            });
+                        });
 
                         return (
                             <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
