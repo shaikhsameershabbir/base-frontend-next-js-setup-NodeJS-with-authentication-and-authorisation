@@ -1,4 +1,4 @@
-"use client"
+git  client"
 
 import { useState, useEffect } from 'react';
 import { winnerApi, type WinnerResponse, type WinnerData, type CompleteTotals, type HierarchicalUser, type Market } from '@/lib/winnerApi';
@@ -10,6 +10,7 @@ import {
     DetailedModal,
     WinningCalculationTable,
     TotalBetAmount,
+    JsonDataViewer,
     exportToPDF,
     exportAllToPDF,
     PDFExportData
@@ -257,6 +258,9 @@ export default function WinnerPage() {
                         </Button>
                     </div>
                 </div>
+
+                {/* JSON Data Viewer */}
+                <JsonDataViewer data={data} />
 
                 {/* Total Bet Amount Summary */}
                 <TotalBetAmount

@@ -5,4 +5,5 @@ export * from './WinnerFilters';
 export * from './DetailedModal';
 export * from './WinningCalculationTable';
 export * from './TotalBetAmount';
-export * from './DataDebugger'; 
+export * from './DataDebugger';
+export * from './JsonDataViewer'; 
