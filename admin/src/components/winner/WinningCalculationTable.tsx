@@ -30,7 +30,8 @@ export const WinningCalculationTable = ({
         doublePanna: true,
         triplePanna: true,
         halfSangam: true,
-        fullSangam: true
+        fullSangam: true,
+        double: true
     });
 
     const toggleSection = (sectionKey: string) => {
@@ -114,6 +115,73 @@ export const WinningCalculationTable = ({
             });
         });
     });
+
+    // Process Double data (2-digit numbers from various bet types)
+    const processDoubleData = () => {
+        const doubleData: Record<number, Array<{ number: string, amount: number, gameType: string, rate: number, winningAmount: number, betBreakdown: string }>> = {
+            0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+        };
+
+        const cuttingValue = parseFloat(cuttingAmount) || 0;
+
+        // Process all bet types that might contain 2-digit numbers
+        const betTypesToCheck = [
+            'jodi', 'half_bracket', 'full_bracket', 'family_panel'
+        ];
+
+        betTypesToCheck.forEach(betType => {
+            if (data?.data?.[betType]) {
+                const betData = data.data[betType];
+
+                // Handle different data structures
+                let entries: [string, number][] = [];
+
+                if (betData.both) {
+                    entries = Object.entries(betData.both);
+                } else if (betData.open || betData.close) {
+                    const openData = betData.open || {};
+                    const closeData = betData.close || {};
+
+                    if (selectedBetType === 'all' || selectedBetType === 'open') {
+                        entries.push(...Object.entries(openData));
+                    }
+                    if (selectedBetType === 'all' || selectedBetType === 'close') {
+                        entries.push(...Object.entries(closeData));
+                    }
+                }
+
+                entries.forEach(([number, amount]) => {
+                    const numAmount = amount as number;
+
+                    // Only process 2-digit numbers
+                    if (number.length === 2 && /^\d{2}$/.test(number)) {
+                        if (numAmount > cuttingValue) {
+                            const firstDigit = parseInt(number.charAt(0));
+                            const secondDigit = parseInt(number.charAt(1));
+                            const digitSum = (firstDigit + secondDigit) % 10; // Sum of digits, modulo 10
+
+                            if (!isNaN(digitSum) && digitSum >= 0 && digitSum <= 9) {
+                                const winningAmount = numAmount * WINNING_RATES.double; // Double rate
+
+                                doubleData[digitSum].push({
+                                    number: number,
+                                    amount: numAmount,
+                                    gameType: betType,
+                                    rate: WINNING_RATES.double,
+                                    winningAmount: winningAmount,
+                                    betBreakdown: `${betType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: ₹${numAmount.toLocaleString()} × ${WINNING_RATES.double} = ₹${winningAmount.toLocaleString()}`
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        return doubleData;
+    };
+
+    const doubleData = processDoubleData();
 
     // Process Sangam data separately
     const processSangamData = () => {
@@ -485,6 +553,129 @@ export const WinningCalculationTable = ({
 
                         return sections;
                     })()}
+
+                    {/* Double Section Header */}
+                    {(() => {
+                        // Calculate total double amount
+                        let totalDoubleAmount = 0;
+                        for (let digit = 0; digit < 10; digit++) {
+                            const digitStr = digit.toString();
+                            let digitDoubles = 0;
+
+                            if (selectedBetType === 'all') {
+                                const openAmount = data?.data?.double?.open?.[digitStr] || 0;
+                                const closeAmount = data?.data?.double?.close?.[digitStr] || 0;
+                                digitDoubles = openAmount + closeAmount;
+                            } else if (selectedBetType === 'open') {
+                                digitDoubles = data?.data?.double?.open?.[digitStr] || 0;
+                            } else if (selectedBetType === 'close') {
+                                digitDoubles = data?.data?.double?.close?.[digitStr] || 0;
+                            }
+                            totalDoubleAmount += digitDoubles;
+                        }
+
+                        return (
+                            <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4">
+                                        <div className="font-bold text-white text-lg">
+                                            🎲 Double
+                                        </div>
+                                        <div className="text-green-400 font-bold">
+                                            Total: ₹{totalDoubleAmount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Button
+                                            onClick={() => toggleSection('double')}
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-xs"
+                                        >
+                                            {expandedSections.double ? 'Collapse' : 'Expand'}
+                                        </Button>
+                                        <Button
+                                            onClick={() => onExportPDF('double', 'Double')}
+                                            size="sm"
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            📄 Export PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })()}
+
+                    {/* Double Table - Collapsible */}
+                    {expandedSections.double && (
+                        <table className="w-full border-collapse border border-gray-600 mb-6">
+                            <thead>
+                                <tr className="bg-gray-800">
+                                    {Array.from({ length: 10 }, (_, index) => (
+                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                            <div className="text-lg font-bold">{index}</div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: 10 }, (_, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {Array.from({ length: 10 }, (_, colIndex) => {
+                                            const entriesForDouble = doubleData[colIndex];
+                                            const entry = entriesForDouble ? entriesForDouble[rowIndex] : null;
+
+                                            return (
+                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
+                                                    {entry ? (
+                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
+                                                            {/* Number and Game Type */}
+                                                            <div className="font-bold text-blue-400 text-lg">{entry.number}</div>
+
+                                                            {/* Bet Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Bet:</span>
+                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Winning Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Win:</span>
+                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Risk Level Indicator */}
+                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 1000000 ? 'bg-red-900/50 text-red-300' :
+                                                                entry.winningAmount > 500000 ? 'bg-orange-900/50 text-orange-300' :
+                                                                    entry.winningAmount > 100000 ? 'bg-yellow-900/50 text-yellow-300' :
+                                                                        'bg-green-900/50 text-green-300'
+                                                                }`}>
+                                                                {entry.winningAmount > 1000000 ? '🔥 HIGH RISK' :
+                                                                    entry.winningAmount > 500000 ? '⚠️ MEDIUM RISK' :
+                                                                        entry.winningAmount > 100000 ? '⚡ LOW RISK' :
+                                                                            '✅ SAFE'}
+                                                            </div>
+
+                                                            {/* Click to see details */}
+                                                            <button
+                                                                onClick={() => onShowModal(entry)}
+                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
+                                                            >
+                                                                📊 View Details
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs">-</div>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
 
                     {/* Sangam Sections */}
                     {(() => {

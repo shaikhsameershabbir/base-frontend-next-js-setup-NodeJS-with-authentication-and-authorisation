@@ -63,8 +63,11 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
 
             Object.entries(numbers as Record<string, number>).forEach(([number, amount]) => {
                 // For single game type, include single digits (0-9)
+                // For double game type, include only 2-digit numbers
                 // For other game types, skip single digits (0-9) and double digits (00-99)
-                if (gameType !== 'single' && (number.length === 1 || number.length === 2)) return;
+                if (gameType === 'single' && number.length !== 1) return;
+                if (gameType === 'double' && number.length !== 2) return;
+                if (gameType !== 'single' && gameType !== 'double' && (number.length === 1 || number.length === 2)) return;
 
                 // Apply cutting filter
                 const cuttingValue = parseFloat(cuttingAmount) || 0;
@@ -123,6 +126,62 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
                 });
             });
         });
+
+        // Process Double data (2-digit numbers from various bet types) - same as web interface
+        if (gameType === 'double') {
+            const betTypesToCheck = [
+                'jodi', 'half_bracket', 'full_bracket', 'family_panel'
+            ];
+
+            betTypesToCheck.forEach(betType => {
+                if (data?.data?.[betType]) {
+                    const betData = data.data[betType];
+
+                    // Handle different data structures
+                    let entries: [string, number][] = [];
+
+                    if (betData.both) {
+                        entries = Object.entries(betData.both);
+                    } else if (betData.open || betData.close) {
+                        const openData = betData.open || {};
+                        const closeData = betData.close || {};
+
+                        if (selectedBetType === 'all' || selectedBetType === 'open') {
+                            entries.push(...Object.entries(openData));
+                        }
+                        if (selectedBetType === 'all' || selectedBetType === 'close') {
+                            entries.push(...Object.entries(closeData));
+                        }
+                    }
+
+                    entries.forEach(([number, amount]) => {
+                        const numAmount = amount as number;
+
+                        // Only process 2-digit numbers
+                        if (number.length === 2 && /^\d{2}$/.test(number)) {
+                            if (numAmount > cuttingValue) {
+                                const firstDigit = parseInt(number.charAt(0));
+                                const secondDigit = parseInt(number.charAt(1));
+                                const digitSum = (firstDigit + secondDigit) % 10; // Sum of digits, modulo 10
+
+                                if (!isNaN(digitSum) && digitSum >= 0 && digitSum <= 9) {
+                                    const winningAmount = numAmount * WINNING_RATES.double; // Double rate
+
+                                    tableData[digitSum].push({
+                                        number: number,
+                                        amount: numAmount,
+                                        gameType: betType,
+                                        rate: WINNING_RATES.double,
+                                        winningAmount: winningAmount,
+                                        betBreakdown: `${betType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: ₹${numAmount.toLocaleString()} × ${WINNING_RATES.double} = ₹${winningAmount.toLocaleString()}`
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
 
         // Extract data for the specific game type (same as web interface)
         Object.values(tableData).forEach(columnEntries => {
@@ -232,6 +291,7 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
         // Define all game types to export
         const gameTypes = [
             { key: 'single', label: 'Single' },
+            { key: 'double', label: 'Double' },
             { key: 'singlePanna', label: 'Single Panna' },
             { key: 'doublePanna', label: 'Double Panna' },
             { key: 'triplePanna', label: 'Triple Panna' }
@@ -257,8 +317,11 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
 
                 Object.entries(numbers as Record<string, number>).forEach(([number, amount]) => {
                     // For single game type, include single digits (0-9)
+                    // For double game type, include only 2-digit numbers
                     // For other game types, skip single digits (0-9) and double digits (00-99)
-                    if (gameType.key !== 'single' && (number.length === 1 || number.length === 2)) return;
+                    if (gameType.key === 'single' && number.length !== 1) return;
+                    if (gameType.key === 'double' && number.length !== 2) return;
+                    if (gameType.key !== 'single' && gameType.key !== 'double' && (number.length === 1 || number.length === 2)) return;
 
                     // Apply cutting filter
                     const cuttingValue = parseFloat(cuttingAmount) || 0;
@@ -317,6 +380,62 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
                     });
                 });
             });
+
+            // Process Double data (2-digit numbers from various bet types) - same as web interface
+            if (gameType.key === 'double') {
+                const betTypesToCheck = [
+                    'jodi', 'half_bracket', 'full_bracket', 'family_panel'
+                ];
+
+                betTypesToCheck.forEach(betType => {
+                    if (data?.data?.[betType]) {
+                        const betData = data.data[betType];
+
+                        // Handle different data structures
+                        let entries: [string, number][] = [];
+
+                        if (betData.both) {
+                            entries = Object.entries(betData.both);
+                        } else if (betData.open || betData.close) {
+                            const openData = betData.open || {};
+                            const closeData = betData.close || {};
+
+                            if (selectedBetType === 'all' || selectedBetType === 'open') {
+                                entries.push(...Object.entries(openData));
+                            }
+                            if (selectedBetType === 'all' || selectedBetType === 'close') {
+                                entries.push(...Object.entries(closeData));
+                            }
+                        }
+
+                        entries.forEach(([number, amount]) => {
+                            const numAmount = amount as number;
+
+                            // Only process 2-digit numbers
+                            if (number.length === 2 && /^\d{2}$/.test(number)) {
+                                if (numAmount > cuttingValue) {
+                                    const firstDigit = parseInt(number.charAt(0));
+                                    const secondDigit = parseInt(number.charAt(1));
+                                    const digitSum = (firstDigit + secondDigit) % 10; // Sum of digits, modulo 10
+
+                                    if (!isNaN(digitSum) && digitSum >= 0 && digitSum <= 9) {
+                                        const winningAmount = numAmount * WINNING_RATES.double; // Double rate
+
+                                        tableData[digitSum].push({
+                                            number: number,
+                                            amount: numAmount,
+                                            gameType: betType,
+                                            rate: WINNING_RATES.double,
+                                            winningAmount: winningAmount,
+                                            betBreakdown: `${betType.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}: ₹${numAmount.toLocaleString()} × ${WINNING_RATES.double} = ₹${winningAmount.toLocaleString()}`
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }
 
             // Extract data for the specific game type (same as web interface)
             Object.values(tableData).forEach(columnEntries => {
