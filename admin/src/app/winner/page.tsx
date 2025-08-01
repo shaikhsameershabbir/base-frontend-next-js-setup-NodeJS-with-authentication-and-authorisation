@@ -1,4 +1,4 @@
-git  client"
+"use client"
 
 import { useState, useEffect } from 'react';
 import { winnerApi, type WinnerResponse, type WinnerData, type CompleteTotals, type HierarchicalUser, type Market } from '@/lib/winnerApi';

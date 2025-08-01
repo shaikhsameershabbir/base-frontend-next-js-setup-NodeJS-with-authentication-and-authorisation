@@ -98,6 +98,67 @@ export const WinningCalculationTable = ({
         });
     });
 
+    // Process Sangam data separately
+    const processSangamData = () => {
+        const sangamData: Record<number, Array<{ number: string, amount: number, gameType: string, rate: number, winningAmount: number, betBreakdown: string }>> = {
+            0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+        };
+
+        // Process Half Sangam data
+        if (data?.data?.half_sangam_open?.both) {
+            Object.entries(data.data.half_sangam_open.both).forEach(([number, amount]) => {
+                const numAmount = amount as number;
+                const cuttingValue = parseFloat(cuttingAmount) || 0;
+
+                if (numAmount > cuttingValue) {
+                    // Extract the first digit for categorization
+                    const firstDigit = parseInt(number.charAt(0));
+                    if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                        const winningAmount = numAmount * 1000; // Half Sangam rate
+
+                        sangamData[firstDigit].push({
+                            number: number,
+                            amount: numAmount,
+                            gameType: 'halfSangam',
+                            rate: 1000,
+                            winningAmount: winningAmount,
+                            betBreakdown: `Half Sangam: ₹${numAmount.toLocaleString()} × 1000 = ₹${winningAmount.toLocaleString()}`
+                        });
+                    }
+                }
+            });
+        }
+
+        // Process Full Sangam data
+        if (data?.data?.full_sangam?.both) {
+            Object.entries(data.data.full_sangam.both).forEach(([number, amount]) => {
+                const numAmount = amount as number;
+                const cuttingValue = parseFloat(cuttingAmount) || 0;
+
+                if (numAmount > cuttingValue) {
+                    // Extract the first digit for categorization
+                    const firstDigit = parseInt(number.charAt(0));
+                    if (!isNaN(firstDigit) && firstDigit >= 0 && firstDigit <= 9) {
+                        const winningAmount = numAmount * 10000; // Full Sangam rate
+
+                        sangamData[firstDigit].push({
+                            number: number,
+                            amount: numAmount,
+                            gameType: 'fullSangam',
+                            rate: 10000,
+                            winningAmount: winningAmount,
+                            betBreakdown: `Full Sangam: ₹${numAmount.toLocaleString()} × 10000 = ₹${winningAmount.toLocaleString()}`
+                        });
+                    }
+                }
+            });
+        }
+
+        return sangamData;
+    };
+
+    const sangamData = processSangamData();
+
     // Calculate comprehensive statistics
     const columnStats = Object.entries(tableData).map(([digit, entries]) => {
         const totalBetAmount = entries.reduce((sum, e) => sum + e.amount, 0);
@@ -123,6 +184,17 @@ export const WinningCalculationTable = ({
 
     // Sort entries within each column by winning amount
     Object.values(tableData).forEach(entries => {
+        entries.sort((a, b) => {
+            if (sortOrder === 'desc') {
+                return b.winningAmount - a.winningAmount;
+            } else {
+                return a.winningAmount - b.winningAmount;
+            }
+        });
+    });
+
+    // Sort sangam entries
+    Object.values(sangamData).forEach(entries => {
         entries.sort((a, b) => {
             if (sortOrder === 'desc') {
                 return b.winningAmount - a.winningAmount;
@@ -348,11 +420,127 @@ export const WinningCalculationTable = ({
                                                                 📊 View Details
                                                             </button>
                                                         </div>
-                                                    ) : null}
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs">-</div>
+                                                    )}
                                                 </td>
                                             );
                                         }
                                         rows.push(<tr key={`${gameType.key}-${i}`}>{dataRow}</tr>);
+                                    }
+                                });
+
+                                return rows;
+                            })()}
+
+                            {/* Sangam Section */}
+                            {(() => {
+                                const sangamTypes = [
+                                    { key: 'halfSangam', label: 'Half Sangam', icon: '🎪', rate: 1000 },
+                                    { key: 'fullSangam', label: 'Full Sangam', icon: '🎭', rate: 10000 }
+                                ];
+                                const rows: JSX.Element[] = [];
+
+                                sangamTypes.forEach((sangamType) => {
+                                    // Calculate total bet amount for this sangam type
+                                    let totalBetAmount = 0;
+                                    Object.values(sangamData).forEach(columnEntries => {
+                                        columnEntries.forEach(entry => {
+                                            if (entry.gameType === sangamType.key) {
+                                                totalBetAmount += entry.amount;
+                                            }
+                                        });
+                                    });
+
+                                    // Find the maximum number of entries for this sangam type across all columns
+                                    const maxEntriesForSangamType = Math.max(...Object.values(sangamData).map(col =>
+                                        col.filter(entry => entry.gameType === sangamType.key).length
+                                    ));
+
+                                    for (let i = 0; i < maxEntriesForSangamType; i++) {
+                                        const row: JSX.Element[] = [];
+
+                                        // Add sangam type header for first row of each sangam type
+                                        if (i === 0) {
+                                            row.push(
+                                                <td key="header" colSpan={10} className="border border-gray-600 p-2 text-center bg-purple-700">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center space-x-4">
+                                                            <div className="font-bold text-white text-lg">
+                                                                {sangamType.icon} {sangamType.label}
+                                                            </div>
+                                                            <div className="text-green-400 font-bold">
+                                                                Total: ₹{totalBetAmount.toLocaleString()}
+                                                            </div>
+                                                            <div className="text-yellow-400 text-sm">
+                                                                Rate: {sangamType.rate.toLocaleString()}
+                                                            </div>
+                                                        </div>
+                                                        <Button
+                                                            onClick={() => onExportPDF(sangamType.key, sangamType.label)}
+                                                            size="sm"
+                                                            className="bg-purple-600 hover:bg-purple-700"
+                                                        >
+                                                            📄 Export PDF
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            );
+                                            rows.push(<tr key={`${sangamType.key}-header`}>{row}</tr>);
+                                        }
+
+                                        // Create data row for this sangam type
+                                        const dataRow: JSX.Element[] = [];
+                                        for (let col = 0; col < 10; col++) {
+                                            const entriesForSangamType = sangamData[col].filter(entry => entry.gameType === sangamType.key);
+                                            const entry = entriesForSangamType[i];
+
+                                            dataRow.push(
+                                                <td key={col} className="border border-gray-600 p-2 text-center text-sm">
+                                                    {entry ? (
+                                                        <div className="space-y-2 p-2 bg-purple-800 rounded">
+                                                            {/* Number and Game Type */}
+                                                            <div className="font-bold text-purple-300 text-lg">{entry.number}</div>
+
+                                                            {/* Bet Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Bet:</span>
+                                                                <span className="text-green-400 font-bold ml-1">₹{entry.amount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Winning Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Win:</span>
+                                                                <span className="text-yellow-400 font-bold ml-1">₹{entry.winningAmount.toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Risk Level Indicator */}
+                                                            <div className={`text-xs px-1 rounded ${entry.winningAmount > 10000000 ? 'bg-red-900/50 text-red-300' :
+                                                                entry.winningAmount > 5000000 ? 'bg-orange-900/50 text-orange-300' :
+                                                                    entry.winningAmount > 1000000 ? 'bg-yellow-900/50 text-yellow-300' :
+                                                                        'bg-green-900/50 text-green-300'
+                                                                }`}>
+                                                                {entry.winningAmount > 10000000 ? '🔥 EXTREME RISK' :
+                                                                    entry.winningAmount > 5000000 ? '⚠️ HIGH RISK' :
+                                                                        entry.winningAmount > 1000000 ? '⚡ MEDIUM RISK' :
+                                                                            '✅ LOW RISK'}
+                                                            </div>
+
+                                                            {/* Click to see details */}
+                                                            <button
+                                                                onClick={() => onShowModal(entry)}
+                                                                className="text-xs text-purple-300 hover:text-purple-200 underline cursor-pointer"
+                                                            >
+                                                                📊 View Details
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs">-</div>
+                                                    )}
+                                                </td>
+                                            );
+                                        }
+                                        rows.push(<tr key={`${sangamType.key}-${i}`}>{dataRow}</tr>);
                                     }
                                 });
 
