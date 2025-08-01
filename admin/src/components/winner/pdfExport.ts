@@ -255,20 +255,28 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
             return;
         }
 
+        // Calculate total bet amount
+        const totalBetAmount = gameData.reduce((sum, item) => sum + item.amount, 0);
+
+        // Add total bet amount
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Total Bet Amount: ${totalBetAmount.toLocaleString()}`, 14, 60);
+
         // Add table header
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Bet Number', 14, 65);
-        doc.text('Bet Amount', 45, 65);
-        doc.text('Bet Number', 85, 65);
-        doc.text('Bet Amount', 116, 65);
-        doc.text('Bet Number', 156, 65);
-        doc.text('Bet Amount', 187, 65);
+        doc.text('Bet Number', 14, 75);
+        doc.text('Bet Amount', 45, 75);
+        doc.text('Bet Number', 85, 75);
+        doc.text('Bet Amount', 116, 75);
+        doc.text('Bet Number', 156, 75);
+        doc.text('Bet Amount', 187, 75);
 
         // Add table data
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        let yPosition = 75;
+        let yPosition = 85;
 
         // Process data in groups of 3 for 3 columns
         for (let i = 0; i < gameData.length; i += 3) {
@@ -561,6 +569,9 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
             });
 
             if (gameData.length > 0) {
+                // Calculate total bet amount for this game type
+                const totalBetAmount = gameData.reduce((sum, item) => sum + item.amount, 0);
+
                 // Add game type header
                 if (yPosition > 250) {
                     doc.addPage();
@@ -570,6 +581,12 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text(`${gameType.label} - Bet Data`, 14, yPosition);
+                yPosition += 10;
+
+                // Add total bet amount for this game type
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Total Bet Amount: ${totalBetAmount.toLocaleString()}`, 14, yPosition);
                 yPosition += 10;
 
                 // Add table header
