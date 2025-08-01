@@ -9,6 +9,7 @@ import {
     WinnerFilters,
     DetailedModal,
     WinningCalculationTable,
+    TotalBetAmount,
     exportToPDF,
     exportAllToPDF,
     PDFExportData
@@ -256,6 +257,13 @@ export default function WinnerPage() {
                         </Button>
                     </div>
                 </div>
+
+                {/* Total Bet Amount Summary */}
+                <TotalBetAmount
+                    data={data}
+                    selectedBetType={selectedBetType}
+                    cuttingAmount={cuttingAmount}
+                />
 
                 {/* Filters */}
                 <WinnerFilters
