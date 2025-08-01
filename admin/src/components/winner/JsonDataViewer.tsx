@@ -27,7 +27,7 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {/* Summary */}
+                    {/* Summary - Always visible */}
                     <div className="bg-gray-800 p-4 rounded-lg">
                         <h3 className="text-white font-semibold mb-2">Data Summary:</h3>
                         <div className="text-sm text-gray-300 space-y-1">
@@ -42,18 +42,20 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
                         </div>
                     </div>
 
-                    {/* Complete JSON */}
-                    <div className="bg-gray-800 p-4 rounded-lg">
-                        <h3 className="text-white font-semibold mb-2">Complete JSON Data:</h3>
-                        <div className="bg-black p-4 rounded border border-gray-600">
-                            <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
-                                {JSON.stringify(data, null, 2)}
-                            </pre>
+                    {/* Complete JSON - Only visible when expanded */}
+                    {isExpanded && (
+                        <div className="bg-gray-800 p-4 rounded-lg">
+                            <h3 className="text-white font-semibold mb-2">Complete JSON Data:</h3>
+                            <div className="bg-black p-4 rounded border border-gray-600">
+                                <pre className="text-xs text-green-400 overflow-x-auto whitespace-pre-wrap">
+                                    {JSON.stringify(data, null, 2)}
+                                </pre>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Structured Breakdown */}
-                    {data?.data && (
+                    {/* Structured Breakdown - Only visible when expanded */}
+                    {isExpanded && data?.data && (
                         <div className="bg-gray-800 p-4 rounded-lg">
                             <h3 className="text-white font-semibold mb-2">Structured Breakdown:</h3>
                             <div className="text-sm text-gray-300 space-y-4">
@@ -73,8 +75,8 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
                         </div>
                     )}
 
-                    {/* Data Analysis */}
-                    {data?.data && (
+                    {/* Data Analysis - Only visible when expanded */}
+                    {isExpanded && data?.data && (
                         <div className="bg-gray-800 p-4 rounded-lg">
                             <h3 className="text-white font-semibold mb-2">Data Analysis:</h3>
                             <div className="text-sm text-gray-300 space-y-2">
@@ -123,6 +125,15 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Collapsed State Message */}
+                    {!isExpanded && (
+                        <div className="bg-gray-800 p-4 rounded-lg">
+                            <div className="text-center text-gray-400">
+                                <p>Click "Expand" to view complete JSON data structure and analysis</p>
                             </div>
                         </div>
                     )}
