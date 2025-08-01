@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
+import jsPDF from 'jspdf';
 
 // Import the panna numbers arrays
 const singlePannaNumbers = [
@@ -140,6 +141,89 @@ export default function WinnerPage() {
 
     // Cutting filter state
     const [cuttingAmount, setCuttingAmount] = useState<string>('');
+
+    // PDF Export functions
+    const exportToPDF = (gameType: string, gameTypeLabel: string) => {
+        try {
+            const doc = new jsPDF();
+
+            // Get data for the specific game type
+            const gameData: Array<{ number: string; amount: number }> = [];
+
+            // We need to access the organized data for the specific game type
+            if (data?.data?.[gameType]) {
+                const gameTypeData = data.data[gameType];
+
+                if (selectedBetType === 'all') {
+                    // Combine open and close data
+                    Object.entries(gameTypeData.open || {}).forEach(([number, amount]) => {
+                        gameData.push({ number, amount: amount as number });
+                    });
+                    Object.entries(gameTypeData.close || {}).forEach(([number, amount]) => {
+                        gameData.push({ number, amount: amount as number });
+                    });
+                } else if (selectedBetType === 'open') {
+                    Object.entries(gameTypeData.open || {}).forEach(([number, amount]) => {
+                        gameData.push({ number, amount: amount as number });
+                    });
+                } else if (selectedBetType === 'close') {
+                    Object.entries(gameTypeData.close || {}).forEach(([number, amount]) => {
+                        gameData.push({ number, amount: amount as number });
+                    });
+                }
+            }
+
+            // Apply cutting filter
+            const cuttingValue = parseFloat(cuttingAmount) || 0;
+            const filteredGameData = gameData.filter(item => item.amount > cuttingValue);
+
+            if (filteredGameData.length === 0) {
+                alert(`No data available for ${gameTypeLabel}`);
+                return;
+            }
+
+            // Add title
+            doc.setFontSize(16);
+            doc.text(`${gameTypeLabel} - Bet Data`, 14, 20);
+
+            // Add date and filters info
+            doc.setFontSize(10);
+            doc.text(`Date: ${selectedDate || 'Today'}`, 14, 30);
+            doc.text(`Bet Type: ${selectedBetType}`, 14, 35);
+            if (cuttingAmount) {
+                doc.text(`Cutting Amount: ₹${cuttingAmount}`, 14, 40);
+            }
+
+            // Add table header
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Bet Number', 14, 55);
+            doc.text('Bet Amount', 100, 55);
+
+            // Add table data
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            let yPosition = 65;
+
+            filteredGameData.forEach((item, index) => {
+                if (yPosition > 280) {
+                    // Add new page if running out of space
+                    doc.addPage();
+                    yPosition = 20;
+                }
+
+                doc.text(item.number, 14, yPosition);
+                doc.text(`₹${item.amount.toLocaleString()}`, 100, yPosition);
+                yPosition += 7;
+            });
+
+            // Save PDF
+            doc.save(`${gameTypeLabel}_${selectedDate || 'today'}.pdf`);
+        } catch (error) {
+            console.error('PDF export error:', error);
+            alert('Failed to generate PDF. Please try again.');
+        }
+    };
 
     useEffect(() => {
         fetchWinnerData();
@@ -688,13 +772,22 @@ export default function WinnerPage() {
 
                             return (
                                 <div className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
-                                    <div className="flex items-center justify-center space-x-4">
-                                        <div className="font-bold text-white text-lg">
-                                            🎯 Single
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="font-bold text-white text-lg">
+                                                🎯 Single
+                                            </div>
+                                            <div className="text-green-400 font-bold">
+                                                Total: ₹{totalSinglesAmount.toLocaleString()}
+                                            </div>
                                         </div>
-                                        <div className="text-green-400 font-bold">
-                                            Total: ₹{totalSinglesAmount.toLocaleString()}
-                                        </div>
+                                        <Button
+                                            onClick={() => exportToPDF('single', 'Single')}
+                                            size="sm"
+                                            className="bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            📄 Export PDF
+                                        </Button>
                                     </div>
                                 </div>
                             );
@@ -790,13 +883,22 @@ export default function WinnerPage() {
                                             if (i === 0) {
                                                 row.push(
                                                     <td key="header" colSpan={10} className="border border-gray-600 p-2 text-center bg-gray-700">
-                                                        <div className="flex items-center justify-center space-x-4">
-                                                            <div className="font-bold text-white text-lg">
-                                                                {gameType.icon} {gameType.label}
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center space-x-4">
+                                                                <div className="font-bold text-white text-lg">
+                                                                    {gameType.icon} {gameType.label}
+                                                                </div>
+                                                                <div className="text-green-400 font-bold">
+                                                                    Total: ₹{totalBetAmount.toLocaleString()}
+                                                                </div>
                                                             </div>
-                                                            <div className="text-green-400 font-bold">
-                                                                Total: ₹{totalBetAmount.toLocaleString()}
-                                                            </div>
+                                                            <Button
+                                                                onClick={() => exportToPDF(gameType.key, gameType.label)}
+                                                                size="sm"
+                                                                className="bg-blue-600 hover:bg-blue-700"
+                                                            >
+                                                                📄 Export PDF
+                                                            </Button>
                                                         </div>
                                                     </td>
                                                 );
