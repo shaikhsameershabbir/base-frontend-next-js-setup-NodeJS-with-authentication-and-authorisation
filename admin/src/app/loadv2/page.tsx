@@ -8,12 +8,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
+import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, jodiNumbers, doubleNumbers } from '@/components/winner/constants';
+
+// Types for processed data
+interface ProcessedBetData {
+    singleNumbers: { [key: string]: number };
+    doubleNumbers: { [key: string]: number };
+    singlePanna: { [key: string]: number };
+    doublePanna: { [key: string]: number };
+    triplePanna: { [key: string]: number };
+    halfSangamOpen: { [key: string]: number };
+    halfSangamClose: { [key: string]: number };
+    fullSangam: { [key: string]: number };
+}
 
 export default function LoadV2Page() {
     const [data, setData] = useState<LoadV2Response | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<string>('');
+    const [selectedBetType, setSelectedBetType] = useState<string>('all');
 
     // Hierarchical filter states
     const [hierarchicalUsers, setHierarchicalUsers] = useState<Record<string, HierarchicalUser[]>>({});
@@ -34,10 +48,95 @@ export default function LoadV2Page() {
     // Cutting filter state
     const [cuttingAmount, setCuttingAmount] = useState<string>('');
 
+    // Processed data state
+    const [processedData, setProcessedData] = useState<ProcessedBetData | null>(null);
+
     useEffect(() => {
         fetchLoadData();
         fetchFilters();
     }, []);
+
+    // Process bet data when data changes
+    useEffect(() => {
+        if (data) {
+            const processed = processBetData(data.data.bets, selectedBetType);
+            setProcessedData(processed);
+        }
+    }, [data, selectedBetType]);
+
+    const processBetData = (bets: any[], betTypeFilter: string): ProcessedBetData => {
+        const result: ProcessedBetData = {
+            singleNumbers: {},
+            doubleNumbers: {},
+            singlePanna: {},
+            doublePanna: {},
+            triplePanna: {},
+            halfSangamOpen: {},
+            halfSangamClose: {},
+            fullSangam: {}
+        };
+
+        bets.forEach(bet => {
+            // Filter by betType
+            if (betTypeFilter !== 'all') {
+                if (betTypeFilter === 'open' && bet.betType !== 'open' && bet.betType !== 'both') {
+                    return;
+                }
+                if (betTypeFilter === 'close' && bet.betType !== 'close' && bet.betType !== 'both') {
+                    return;
+                }
+            }
+
+            const selectedNumbers = bet.selectedNumbers || {};
+
+            Object.entries(selectedNumbers).forEach(([key, amount]) => {
+                const numKey = key.toString();
+                const numAmount = Number(amount);
+
+                // Single Numbers (0-9)
+                if (/^[0-9]$/.test(numKey)) {
+                    result.singleNumbers[numKey] = (result.singleNumbers[numKey] || 0) + numAmount;
+                }
+
+                // Double Numbers (00-99)
+                if (/^[0-9]{2}$/.test(numKey)) {
+                    result.doubleNumbers[numKey] = (result.doubleNumbers[numKey] || 0) + numAmount;
+                }
+
+                // Single Panna (3 digits, matches singlePannaNumbers)
+                if (/^[0-9]{3}$/.test(numKey) && singlePannaNumbers.includes(parseInt(numKey))) {
+                    result.singlePanna[numKey] = (result.singlePanna[numKey] || 0) + numAmount;
+                }
+
+                // Double Panna (3 digits, matches doublePannaNumbers)
+                if (/^[0-9]{3}$/.test(numKey) && doublePannaNumbers.includes(parseInt(numKey))) {
+                    result.doublePanna[numKey] = (result.doublePanna[numKey] || 0) + numAmount;
+                }
+
+                // Triple Panna (3 digits, matches triplePannaNumbers)
+                if (/^[0-9]{3}$/.test(numKey) && triplePannaNumbers.includes(numKey)) {
+                    result.triplePanna[numKey] = (result.triplePanna[numKey] || 0) + numAmount;
+                }
+
+                // Half Sangam Open (pattern: digitX3digit)
+                if (/^[0-9]X[0-9]{3}$/.test(numKey)) {
+                    result.halfSangamOpen[numKey] = (result.halfSangamOpen[numKey] || 0) + numAmount;
+                }
+
+                // Half Sangam Close (pattern: 3digitXdigit)
+                if (/^[0-9]{3}X[0-9]$/.test(numKey)) {
+                    result.halfSangamClose[numKey] = (result.halfSangamClose[numKey] || 0) + numAmount;
+                }
+
+                // Full Sangam (pattern: 3digit-2digit-3digit, no X)
+                if (/^[0-9]{3}-[0-9]{2}-[0-9]{3}$/.test(numKey)) {
+                    result.fullSangam[numKey] = (result.fullSangam[numKey] || 0) + numAmount;
+                }
+            });
+        });
+
+        return result;
+    };
 
     const fetchFilters = async () => {
         try {
@@ -137,6 +236,10 @@ export default function LoadV2Page() {
         setCuttingAmount(value);
     };
 
+    const handleBetTypeChange = (betType: string) => {
+        setSelectedBetType(betType);
+    };
+
     const clearFilters = () => {
         setSelectedUser('all');
         setSelectedMarket('all');
@@ -146,6 +249,7 @@ export default function LoadV2Page() {
         setSelectedAgent('all');
         setSelectedPlayer('all');
         setCuttingAmount(''); // Clear cutting amount
+        setSelectedBetType('all'); // Clear bet type filter
         setCurrentDataUser('all');
         fetchLoadData();
     };
@@ -199,6 +303,21 @@ export default function LoadV2Page() {
                                             {market.marketName}
                                         </SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Bet Type Filter */}
+                        <div className="space-y-3">
+                            <Label className="text-gray-300 font-medium">Bet Type Filter</Label>
+                            <Select value={selectedBetType} onValueChange={handleBetTypeChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select bet type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Bet Types</SelectItem>
+                                    <SelectItem value="open">Open Only</SelectItem>
+                                    <SelectItem value="close">Close Only</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -312,6 +431,28 @@ export default function LoadV2Page() {
         );
     };
 
+    const renderProcessedData = () => {
+        if (!processedData) return null;
+
+        return (
+            <Card className="mb-6 bg-gray-900 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-white">Processed Bet Data</CardTitle>
+                    <div className="text-sm text-gray-400">
+                        Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
+                        <pre className="text-sm text-green-400 whitespace-pre-wrap font-mono">
+                            {JSON.stringify(processedData, null, 2)}
+                        </pre>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
     if (loading) {
         return (
             <div className="container mx-auto p-6 bg-black min-h-screen">
@@ -353,6 +494,9 @@ export default function LoadV2Page() {
 
                 {/* Filters */}
                 {renderFilters()}
+
+                {/* Processed Data Display */}
+                {processedData && renderProcessedData()}
 
                 {/* JSON Data Display */}
                 {data && (
