@@ -602,3 +602,82 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
+
+export const getAllLoadsV2 = async (req: Request, res: Response): Promise<void> => {
+    try {
+        // Get date from query or use today
+        const { date, userId, marketId } = req.query;
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        let start: Date, end: Date;
+        if (date) {
+            start = new Date(date as string);
+            end = new Date(start);
+            end.setDate(start.getDate() + 1);
+        } else {
+            start = today;
+            end = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        }
+
+        // Build query for bets
+        const betQuery: Record<string, unknown> = {
+            createdAt: { $gte: start, $lt: end }
+        };
+
+        // Add user filter if provided
+        if (userId) {
+            const currentUser = (req as AuthenticatedRequest).user;
+            if (!currentUser) {
+                res.status(401).json({ success: false, message: 'Authentication required' });
+                return;
+            }
+
+            // Check if the requested user is accessible to current user
+            const accessibleUserIds = await HierarchyService.getAllDownlineUserIds(currentUser.userId, true);
+
+            if (!accessibleUserIds.includes(userId as string)) {
+                res.status(403).json({ success: false, message: 'Access denied to this user' });
+                return;
+            }
+
+            // If userId is provided, get all downline users for hierarchical aggregation
+            const selectedUserDownline = await HierarchyService.getAllDownlineUserIds(userId as string, true);
+            betQuery.userId = { $in: selectedUserDownline };
+        }
+
+        // Add market filter if provided
+        if (marketId) {
+            betQuery.marketId = marketId;
+        }
+
+        // Get all bets for the date with filters
+        const bets = await Bet.find(betQuery).lean();
+
+        // Return raw JSON data without any processing
+        res.json({
+            success: true,
+            message: 'Load data retrieved successfully',
+            data: {
+                bets: bets,
+                filters: {
+                    date: date || 'today',
+                    userId: userId || 'all',
+                    marketId: marketId || 'all',
+                    dateRange: {
+                        start: start.toISOString(),
+                        end: end.toISOString()
+                    }
+                },
+                summary: {
+                    totalBets: bets.length,
+                    totalAmount: bets.reduce((sum, bet) => sum + bet.amount, 0),
+                    uniqueUsers: [...new Set(bets.map(bet => bet.userId))].length,
+                    uniqueMarkets: [...new Set(bets.map(bet => bet.marketId))].length
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get all loads V2 error:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};

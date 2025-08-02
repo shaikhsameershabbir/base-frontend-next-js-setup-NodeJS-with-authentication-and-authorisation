@@ -107,7 +107,12 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
   const handleInputNumberChange = (value: string) => {
     const num = parseInt(value);
     if (value === '' || (!isNaN(num) && num >= 0 && num <= 99)) {
-      setInputNumber(value);
+      // Ensure the input is formatted as two digits
+      if (value !== '' && num >= 0 && num <= 99) {
+        setInputNumber(num.toString().padStart(2, '0'));
+      } else {
+        setInputNumber(value);
+      }
     }
   };
 
@@ -161,12 +166,20 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     setIsSubmitting(true);
 
     try {
+      // Format amounts object to use two-digit keys
+      const formattedAmounts: { [key: string]: number } = {};
+      Object.keys(amounts).forEach(key => {
+        const num = parseInt(key);
+        const formattedKey = num.toString().padStart(2, '0');
+        formattedAmounts[formattedKey] = amounts[num];
+      });
+
       // Call the bet API - FamilyPanel game always sends 'both' as bet type
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'family_panel',
         betType: 'both',
-        numbers: amounts,
+        numbers: formattedAmounts,
         amount: total
       });
 

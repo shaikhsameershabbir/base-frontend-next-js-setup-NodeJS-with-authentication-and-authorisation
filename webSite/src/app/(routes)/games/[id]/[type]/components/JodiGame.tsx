@@ -184,12 +184,20 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
         return;
       }
 
+      // Format amounts object to use two-digit keys
+      const formattedAmounts: { [key: string]: number } = {};
+      Object.keys(amounts).forEach(key => {
+        const num = parseInt(key);
+        const formattedKey = num.toString().padStart(2, '0');
+        formattedAmounts[formattedKey] = amounts[num];
+      });
+
       // Call the bet API - Jodi game always sends 'both' as bet type
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'jodi',
         betType: 'both',
-        numbers: amounts,
+        numbers: formattedAmounts,
         amount: total
       });
 
