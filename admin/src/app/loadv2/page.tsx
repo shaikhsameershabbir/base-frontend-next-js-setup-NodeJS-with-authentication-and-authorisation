@@ -65,6 +65,18 @@ export default function LoadV2Page() {
     const [processedData, setProcessedData] = useState<ProcessedBetData | null>(null);
     const [betTotals, setBetTotals] = useState<BetTotals | null>(null);
 
+    // Expanded sections state for detailed bet data
+    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+        singleNumbers: true,
+        doubleNumbers: true,
+        singlePanna: true,
+        doublePanna: true,
+        triplePanna: true,
+        halfSangamOpen: true,
+        halfSangamClose: true,
+        fullSangam: true
+    });
+
     useEffect(() => {
         fetchLoadData();
         fetchFilters();
@@ -492,7 +504,7 @@ export default function LoadV2Page() {
         return (
             <Card className="mb-6 bg-gray-900 border-gray-700">
                 <CardHeader>
-                    <CardTitle className="text-white">Processed Bet Data</CardTitle>
+                    <CardTitle className="text-white">Processed Bet Data (JSON)</CardTitle>
                     <div className="text-sm text-gray-400">
                         Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
                     </div>
@@ -576,6 +588,190 @@ export default function LoadV2Page() {
         );
     };
 
+    const renderDetailedBetData = () => {
+        if (!processedData) return null;
+
+        const toggleSection = (sectionKey: string) => {
+            setExpandedSections(prev => ({
+                ...prev,
+                [sectionKey]: !prev[sectionKey]
+            }));
+        };
+
+        const calculateWinAmount = (betType: string, betAmount: number): number => {
+            const rates = {
+                single: 9,
+                double: 90,
+                singlePanna: 150,
+                doublePanna: 300,
+                triplePanna: 1000,
+                halfSangam: 1000,
+                fullSangam: 10000
+            };
+
+            switch (betType) {
+                case 'singleNumbers':
+                    return betAmount * rates.single;
+                case 'doubleNumbers':
+                    return betAmount * rates.double;
+                case 'singlePanna':
+                    return betAmount * rates.singlePanna;
+                case 'doublePanna':
+                    return betAmount * rates.doublePanna;
+                case 'triplePanna':
+                    return betAmount * rates.triplePanna;
+                case 'halfSangamOpen':
+                case 'halfSangamClose':
+                    return betAmount * rates.halfSangam;
+                case 'fullSangam':
+                    return betAmount * rates.fullSangam;
+                default:
+                    return betAmount * 9; // default to single rate
+            }
+        };
+
+        const getRiskStatus = (betAmount: number, winAmount: number): { status: string; color: string; icon: string } => {
+            // Simple risk calculation based on bet amount and win amount
+            if (betAmount <= 500) {
+                return { status: 'SAFE', color: 'text-green-400', icon: '✓' };
+            } else if (betAmount <= 1500) {
+                return { status: 'LOW RISK', color: 'text-orange-400', icon: '⚡' };
+            } else {
+                return { status: 'HIGH RISK', color: 'text-red-400', icon: '⚠' };
+            }
+        };
+
+        const renderSection = (title: string, data: { [key: string]: number }, color: string, sectionKey: string) => {
+            const sortedEntries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
+            const totalAmount = Object.values(data).reduce((sum, amount) => sum + amount, 0);
+            const count = Object.keys(data).length;
+
+            return (
+                <Card key={sectionKey} className="mb-4 bg-gray-900 border-gray-700">
+                    <CardHeader className="pb-3">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div className="flex items-center gap-3">
+                                <CardTitle className="text-white">{title}</CardTitle>
+                                <div className="flex gap-2">
+                                    <span className="text-sm text-gray-400">Total: ₹{totalAmount.toLocaleString()}</span>
+                                    <span className="text-sm text-gray-400">|</span>
+                                    <span className="text-sm text-gray-400">{count} numbers</span>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => toggleSection(sectionKey)}
+                                    className="text-gray-400 hover:text-white"
+                                >
+                                    {expandedSections[sectionKey] ? 'Collapse' : 'Expand'}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+                                >
+                                    Export PDF
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    {expandedSections[sectionKey] && (
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <div className="min-w-full">
+                                    {/* Column Headers */}
+                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2">
+                                        {Array.from({ length: 10 }, (_, i) => (
+                                            <div key={`header-${i}`} className="text-center text-sm font-medium text-gray-400 py-2 bg-gray-800 rounded">
+                                                {i}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Data Grid - Responsive */}
+                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                                        {sortedEntries.map(([number, amount]) => {
+                                            const winAmount = calculateWinAmount(sectionKey, amount);
+                                            const risk = getRiskStatus(amount, winAmount);
+
+                                            return (
+                                                <div
+                                                    key={number}
+                                                    className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 hover:border-gray-600 transition-colors min-h-[120px] sm:min-h-[140px]"
+                                                >
+                                                    <div className="text-center space-y-1 sm:space-y-2">
+                                                        {/* Bet Identifier */}
+                                                        <div className="text-xs sm:text-sm font-medium text-gray-300 truncate">
+                                                            {number}
+                                                        </div>
+
+                                                        {/* Bet Amount */}
+                                                        <div className="text-xs text-gray-400">
+                                                            Bet: <span className="text-white font-medium">₹{amount.toLocaleString()}</span>
+                                                        </div>
+
+                                                        {/* Win Amount */}
+                                                        <div className="text-xs text-gray-400">
+                                                            Win: <span className="text-blue-400 font-bold">₹{winAmount.toLocaleString()}</span>
+                                                        </div>
+
+                                                        {/* Risk Status */}
+                                                        <div className={`text-xs font-medium ${risk.color} flex items-center justify-center gap-1`}>
+                                                            <span className="text-xs">{risk.icon}</span>
+                                                            <span className="text-xs">{risk.status}</span>
+                                                        </div>
+
+                                                        {/* View Details Button */}
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-xs text-gray-400 hover:text-white mt-1 w-full"
+                                                        >
+                                                            <span className="mr-1 text-xs">📊</span>
+                                                            <span className="hidden sm:inline">View</span>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                            {sortedEntries.length === 0 && (
+                                <div className="text-center text-gray-500 py-4">
+                                    No data available
+                                </div>
+                            )}
+                        </CardContent>
+                    )}
+                </Card>
+            );
+        };
+
+        return (
+            <Card className="mb-6 bg-gray-900 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-white">Detailed Bet Data</CardTitle>
+                    <div className="text-sm text-gray-400">
+                        Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {renderSection('Single Numbers (0-9)', processedData.singleNumbers, 'text-green-400', 'singleNumbers')}
+                    {renderSection('Double Numbers (00-99)', processedData.doubleNumbers, 'text-blue-400', 'doubleNumbers')}
+                    {renderSection('Single Panna', processedData.singlePanna, 'text-purple-400', 'singlePanna')}
+                    {renderSection('Double Panna', processedData.doublePanna, 'text-yellow-400', 'doublePanna')}
+                    {renderSection('Triple Panna', processedData.triplePanna, 'text-red-400', 'triplePanna')}
+                    {renderSection('Half Sangam Open', processedData.halfSangamOpen, 'text-pink-400', 'halfSangamOpen')}
+                    {renderSection('Half Sangam Close', processedData.halfSangamClose, 'text-indigo-400', 'halfSangamClose')}
+                    {renderSection('Full Sangam', processedData.fullSangam, 'text-orange-400', 'fullSangam')}
+                </CardContent>
+            </Card>
+        );
+    };
+
     if (loading) {
         return (
             <div className="container mx-auto p-6 bg-black min-h-screen">
@@ -623,6 +819,9 @@ export default function LoadV2Page() {
 
                 {/* Bet Totals Display */}
                 {betTotals && renderBetTotals()}
+
+                {/* Detailed Bet Data Display */}
+                {processedData && renderDetailedBetData()}
 
                 {/* JSON Data Display */}
                 {data && (
