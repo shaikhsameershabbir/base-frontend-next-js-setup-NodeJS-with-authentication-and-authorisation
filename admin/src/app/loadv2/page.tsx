@@ -22,6 +22,19 @@ interface ProcessedBetData {
     fullSangam: { [key: string]: number };
 }
 
+// Types for totals
+interface BetTotals {
+    singleNumbers: { total: number; count: number };
+    doubleNumbers: { total: number; count: number };
+    singlePanna: { total: number; count: number };
+    doublePanna: { total: number; count: number };
+    triplePanna: { total: number; count: number };
+    halfSangamOpen: { total: number; count: number };
+    halfSangamClose: { total: number; count: number };
+    fullSangam: { total: number; count: number };
+    overall: { total: number; count: number };
+}
+
 export default function LoadV2Page() {
     const [data, setData] = useState<LoadV2Response | null>(null);
     const [loading, setLoading] = useState(true);
@@ -50,6 +63,7 @@ export default function LoadV2Page() {
 
     // Processed data state
     const [processedData, setProcessedData] = useState<ProcessedBetData | null>(null);
+    const [betTotals, setBetTotals] = useState<BetTotals | null>(null);
 
     useEffect(() => {
         fetchLoadData();
@@ -61,8 +75,49 @@ export default function LoadV2Page() {
         if (data) {
             const processed = processBetData(data.data.bets, selectedBetType);
             setProcessedData(processed);
+
+            // Calculate totals
+            const totals = calculateBetTotals(processed);
+            setBetTotals(totals);
         }
     }, [data, selectedBetType]);
+
+    const calculateBetTotals = (processedData: ProcessedBetData): BetTotals => {
+        const calculateCategoryTotal = (category: { [key: string]: number }) => {
+            const total = Object.values(category).reduce((sum, amount) => sum + amount, 0);
+            const count = Object.keys(category).length;
+            return { total, count };
+        };
+
+        const singleNumbers = calculateCategoryTotal(processedData.singleNumbers);
+        const doubleNumbers = calculateCategoryTotal(processedData.doubleNumbers);
+        const singlePanna = calculateCategoryTotal(processedData.singlePanna);
+        const doublePanna = calculateCategoryTotal(processedData.doublePanna);
+        const triplePanna = calculateCategoryTotal(processedData.triplePanna);
+        const halfSangamOpen = calculateCategoryTotal(processedData.halfSangamOpen);
+        const halfSangamClose = calculateCategoryTotal(processedData.halfSangamClose);
+        const fullSangam = calculateCategoryTotal(processedData.fullSangam);
+
+        // Calculate overall totals
+        const overallTotal = singleNumbers.total + doubleNumbers.total + singlePanna.total +
+            doublePanna.total + triplePanna.total + halfSangamOpen.total +
+            halfSangamClose.total + fullSangam.total;
+        const overallCount = singleNumbers.count + doubleNumbers.count + singlePanna.count +
+            doublePanna.count + triplePanna.count + halfSangamOpen.count +
+            halfSangamClose.count + fullSangam.count;
+
+        return {
+            singleNumbers,
+            doubleNumbers,
+            singlePanna,
+            doublePanna,
+            triplePanna,
+            halfSangamOpen,
+            halfSangamClose,
+            fullSangam,
+            overall: { total: overallTotal, count: overallCount }
+        };
+    };
 
     const processBetData = (bets: any[], betTypeFilter: string): ProcessedBetData => {
         const result: ProcessedBetData = {
@@ -453,6 +508,74 @@ export default function LoadV2Page() {
         );
     };
 
+    const renderBetTotals = () => {
+        if (!betTotals) return null;
+
+        return (
+            <Card className="mb-6 bg-gray-900 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-white">Bet Totals Summary</CardTitle>
+                    <div className="text-sm text-gray-400">
+                        Total Amount: ₹{betTotals.overall.total.toLocaleString()} | Total Numbers: {betTotals.overall.count}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Single Numbers</div>
+                            <div className="text-lg font-bold text-green-400">₹{betTotals.singleNumbers.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.singleNumbers.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Double Numbers</div>
+                            <div className="text-lg font-bold text-blue-400">₹{betTotals.doubleNumbers.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.doubleNumbers.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Single Panna</div>
+                            <div className="text-lg font-bold text-purple-400">₹{betTotals.singlePanna.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.singlePanna.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Double Panna</div>
+                            <div className="text-lg font-bold text-yellow-400">₹{betTotals.doublePanna.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.doublePanna.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Triple Panna</div>
+                            <div className="text-lg font-bold text-red-400">₹{betTotals.triplePanna.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.triplePanna.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Half Sangam Open</div>
+                            <div className="text-lg font-bold text-pink-400">₹{betTotals.halfSangamOpen.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.halfSangamOpen.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Half Sangam Close</div>
+                            <div className="text-lg font-bold text-indigo-400">₹{betTotals.halfSangamClose.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.halfSangamClose.count} numbers</div>
+                        </div>
+                        <div className="bg-gray-800 rounded-lg p-3">
+                            <div className="text-sm text-gray-400">Full Sangam</div>
+                            <div className="text-lg font-bold text-orange-400">₹{betTotals.fullSangam.total.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">{betTotals.fullSangam.count} numbers</div>
+                        </div>
+                    </div>
+
+                    {/* Overall Total */}
+                    <div className="mt-4 p-4 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg">
+                        <div className="text-center">
+                            <div className="text-sm text-white opacity-90">Overall Total</div>
+                            <div className="text-2xl font-bold text-white">₹{betTotals.overall.total.toLocaleString()}</div>
+                            <div className="text-sm text-white opacity-75">{betTotals.overall.count} total numbers</div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
     if (loading) {
         return (
             <div className="container mx-auto p-6 bg-black min-h-screen">
@@ -497,6 +620,9 @@ export default function LoadV2Page() {
 
                 {/* Processed Data Display */}
                 {processedData && renderProcessedData()}
+
+                {/* Bet Totals Display */}
+                {betTotals && renderBetTotals()}
 
                 {/* JSON Data Display */}
                 {data && (
