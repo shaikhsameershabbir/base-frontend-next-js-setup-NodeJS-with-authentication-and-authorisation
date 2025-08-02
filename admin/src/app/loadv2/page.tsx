@@ -598,7 +598,7 @@ export default function LoadV2Page() {
             }));
         };
 
-        const calculateWinAmount = (betType: string, betAmount: number): number => {
+        const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
             const rates = {
                 single: 9,
                 double: 90,
@@ -609,17 +609,34 @@ export default function LoadV2Page() {
                 fullSangam: 10000
             };
 
+            let baseWin = 0;
+
             switch (betType) {
                 case 'singleNumbers':
                     return betAmount * rates.single;
                 case 'doubleNumbers':
                     return betAmount * rates.double;
                 case 'singlePanna':
-                    return betAmount * rates.singlePanna;
+                    baseWin = betAmount * rates.singlePanna;
+                    // Add single number win based on digit sum
+                    const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                    const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
+                    const singleWin = singleNumberAmount * rates.single;
+                    return baseWin + singleWin;
                 case 'doublePanna':
-                    return betAmount * rates.doublePanna;
+                    baseWin = betAmount * rates.doublePanna;
+                    // Add single number win based on digit sum
+                    const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                    const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
+                    const singleWin2 = singleNumberAmount2 * rates.single;
+                    return baseWin + singleWin2;
                 case 'triplePanna':
-                    return betAmount * rates.triplePanna;
+                    baseWin = betAmount * rates.triplePanna;
+                    // Add single number win based on digit sum
+                    const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                    const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
+                    const singleWin3 = singleNumberAmount3 * rates.single;
+                    return baseWin + singleWin3;
                 case 'halfSangamOpen':
                 case 'halfSangamClose':
                     return betAmount * rates.halfSangam;
@@ -627,6 +644,27 @@ export default function LoadV2Page() {
                     return betAmount * rates.fullSangam;
                 default:
                     return betAmount * 9; // default to single rate
+            }
+        };
+
+        const getColumnForNumber = (betType: string, number: string): number => {
+            switch (betType) {
+                case 'singleNumbers':
+                    return parseInt(number);
+                case 'doubleNumbers':
+                    return parseInt(number) % 10; // Last digit
+                case 'singlePanna':
+                case 'doublePanna':
+                case 'triplePanna':
+                    // Calculate digit sum and use that as column
+                    return number.split('').reduce((sum, digit) => sum + parseInt(digit), 0) % 10;
+                case 'halfSangamOpen':
+                case 'halfSangamClose':
+                case 'fullSangam':
+                    // For sangam, use the first digit or a specific pattern
+                    return parseInt(number.charAt(0));
+                default:
+                    return 0;
             }
         };
 
@@ -645,6 +683,19 @@ export default function LoadV2Page() {
             const sortedEntries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
             const totalAmount = Object.values(data).reduce((sum, amount) => sum + amount, 0);
             const count = Object.keys(data).length;
+
+            // Group entries by column
+            const columnData: Record<number, Array<[string, number]>> = {
+                0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
+            };
+
+            sortedEntries.forEach(([number, amount]) => {
+                const column = getColumnForNumber(sectionKey, number);
+                if (!columnData[column]) {
+                    columnData[column] = [];
+                }
+                columnData[column].push([number, amount]);
+            });
 
             return (
                 <Card key={sectionKey} className="mb-4 bg-gray-900 border-gray-700">
@@ -692,47 +743,62 @@ export default function LoadV2Page() {
 
                                     {/* Data Grid - Responsive */}
                                     <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                                        {sortedEntries.map(([number, amount]) => {
-                                            const winAmount = calculateWinAmount(sectionKey, amount);
-                                            const risk = getRiskStatus(amount, winAmount);
+                                        {Array.from({ length: 10 }, (_, columnIndex) => {
+                                            const columnEntries = columnData[columnIndex] || [];
 
                                             return (
-                                                <div
-                                                    key={number}
-                                                    className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 hover:border-gray-600 transition-colors min-h-[120px] sm:min-h-[140px]"
-                                                >
-                                                    <div className="text-center space-y-1 sm:space-y-2">
-                                                        {/* Bet Identifier */}
-                                                        <div className="text-xs sm:text-sm font-medium text-gray-300 truncate">
-                                                            {number}
-                                                        </div>
+                                                <div key={`column-${columnIndex}`} className="space-y-2">
+                                                    {columnEntries.map(([number, amount]) => {
+                                                        const winAmount = calculateWinAmount(sectionKey, amount, number);
+                                                        const risk = getRiskStatus(amount, winAmount);
 
-                                                        {/* Bet Amount */}
-                                                        <div className="text-xs text-gray-400">
-                                                            Bet: <span className="text-white font-medium">₹{amount.toLocaleString()}</span>
-                                                        </div>
+                                                        return (
+                                                            <div
+                                                                key={number}
+                                                                className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 hover:border-gray-600 transition-colors min-h-[120px] sm:min-h-[140px]"
+                                                            >
+                                                                <div className="text-center space-y-1 sm:space-y-2">
+                                                                    {/* Bet Identifier */}
+                                                                    <div className="text-xs sm:text-sm font-medium text-gray-300 truncate">
+                                                                        {number}
+                                                                    </div>
 
-                                                        {/* Win Amount */}
-                                                        <div className="text-xs text-gray-400">
-                                                            Win: <span className="text-blue-400 font-bold">₹{winAmount.toLocaleString()}</span>
-                                                        </div>
+                                                                    {/* Bet Amount */}
+                                                                    <div className="text-xs text-gray-400">
+                                                                        Bet: <span className="text-white font-medium">₹{amount.toLocaleString()}</span>
+                                                                    </div>
 
-                                                        {/* Risk Status */}
-                                                        <div className={`text-xs font-medium ${risk.color} flex items-center justify-center gap-1`}>
-                                                            <span className="text-xs">{risk.icon}</span>
-                                                            <span className="text-xs">{risk.status}</span>
-                                                        </div>
+                                                                    {/* Win Amount */}
+                                                                    <div className="text-xs text-gray-400">
+                                                                        Win: <span className="text-blue-400 font-bold">₹{winAmount.toLocaleString()}</span>
+                                                                    </div>
 
-                                                        {/* View Details Button */}
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            className="text-xs text-gray-400 hover:text-white mt-1 w-full"
-                                                        >
-                                                            <span className="mr-1 text-xs">📊</span>
-                                                            <span className="hidden sm:inline">View</span>
-                                                        </Button>
-                                                    </div>
+                                                                    {/* Risk Status */}
+                                                                    <div className={`text-xs font-medium ${risk.color} flex items-center justify-center gap-1`}>
+                                                                        <span className="text-xs">{risk.icon}</span>
+                                                                        <span className="text-xs">{risk.status}</span>
+                                                                    </div>
+
+                                                                    {/* View Details Button */}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="ghost"
+                                                                        className="text-xs text-gray-400 hover:text-white mt-1 w-full"
+                                                                    >
+                                                                        <span className="mr-1 text-xs">📊</span>
+                                                                        <span className="hidden sm:inline">View</span>
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {columnEntries.length === 0 && (
+                                                        <div className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 min-h-[120px] sm:min-h-[140px] flex items-center justify-center">
+                                                            <div className="text-center text-gray-500 text-xs">
+                                                                No data
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}
