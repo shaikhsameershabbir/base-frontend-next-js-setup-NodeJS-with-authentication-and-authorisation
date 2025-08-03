@@ -360,7 +360,7 @@ function Page() {
         bet={selectedBet}
       />
 
-      <div className="block md:hidden">
+      <div className="block ">
         <BottomNav />
       </div>
     </main>
