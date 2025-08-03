@@ -6,10 +6,10 @@ const BottomNav = () => {
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2">
       <div className="flex justify-around items-center">
-        <NavItem icon="/bid.svg" label="My Bids" href="/MyBids" />
-        <NavItem icon="/passbook.svg" label="Passbook" href="/Passbook" />
+        <NavItem icon="/bid.svg" label="My Bids" href="/myBids" />
+        <NavItem icon="/passbook.svg" label="Passbook" href="/passbook" />
         <NavItem icon="/home.svg" label="Home" href="/" isHome />
-        <NavItem icon="/funds.svg" label="Funds" href="/Funds" />
+        <NavItem icon="/funds.svg" label="Funds" href="/funds" />
         <NavItem icon="/support.svg" label="Support" href="https://wa.me/7588244575" />
       </div>
     </div>
