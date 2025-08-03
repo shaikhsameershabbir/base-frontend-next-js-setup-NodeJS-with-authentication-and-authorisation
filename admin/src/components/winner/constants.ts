@@ -47,7 +47,7 @@ export const doublePannaNumbers = [
     899, 700, 990, 900, 677
 ];
 
-export const triplePannaNumbers = ['000', 111, 222, 333, 444, 555, 666, 777, 888, 999];
+export const triplePannaNumbers = ['000', '111', '222', '333', '444', '555', '666', '777', '888', '999'];
 
 export const jodiNumbers = [
     "00", "01", "02", "03", "04", "05", "06", "07", "08", "09",

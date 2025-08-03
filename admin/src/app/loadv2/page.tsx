@@ -182,6 +182,7 @@ export default function LoadV2Page() {
 
                 // Triple Panna (3 digits, matches triplePannaNumbers)
                 if (/^[0-9]{3}$/.test(numKey) && triplePannaNumbers.includes(numKey)) {
+                    console.log(`Triple Panna match: ${numKey} with amount ${numAmount}`);
                     result.triplePanna[numKey] = (result.triplePanna[numKey] || 0) + numAmount;
                 }
 
@@ -697,122 +698,116 @@ export default function LoadV2Page() {
                 columnData[column].push([number, amount]);
             });
 
+            // Find the maximum number of entries across all columns
+            const maxEntries = Math.max(...Object.values(columnData).map(col => col.length));
+
             return (
-                <Card key={sectionKey} className="mb-4 bg-gray-900 border-gray-700">
-                    <CardHeader className="pb-3">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <CardTitle className="text-white">{title}</CardTitle>
-                                <div className="flex gap-2">
-                                    <span className="text-sm text-gray-400">Total: ₹{totalAmount.toLocaleString()}</span>
-                                    <span className="text-sm text-gray-400">|</span>
-                                    <span className="text-sm text-gray-400">{count} numbers</span>
-                                </div>
+                <div key={sectionKey} className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <div className="font-bold text-white text-lg">
+                                {sectionKey === 'singleNumbers' ? '🔢 Single Numbers' :
+                                    sectionKey === 'doubleNumbers' ? '🔢 Double Numbers' :
+                                        sectionKey === 'singlePanna' ? '🎯 Single Panna' :
+                                            sectionKey === 'doublePanna' ? '🎲 Double Panna' :
+                                                sectionKey === 'triplePanna' ? '👑 Triple Panna' :
+                                                    sectionKey === 'halfSangamOpen' ? '🎪 Half Sangam Open' :
+                                                        sectionKey === 'halfSangamClose' ? '🎪 Half Sangam Close' :
+                                                            sectionKey === 'fullSangam' ? '🎭 Full Sangam' : title}
                             </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => toggleSection(sectionKey)}
-                                    className="text-gray-400 hover:text-white"
-                                >
-                                    {expandedSections[sectionKey] ? 'Collapse' : 'Expand'}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-                                >
-                                    Export PDF
-                                </Button>
+                            <div className="text-green-400 font-bold">
+                                Total: ₹{totalAmount.toLocaleString()}
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                                {count} numbers
                             </div>
                         </div>
-                    </CardHeader>
-                    {expandedSections[sectionKey] && (
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <div className="min-w-full">
-                                    {/* Column Headers */}
-                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2">
-                                        {Array.from({ length: 10 }, (_, i) => (
-                                            <div key={`header-${i}`} className="text-center text-sm font-medium text-gray-400 py-2 bg-gray-800 rounded">
-                                                {i}
-                                            </div>
-                                        ))}
-                                    </div>
+                        <div className="flex items-center space-x-2">
+                            <Button
+                                onClick={() => toggleSection(sectionKey)}
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                            >
+                                {expandedSections[sectionKey] ? 'Collapse' : 'Expand'}
+                            </Button>
+                            <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                📄 Export PDF
+                            </Button>
+                        </div>
+                    </div>
 
-                                    {/* Data Grid - Responsive */}
-                                    <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                                        {Array.from({ length: 10 }, (_, columnIndex) => {
-                                            const columnEntries = columnData[columnIndex] || [];
+                    {/* Table - Collapsible */}
+                    {expandedSections[sectionKey] && maxEntries > 0 && (
+                        <table className="w-full border-collapse border border-gray-600 mt-3">
+                            <thead>
+                                <tr className="bg-gray-800">
+                                    {Array.from({ length: 10 }, (_, index) => (
+                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
+                                            <div className="text-lg font-bold">{index}</div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {Array.from({ length: maxEntries }, (_, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                        {Array.from({ length: 10 }, (_, colIndex) => {
+                                            const columnEntries = columnData[colIndex] || [];
+                                            const entry = columnEntries[rowIndex];
 
                                             return (
-                                                <div key={`column-${columnIndex}`} className="space-y-2">
-                                                    {columnEntries.map(([number, amount]) => {
-                                                        const winAmount = calculateWinAmount(sectionKey, amount, number);
-                                                        const risk = getRiskStatus(amount, winAmount);
+                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
+                                                    {entry ? (
+                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
+                                                            {/* Number */}
+                                                            <div className="font-bold text-blue-400 text-lg">{entry[0]}</div>
 
-                                                        return (
-                                                            <div
-                                                                key={number}
-                                                                className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 hover:border-gray-600 transition-colors min-h-[120px] sm:min-h-[140px]"
+                                                            {/* Bet Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Bet:</span>
+                                                                <span className="text-green-400 font-bold ml-1">₹{entry[1].toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Winning Amount */}
+                                                            <div className="text-xs">
+                                                                <span className="text-gray-400">Win:</span>
+                                                                <span className="text-yellow-400 font-bold ml-1">₹{calculateWinAmount(sectionKey, entry[1], entry[0]).toLocaleString()}</span>
+                                                            </div>
+
+                                                            {/* Risk Level Indicator */}
+                                                            {(() => {
+                                                                const winAmount = calculateWinAmount(sectionKey, entry[1], entry[0]);
+                                                                const risk = getRiskStatus(entry[1], winAmount);
+                                                                return (
+                                                                    <div className={`text-xs px-1 rounded ${risk.color.replace('text-', 'bg-').replace('-400', '-900/50')} ${risk.color}`}>
+                                                                        {risk.icon} {risk.status}
+                                                                    </div>
+                                                                );
+                                                            })()}
+
+                                                            {/* Click to see details */}
+                                                            <button
+                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
                                                             >
-                                                                <div className="text-center space-y-1 sm:space-y-2">
-                                                                    {/* Bet Identifier */}
-                                                                    <div className="text-xs sm:text-sm font-medium text-gray-300 truncate">
-                                                                        {number}
-                                                                    </div>
-
-                                                                    {/* Bet Amount */}
-                                                                    <div className="text-xs text-gray-400">
-                                                                        Bet: <span className="text-white font-medium">₹{amount.toLocaleString()}</span>
-                                                                    </div>
-
-                                                                    {/* Win Amount */}
-                                                                    <div className="text-xs text-gray-400">
-                                                                        Win: <span className="text-blue-400 font-bold">₹{winAmount.toLocaleString()}</span>
-                                                                    </div>
-
-                                                                    {/* Risk Status */}
-                                                                    <div className={`text-xs font-medium ${risk.color} flex items-center justify-center gap-1`}>
-                                                                        <span className="text-xs">{risk.icon}</span>
-                                                                        <span className="text-xs">{risk.status}</span>
-                                                                    </div>
-
-                                                                    {/* View Details Button */}
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="ghost"
-                                                                        className="text-xs text-gray-400 hover:text-white mt-1 w-full"
-                                                                    >
-                                                                        <span className="mr-1 text-xs">📊</span>
-                                                                        <span className="hidden sm:inline">View</span>
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {columnEntries.length === 0 && (
-                                                        <div className="bg-gray-800 rounded-lg p-2 sm:p-3 border border-gray-700 min-h-[120px] sm:min-h-[140px] flex items-center justify-center">
-                                                            <div className="text-center text-gray-500 text-xs">
-                                                                No data
-                                                            </div>
+                                                                📊 View Details
+                                                            </button>
                                                         </div>
+                                                    ) : (
+                                                        <div className="text-gray-500 text-xs">-</div>
                                                     )}
-                                                </div>
+                                                </td>
                                             );
                                         })}
-                                    </div>
-                                </div>
-                            </div>
-                            {sortedEntries.length === 0 && (
-                                <div className="text-center text-gray-500 py-4">
-                                    No data available
-                                </div>
-                            )}
-                        </CardContent>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     )}
-                </Card>
+                </div>
             );
         };
 
