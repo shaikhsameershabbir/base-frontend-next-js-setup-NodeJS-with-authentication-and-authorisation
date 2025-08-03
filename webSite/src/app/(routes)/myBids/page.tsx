@@ -1,61 +1,365 @@
 "use client";
 
-import React, { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Bid, bids } from "@/app/constant/constant";
+import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { Eye, Calendar, Filter, RefreshCw } from "lucide-react";
+import { betAPI, BetHistoryResponse } from "@/lib/api/bet";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
+import { Loading } from "@/components/ui/loading";
+import BetDetailModal from "@/components/BetDetailModal";
+import Header from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
 
-import Header from "@/app/components/Header";
-import { Pagination } from "@/app/constant/pagination";
-import BidsCard from "@/app/components/BidsCard";
-
-const itemsPerPage = 6;
+interface BetData {
+  _id: string;
+  marketId: {
+    _id: string;
+    marketName: string;
+  };
+  type: string;
+  betType: string;
+  selectedNumbers: { [key: number]: number };
+  amount: number;
+  userBeforeAmount: number;
+  userAfterAmount: number;
+  status: boolean;
+  result?: string;
+  createdAt: string;
+  claimStatus?: boolean;
+}
 
 function Page() {
+  const [bets, setBets] = useState<BetData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedBet, setSelectedBet] = useState<BetData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  const handlePrevClick = () => setCurrentPage((prev) => Math.max(1, prev - 1));
-  const handleNextClick = () => setCurrentPage((prev) => prev + 1);
+  const itemsPerPage = 10;
+
+  const fetchBets = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      const response: BetHistoryResponse = await betAPI.getBetHistory(
+        page,
+        itemsPerPage,
+        startDate || undefined,
+        endDate || undefined
+      );
+
+      if (response.success && response.data) {
+        setBets(response.data.bets);
+        setTotalItems(response.data.total);
+        setTotalPages(Math.ceil(response.data.total / itemsPerPage));
+      }
+    } catch (error) {
+      console.error("Failed to fetch bets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBets(currentPage);
+  }, [currentPage, startDate, endDate]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleFilter = () => {
+    setCurrentPage(1);
+    fetchBets(1);
+  };
+
+  const handleClearFilters = () => {
+    setStartDate("");
+    setEndDate("");
+    setCurrentPage(1);
+    fetchBets(1);
+  };
+
+  const handleViewDetails = (bet: BetData) => {
+    setSelectedBet(bet);
+    setIsModalOpen(true);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd MMM yyyy, hh:mm a");
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getStatusBadge = (status: boolean, result?: string) => {
+    if (!status) return <Badge variant="destructive">Cancelled</Badge>;
+    if (result === "won") return <Badge variant="success">Won</Badge>;
+    if (result === "lost") return <Badge variant="destructive">Lost</Badge>;
+    return <Badge variant="warning">Pending</Badge>;
+  };
+
+  const getClaimStatusBadge = (claimStatus?: boolean) => {
+    if (claimStatus === undefined) return <Badge variant="secondary">N/A</Badge>;
+    return claimStatus ? (
+      <Badge variant="success">Claimed</Badge>
+    ) : (
+      <Badge variant="warning">Not Claimed</Badge>
+    );
+  };
+
+  const formatSelectedNumbers = (numbers: { [key: number]: number }) => {
+    const entries = Object.entries(numbers);
+    if (entries.length === 0) return "N/A";
+
+    return entries
+      .slice(0, 2)
+      .map(([number, amount]) => `${number}: ₹${amount}`)
+      .join(", ") + (entries.length > 2 ? ` +${entries.length - 2} more` : "");
+  };
 
   return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="pt-16">
-        <h1 className="text-2xl font-bold text-center text-black">BID HISTORY</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 max-h-[750px] overflow-y-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentPage}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -30 }}
-              transition={{ duration: 0.3 }}
-              className="contents"
-            >
-              {bids
-                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                .map((bid: Bid, index: number) => (
-                  <BidsCard
-                    key={index}
-                    marketname={bid.marketname}
-                    gametype={bid.gametype}
-                    digit={bid.digit}
-                    point={bid.point}
-                    Transcationtime={bid.Transcationtime}
-                    resultmessage={bid.resultmessage}
-                  />
-                ))}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <Header />
 
-        <Pagination
-          currentPage={currentPage}
-          onPrevClick={handlePrevClick}
-          onNextClick={handleNextClick}
-          itemsPerPage={itemsPerPage}
-          totalItems={bids.length}
-        />
+      <div className="pt-16 pb-20">
+        <div className="max-w-7xl mx-auto px-4">
+          {/* Header Section */}
+          <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h1 className="text-lg font-bold text-gray-800">Bet History</h1>
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-700">
+                  <span>•</span>
+                  <span>{totalItems} total bets</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchBets(currentPage)}
+                  disabled={loading}
+                  className="flex items-center gap-2 rounded-xl"
+                >
+                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2 rounded-xl"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filters</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters Section */}
+          {showFilters && (
+            <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    Start Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    End Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="flex items-end gap-2">
+                  <Button
+                    onClick={handleFilter}
+                    className="flex-1 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+                  >
+                    Apply Filters
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleClearFilters}
+                    className="rounded-xl"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Content Section */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            {/* Mobile Card View */}
+            <div className="block lg:hidden">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loading size="lg" />
+                </div>
+              ) : bets.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No bets found</h3>
+                  <p className="text-gray-500">No bet history available for the selected filters.</p>
+                </div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  {bets.map((bet) => (
+                    <div key={bet._id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">{bet.marketId.marketName}</h3>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(bet.status, bet.result)}
+                          {getClaimStatusBadge(bet.claimStatus)}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                        <div>
+                          <span className="text-gray-600 font-medium">Game Type:</span>
+                          <span className="ml-1 font-semibold capitalize text-gray-900">{bet.type}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Bet Type:</span>
+                          <span className="ml-1 font-semibold capitalize text-gray-900">{bet.betType}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Amount:</span>
+                          <span className="ml-1 font-bold text-green-600">₹{bet.amount}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 font-medium">Date:</span>
+                          <span className="ml-1 text-gray-800">{formatDate(bet.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(bet)}
+                          className="flex items-center gap-1 rounded-xl"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loading size="lg" />
+                </div>
+              ) : bets.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No bets found</h3>
+                  <p className="text-gray-500">No bet history available for the selected filters.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold text-gray-700">Market</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Game Type</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Bet Type</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Amount</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Claim Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Date & Time</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bets.map((bet) => (
+                        <TableRow key={bet._id} className="hover:bg-gray-50 transition-colors">
+                          <TableCell className="font-medium text-gray-900">
+                            {bet.marketId.marketName}
+                          </TableCell>
+                          <TableCell className="capitalize text-gray-800 font-medium">{bet.type}</TableCell>
+                          <TableCell className="capitalize text-gray-800 font-medium">{bet.betType}</TableCell>
+                          <TableCell className="font-semibold text-green-600">₹{bet.amount}</TableCell>
+                          <TableCell>{getStatusBadge(bet.status, bet.result)}</TableCell>
+                          <TableCell>{getClaimStatusBadge(bet.claimStatus)}</TableCell>
+                          <TableCell className="text-sm text-gray-800">
+                            {formatDate(bet.createdAt)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewDetails(bet)}
+                              className="flex items-center gap-1 rounded-xl"
+                            >
+                              <Eye className="h-4 w-4" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination */}
+            {!loading && bets.length > 0 && (
+              <div className="border-t border-gray-200">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                />
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Bet Detail Modal */}
+      <BetDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        bet={selectedBet}
+      />
+
       <div className="hidden md:block">
         <BottomNav />
       </div>

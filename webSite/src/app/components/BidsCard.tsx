@@ -11,7 +11,7 @@ interface BidsCardProps {
   resultmessage: string;
 }
 
-const BidsCard: React.FC<BidsCardProps> = ({ 
+const BidsCard: React.FC<BidsCardProps> = ({
   marketname,
   gametype,
   digit,
@@ -43,21 +43,21 @@ const BidsCard: React.FC<BidsCardProps> = ({
           </div>
         </div>
         <div className="flex flex-row justify-between m-1">
-            <div className="flex-1">
-                <h2 className="text-sm font-bold text-black text-center">
-                    {gametype}
-                </h2>
-            </div>
-            <div className="flex-1">
-                <h2 className="text-sm font-bold text-black text-center">
-                    {digit}
-                </h2>
-            </div>
-            <div className="flex-1">
-                <h2 className="text-sm font-bold text-black text-center">
-                    {point}
-                </h2>
-            </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-bold text-black text-center">
+              {gametype}
+            </h2>
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-bold text-black text-center">
+              {digit}
+            </h2>
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-bold text-black text-center">
+              {point}
+            </h2>
+          </div>
         </div>
         <hr className="border-black" />
         <div className="flex flex-row justify-center p-3">

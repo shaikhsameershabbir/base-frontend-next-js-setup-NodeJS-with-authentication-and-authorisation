@@ -68,9 +68,17 @@ export const betAPI = {
     /**
  * Get bet history for the current user
  */
-    getBetHistory: async (page: number = 1, limit: number = 10): Promise<BetHistoryResponse> => {
+    getBetHistory: async (page: number = 1, limit: number = 10, startDate?: string, endDate?: string): Promise<BetHistoryResponse> => {
         try {
-            const response = await apiClient.get(`/player/bet-history?page=${page}&limit=${limit}`);
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString()
+            });
+
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+
+            const response = await apiClient.get(`/player/bet-history?${params.toString()}`);
             return response.data;
         } catch (error: any) {
             throw new Error(error.response?.data?.message || 'Failed to get bet history');

@@ -10,6 +10,7 @@ export interface IBet extends Document {
     userAfterAmount: number;
     status: boolean;
     createdAt: Date;
+    claimStatus?: boolean;
     result?: string;
     selectedNumbers: { [key: number]: number }; // Store the numbers and their amounts
 }
@@ -60,6 +61,10 @@ const betSchema = new Schema<IBet>({
     selectedNumbers: {
         type: Schema.Types.Mixed,
         required: true
+    },
+    claimStatus: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

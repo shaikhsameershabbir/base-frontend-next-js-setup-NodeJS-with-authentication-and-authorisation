@@ -259,16 +259,34 @@ export class PlayerController {
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
             const skip = (page - 1) * limit;
+            const startDate = req.query.startDate as string;
+            const endDate = req.query.endDate as string;
 
-            // Get bets for the current user with pagination
-            const bets = await Bet.find({ userId: req.user.userId })
+            // Build query with date filters
+            const query: any = { userId: req.user.userId };
+
+            if (startDate || endDate) {
+                query.createdAt = {};
+                if (startDate) {
+                    query.createdAt.$gte = new Date(startDate);
+                }
+                if (endDate) {
+                    // Set end date to end of day
+                    const endDateTime = new Date(endDate);
+                    endDateTime.setHours(23, 59, 59, 999);
+                    query.createdAt.$lte = endDateTime;
+                }
+            }
+
+            // Get bets for the current user with pagination and date filters
+            const bets = await Bet.find(query)
                 .populate('marketId', 'marketName')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit);
 
-            // Get total count for pagination
-            const total = await Bet.countDocuments({ userId: req.user.userId });
+            // Get total count for pagination with date filters
+            const total = await Bet.countDocuments(query);
 
             res.json({
                 success: true,
