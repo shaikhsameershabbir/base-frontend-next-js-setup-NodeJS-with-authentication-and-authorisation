@@ -1,10 +1,12 @@
 import { Router, RequestHandler } from 'express';
 import { PlayerController } from '../controllers/player.controller';
+import { TransfersController } from '../controllers/transfers.controller';
 import { PlayerAuthMiddleware } from '../middlewares/playerAuth.middleware';
 import { PlayerValidator } from '../validators/player.validator';
 
 const router = Router();
 const playerController = new PlayerController();
+const transfersController = new TransfersController();
 const playerAuthMiddleware = new PlayerAuthMiddleware();
 const playerValidator = new PlayerValidator();
 
@@ -63,6 +65,17 @@ router.post('/confirm-bet',
     playerAuthMiddleware.authenticatePlayer,
     playerValidator.validateBidConfirmation,
     playerController.confirmBet as unknown as RequestHandler
+);
+
+// Transfer-related routes
+router.get('/transfer-history',
+    playerAuthMiddleware.authenticatePlayer,
+    transfersController.getTransferHistory as unknown as RequestHandler
+);
+
+router.get('/transfer-stats',
+    playerAuthMiddleware.authenticatePlayer,
+    transfersController.getTransferStats as unknown as RequestHandler
 );
 
 export default router; 
