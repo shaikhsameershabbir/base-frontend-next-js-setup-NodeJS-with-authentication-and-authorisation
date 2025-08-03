@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, jodiNumbers, doubleNumbers } from '@/components/winner/constants';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Types for processed data
 interface ProcessedBetData {
@@ -326,6 +328,209 @@ export default function LoadV2Page() {
         setSelectedBetType(betType);
     };
 
+    const exportToPDF = (sectionKey: string, data: { [key: string]: number }) => {
+        const doc = new jsPDF();
+
+        // Get current date
+        const today = new Date();
+        const dateString = today.toLocaleDateString('en-IN');
+
+        // Get market name
+        const marketName = assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets';
+
+        // Get bet type
+        const betTypeText = selectedBetType === 'all' ? 'All Bet Types' :
+            selectedBetType === 'open' ? 'Open Only' : 'Close Only';
+
+        // Get game type based on section
+        const getGameType = (key: string) => {
+            switch (key) {
+                case 'singleNumbers': return 'Single Numbers';
+                case 'doubleNumbers': return 'Double Numbers';
+                case 'singlePanna': return 'Single Panna';
+                case 'doublePanna': return 'Double Panna';
+                case 'triplePanna': return 'Triple Panna';
+                case 'halfSangamOpen': return 'Half Sangam Open';
+                case 'halfSangamClose': return 'Half Sangam Close';
+                case 'fullSangam': return 'Full Sangam';
+                default: return 'Unknown';
+            }
+        };
+
+        const gameType = getGameType(sectionKey);
+
+        // Header information
+        doc.setFontSize(16);
+        doc.text('Bet Data Report', 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.text(`Market Name: ${marketName}`, 20, 35);
+        doc.text(`Game Type: ${gameType}`, 20, 45);
+        doc.text(`Date: ${dateString}`, 20, 55);
+        doc.text(`Bet Type: ${betTypeText}`, 20, 65);
+
+        // Calculate and show total amount
+        const total = Object.values(data).reduce((sum, amount) => sum + amount, 0);
+        doc.text(`Total Amount: Rs. ${total.toLocaleString()}`, 20, 75);
+
+        // Prepare table data with 3 columns per row
+        const entries = Object.entries(data);
+        const tableData = [];
+
+        for (let i = 0; i < entries.length; i += 3) {
+            const row = [];
+            for (let j = 0; j < 3; j++) {
+                if (i + j < entries.length) {
+                    const [number, amount] = entries[i + j];
+                    row.push(number, `Rs. ${amount.toLocaleString()}`);
+                } else {
+                    row.push('', ''); // Empty cells for incomplete rows
+                }
+            }
+            tableData.push(row);
+        }
+
+        // Add table with 6 columns (3 pairs of Bet Number and Bet Amount)
+        autoTable(doc, {
+            head: [['Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount']],
+            body: tableData,
+            startY: 90,
+            styles: {
+                fontSize: 8,
+                cellPadding: 3,
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+        });
+
+        // Footer
+        const finalY = (doc as any).lastAutoTable.finalY || 90;
+        doc.setFontSize(8);
+        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 20, finalY + 20);
+        doc.text(`Total Numbers: ${Object.keys(data).length}`, 20, finalY + 30);
+
+        // Save the PDF
+        const fileName = `${marketName}_${gameType}_${dateString.replace(/\//g, '-')}.pdf`;
+        doc.save(fileName);
+    };
+
+    const exportAllToPDF = () => {
+        if (!processedData) return;
+
+        const doc = new jsPDF();
+
+        // Get current date
+        const today = new Date();
+        const dateString = today.toLocaleDateString('en-IN');
+
+        // Get market name
+        const marketName = assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets';
+
+        // Get bet type
+        const betTypeText = selectedBetType === 'all' ? 'All Bet Types' :
+            selectedBetType === 'open' ? 'Open Only' : 'Close Only';
+
+        // Header information
+        doc.setFontSize(16);
+        doc.text('Complete Bet Data Report', 105, 20, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.text(`Market Name: ${marketName}`, 20, 35);
+        doc.text(`Date: ${dateString}`, 20, 45);
+        doc.text(`Bet Type: ${betTypeText}`, 20, 55);
+
+        // Calculate and show total amount for all sections
+        const totalAmount = Object.values(processedData).reduce((sum, category) => {
+            return sum + Object.values(category as { [key: string]: number }).reduce((catSum, amount) => catSum + amount, 0);
+        }, 0);
+        doc.text(`Total Amount: Rs. ${totalAmount.toLocaleString()}`, 20, 65);
+
+        let currentY = 80;
+
+        // Export each section
+        const sections = [
+            { key: 'singleNumbers', title: 'Single Numbers' },
+            { key: 'doubleNumbers', title: 'Double Numbers' },
+            { key: 'singlePanna', title: 'Single Panna' },
+            { key: 'doublePanna', title: 'Double Panna' },
+            { key: 'triplePanna', title: 'Triple Panna' },
+            { key: 'halfSangamOpen', title: 'Half Sangam Open' },
+            { key: 'halfSangamClose', title: 'Half Sangam Close' },
+            { key: 'fullSangam', title: 'Full Sangam' }
+        ];
+
+        sections.forEach((section, index) => {
+            const data = processedData[section.key as keyof ProcessedBetData] as { [key: string]: number };
+            const total = Object.values(data).reduce((sum, amount) => sum + amount, 0);
+
+            // Section header
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${section.title} - Total: Rs. ${total.toLocaleString()}`, 20, currentY);
+            currentY += 10;
+
+            // Prepare table data with 3 columns per row
+            const entries = Object.entries(data);
+            const tableData = [];
+
+            for (let i = 0; i < entries.length; i += 3) {
+                const row = [];
+                for (let j = 0; j < 3; j++) {
+                    if (i + j < entries.length) {
+                        const [number, amount] = entries[i + j];
+                        row.push(number, `Rs. ${amount.toLocaleString()}`);
+                    } else {
+                        row.push('', ''); // Empty cells for incomplete rows
+                    }
+                }
+                tableData.push(row);
+            }
+
+            // Add table with 6 columns (3 pairs of Bet Number and Bet Amount)
+            autoTable(doc, {
+                head: [['Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount']],
+                body: tableData,
+                startY: currentY,
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                },
+                headStyles: {
+                    fillColor: [41, 128, 185],
+                    textColor: 255,
+                    fontStyle: 'bold',
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245],
+                },
+            });
+
+            currentY = (doc as any).lastAutoTable.finalY + 15;
+
+            // Add page break if needed
+            if (currentY > 250 && index < sections.length - 1) {
+                doc.addPage();
+                currentY = 20;
+            }
+        });
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 20, currentY + 10);
+        doc.text(`Total Numbers: ${Object.keys(processedData).reduce((sum, key) => sum + Object.keys(processedData[key as keyof ProcessedBetData] as any).length, 0)}`, 20, currentY + 20);
+
+        // Save the PDF
+        const fileName = `${marketName}_Complete_Report_${dateString.replace(/\//g, '-')}.pdf`;
+        doc.save(fileName);
+    };
+
     const clearFilters = () => {
         setSelectedUser('all');
         setSelectedMarket('all');
@@ -551,10 +756,21 @@ export default function LoadV2Page() {
         return (
             <Card className="mb-6 bg-gray-900 border-gray-700">
                 <CardHeader>
-                    <CardTitle className="text-white">Bet Totals Summary</CardTitle>
-                    <div className="text-sm text-gray-400">
-                        Total Amount: ₹{betTotals.overall.total.toLocaleString()} | Total Numbers: {betTotals.overall.count}
-                        {cuttingAmount && cuttingAmount !== '' && ` | Showing bets ≥ ₹${parseInt(cuttingAmount).toLocaleString()}`}
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-white">Bet Totals Summary</CardTitle>
+                            <div className="text-sm text-gray-400">
+                                Total Amount: ₹{betTotals.overall.total.toLocaleString()} | Total Numbers: {betTotals.overall.count}
+                                {cuttingAmount && cuttingAmount !== '' && ` | Showing bets ≥ ₹${parseInt(cuttingAmount).toLocaleString()}`}
+                            </div>
+                        </div>
+                        <Button
+                            onClick={exportAllToPDF}
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700"
+                        >
+                            📄 Export All PDF
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -759,6 +975,7 @@ export default function LoadV2Page() {
                             <Button
                                 size="sm"
                                 className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => exportToPDF(sectionKey, data)}
                             >
                                 📄 Export PDF
                             </Button>
