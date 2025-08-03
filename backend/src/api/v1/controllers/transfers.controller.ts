@@ -278,21 +278,21 @@ export class TransfersController {
 
             const formattedTransfers = transfers.map(transfer => ({
                 id: transfer._id,
-                fromUser: (transfer.fromUser as unknown as PopulatedUser).username,
-                toUser: (transfer.toUser as unknown as PopulatedUser).username,
+                fromUser: (transfer.fromUser as unknown as PopulatedUser)?.username || 'Unknown User',
+                toUser: (transfer.toUser as unknown as PopulatedUser)?.username || 'Unknown User',
                 amount: transfer.amount,
                 type: transfer.type,
                 status: transfer.status,
                 reason: transfer.reason,
                 adminNote: transfer.adminNote,
-                processedBy: (transfer.processedBy as unknown as PopulatedUser).username,
+                processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Unknown User',
                 timestamp: formatDate(transfer.createdAt),
                 fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
                 fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
                 toUserBalanceBefore: transfer.toUserBalanceBefore || 0,
                 toUserBalanceAfter: transfer.toUserBalanceAfter || 0,
-                isIncoming: (transfer.toUser as unknown as PopulatedUser)._id.toString() === userId,
-                isOutgoing: (transfer.fromUser as unknown as PopulatedUser)._id.toString() === userId
+                isIncoming: (transfer.toUser as unknown as PopulatedUser)?._id?.toString() === userId,
+                isOutgoing: (transfer.fromUser as unknown as PopulatedUser)?._id?.toString() === userId
             }));
 
             res.json({
