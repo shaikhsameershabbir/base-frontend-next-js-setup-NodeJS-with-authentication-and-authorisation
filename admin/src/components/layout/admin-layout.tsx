@@ -16,7 +16,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     const { user, loading, isAuthenticated } = useAuth()
     const router = useRouter()
 
-    console.log('🔍 AdminLayout state:', { user, loading, isAuthenticated });
 
     // Redirect to login if not authenticated
     if (!loading && !isAuthenticated) {
@@ -43,7 +42,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         return null
     }
 
-    console.log('✅ AdminLayout rendering with user:', user);
 
     return (
         <div className="min-h-screen bg-background flex flex-col">

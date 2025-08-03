@@ -92,7 +92,7 @@ export default function LoadV2Page() {
             const totals = calculateBetTotals(processed);
             setBetTotals(totals);
         }
-    }, [data, selectedBetType]);
+    }, [data, selectedBetType, cuttingAmount]);
 
     const calculateBetTotals = (processedData: ProcessedBetData): BetTotals => {
         const calculateCategoryTotal = (category: { [key: string]: number }) => {
@@ -182,7 +182,6 @@ export default function LoadV2Page() {
 
                 // Triple Panna (3 digits, matches triplePannaNumbers)
                 if (/^[0-9]{3}$/.test(numKey) && triplePannaNumbers.includes(numKey)) {
-                    console.log(`Triple Panna match: ${numKey} with amount ${numAmount}`);
                     result.triplePanna[numKey] = (result.triplePanna[numKey] || 0) + numAmount;
                 }
 
@@ -202,6 +201,25 @@ export default function LoadV2Page() {
                 }
             });
         });
+
+        // Apply cutting filter if specified
+        if (cuttingAmount && cuttingAmount !== '') {
+            const cuttingValue = Number(cuttingAmount);
+
+            // Filter out entries below the cutting amount
+            Object.keys(result).forEach(category => {
+                const categoryData = result[category as keyof ProcessedBetData] as { [key: string]: number };
+                const filteredData: { [key: string]: number } = {};
+
+                Object.entries(categoryData).forEach(([key, amount]) => {
+                    if (amount >= cuttingValue) {
+                        filteredData[key] = amount;
+                    }
+                });
+
+                result[category as keyof ProcessedBetData] = filteredData as any;
+            });
+        }
 
         return result;
     };
@@ -395,11 +413,16 @@ export default function LoadV2Page() {
                             <Label className="text-gray-300 font-medium">Cutting Amount</Label>
                             <Input
                                 type="number"
-                                placeholder="Enter cutting amount"
+                                placeholder="Show bets ≥ amount (e.g., 1000)"
                                 value={cuttingAmount}
                                 onChange={(e) => handleCuttingAmountChange(e.target.value)}
                                 className="flex-1"
                             />
+                            {cuttingAmount && cuttingAmount !== '' && (
+                                <div className="text-xs text-blue-400">
+                                    Showing bets ≥ ₹{parseInt(cuttingAmount).toLocaleString()}
+                                </div>
+                            )}
                         </div>
 
                         {/* Hierarchical User Selection */}
@@ -508,6 +531,7 @@ export default function LoadV2Page() {
                     <CardTitle className="text-white">Processed Bet Data (JSON)</CardTitle>
                     <div className="text-sm text-gray-400">
                         Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
+                        {cuttingAmount && cuttingAmount !== '' && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}+`}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -530,6 +554,7 @@ export default function LoadV2Page() {
                     <CardTitle className="text-white">Bet Totals Summary</CardTitle>
                     <div className="text-sm text-gray-400">
                         Total Amount: ₹{betTotals.overall.total.toLocaleString()} | Total Numbers: {betTotals.overall.count}
+                        {cuttingAmount && cuttingAmount !== '' && ` | Showing bets ≥ ₹${parseInt(cuttingAmount).toLocaleString()}`}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -817,6 +842,7 @@ export default function LoadV2Page() {
                     <CardTitle className="text-white">Detailed Bet Data</CardTitle>
                     <div className="text-sm text-gray-400">
                         Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
+                        {cuttingAmount && cuttingAmount !== '' && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}+`}
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
