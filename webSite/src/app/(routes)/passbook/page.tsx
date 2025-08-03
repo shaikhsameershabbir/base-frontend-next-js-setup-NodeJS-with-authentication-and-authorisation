@@ -384,7 +384,7 @@ function Page() {
                 transfer={selectedTransfer}
             />
 
-            <div className="hidden md:block">
+            <div className="block md:hidden">
                 <BottomNav />
             </div>
         </main>
