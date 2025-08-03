@@ -83,15 +83,24 @@ export class PlayerController {
                     return;
                 }
 
-                updateData.password = await bcrypt.hash(newPassword, 12);
+                updateData.password = newPassword;
             }
 
             // Update user
-            const updatedUser = await User.findByIdAndUpdate(
-                req.user.userId,
-                updateData,
-                { new: true, runValidators: true }
-            ).select('-password');
+            const user = await User.findById(req.user.userId);
+            if (!user) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            // Update fields
+            Object.assign(user, updateData);
+            await user.save();
+
+            const updatedUser = await User.findById(req.user.userId).select('-password');
 
             res.json({
                 success: true,

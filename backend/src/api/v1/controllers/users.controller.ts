@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import { User } from '../../../models/User';
 import { Market } from '../../../models/Market';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
@@ -214,13 +213,12 @@ export class UsersController {
                 }
             }
 
-            const hashedPassword = await bcrypt.hash(password, 12);
             const currentUser = authReq.user;
 
             // Create new user
             const newUser = new User({
                 username,
-                password: hashedPassword,
+                password,
                 role,
                 parentId,
                 balance: 0,
@@ -422,12 +420,19 @@ export class UsersController {
                 return;
             }
 
-            const hashedPassword = await bcrypt.hash(newPassword, 12);
-            const updatedUser = await User.findByIdAndUpdate(
-                userId,
-                { password: hashedPassword },
-                { new: true }
-            ).select('-password');
+            const user = await User.findById(userId);
+            if (!user) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            user.password = newPassword;
+            await user.save();
+
+            const updatedUser = await User.findById(userId).select('-password');
 
             if (!updatedUser) {
                 res.status(404).json({
