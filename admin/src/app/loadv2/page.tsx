@@ -932,11 +932,51 @@ export default function LoadV2Page() {
                                 <Label className="text-gray-300 font-medium">Result Number</Label>
                                 <Input
                                     type="text"
-                                    placeholder="Enter 3-digit number"
+                                    placeholder="Enter 3-digit panna number"
                                     value={resultNumber}
-                                    onChange={(e) => setResultNumber(e.target.value)}
-                                    className="text-center"
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Only allow 3 digits and numeric characters
+                                        if (value.length <= 3 && /^\d*$/.test(value)) {
+                                            setResultNumber(value);
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length === 3) {
+                                            const num = parseInt(value);
+                                            const allPannaNumbers = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
+                                            if (!allPannaNumbers.includes(num)) {
+                                                setResultNumber('');
+                                                toast.error('Please enter a valid panna number from the game list');
+                                            }
+                                        }
+                                    }}
+                                    className="text-center text-lg font-bold"
                                 />
+                                <div className="text-xs text-gray-400">
+                                    Enter a valid 3-digit panna number from the game list
+                                </div>
+                                {resultNumber && resultNumber.length === 3 && (
+                                    <div className="text-xs text-blue-400">
+                                        Main will be: {(() => {
+                                            const digits = resultNumber.split('').map(d => parseInt(d));
+                                            const sum = digits.reduce((a, b) => a + b, 0);
+                                            return sum > 9 ? sum % 10 : sum;
+                                        })()}
+                                    </div>
+                                )}
+                                {/* Panna Number Suggestions */}
+                                {resultNumber && resultNumber.length > 0 && (
+                                    <div className="text-xs text-green-400">
+                                        Suggestions: {
+                                            [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers]
+                                                .filter(num => num.toString().includes(resultNumber))
+                                                .slice(0, 5)
+                                                .join(', ')
+                                        }
+                                    </div>
+                                )}
                             </div>
 
                             {/* Target Date */}
@@ -955,7 +995,14 @@ export default function LoadV2Page() {
                                 <Label className="text-gray-300 font-medium">&nbsp;</Label>
                                 <Button
                                     onClick={handleDeclareResult}
-                                    disabled={declareLoading || selectedMarket === 'all' || !resultNumber || !targetDate}
+                                    disabled={
+                                        declareLoading ||
+                                        selectedMarket === 'all' ||
+                                        !resultNumber ||
+                                        !targetDate ||
+                                        resultNumber.length !== 3 ||
+                                        ![...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers].includes(parseInt(resultNumber))
+                                    }
                                     className="w-full bg-green-600 hover:bg-green-700"
                                 >
                                     {declareLoading ? 'Declaring...' : `Declare ${resultType}`}
