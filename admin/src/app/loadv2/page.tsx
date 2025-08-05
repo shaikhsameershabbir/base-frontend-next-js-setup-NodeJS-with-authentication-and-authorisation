@@ -121,10 +121,10 @@ export default function LoadV2Page() {
 
     // Auto-switch to open if close is selected but open is not declared
     useEffect(() => {
-        if (resultType === 'close' && marketResults && !marketResults.open) {
+        if (resultType === 'close' && !canDeclareClose()) {
             setResultType('open');
         }
-    }, [marketResults, resultType]);
+    }, [marketResults, resultType, targetDate]);
 
 
 
@@ -465,6 +465,25 @@ export default function LoadV2Page() {
     const getDayName = (date: Date): string => {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         return days[date.getDay()];
+    };
+
+    // Helper function to check if close can be declared for the selected date
+    const canDeclareClose = (): boolean => {
+        if (!marketResults || !targetDate) return false;
+
+        const dayName = getDayName(new Date(targetDate));
+        const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
+
+        const canDeclare = !!(dayResult && dayResult.open !== null && dayResult.open !== undefined);
+        console.log('Debug - canDeclareClose:', {
+            marketResults: !!marketResults,
+            targetDate,
+            dayName,
+            dayResult: !!dayResult,
+            dayResultOpen: dayResult?.open,
+            canDeclare
+        });
+        return canDeclare;
     };
 
 
@@ -886,15 +905,24 @@ export default function LoadV2Page() {
                                         />
                                         <span className="text-gray-300">Open</span>
                                     </label>
-                                    <label className="flex items-center space-x-2">
+                                    <label className={`flex items-center space-x-2 ${canDeclareClose() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
                                         <input
                                             type="radio"
                                             name="resultType"
                                             value="close"
                                             checked={resultType === 'close'}
-                                            onChange={() => setResultType('close')}
+                                            onChange={() => {
+                                                if (canDeclareClose()) {
+                                                    setResultType('close');
+                                                } else {
+                                                    toast.error('Open result must be declared first');
+                                                }
+                                            }}
+                                            disabled={!canDeclareClose()}
                                         />
-                                        <span className="text-gray-300">Close</span>
+                                        <span className={`${canDeclareClose() ? 'text-gray-300' : 'text-gray-500'}`}>
+                                            Close {canDeclareClose() ? '' : '(Open Required)'}
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -1469,28 +1497,16 @@ export default function LoadV2Page() {
                                                     {result.marketId.marketName}
                                                 </td>
                                                 <td className="border border-gray-600 p-3 text-center">
-                                                    {result.open !== null ? (
-                                                        <span className="text-green-400 font-bold">{result.open}</span>
-                                                    ) : (
-                                                        <span className="text-gray-500">-</span>
-                                                    )}
+                                                    <span className="text-gray-500">Weekly Results</span>
                                                 </td>
                                                 <td className="border border-gray-600 p-3 text-center">
-                                                    {result.close !== null ? (
-                                                        <span className="text-blue-400 font-bold">{result.close}</span>
-                                                    ) : (
-                                                        <span className="text-gray-500">-</span>
-                                                    )}
+                                                    <span className="text-gray-500">Weekly Results</span>
                                                 </td>
                                                 <td className="border border-gray-600 p-3 text-center">
-                                                    {result.main !== null ? (
-                                                        <span className="text-yellow-400 font-bold">{result.main}</span>
-                                                    ) : (
-                                                        <span className="text-gray-500">-</span>
-                                                    )}
+                                                    <span className="text-gray-500">Weekly Results</span>
                                                 </td>
                                                 <td className="border border-gray-600 p-3 text-center text-yellow-400 font-bold">
-                                                    {result.totalWin}
+                                                    -
                                                 </td>
                                                 <td className="border border-gray-600 p-3 text-center text-gray-300">
                                                     {result.declaredBy.username}
