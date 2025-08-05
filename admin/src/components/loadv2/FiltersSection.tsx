@@ -463,6 +463,70 @@ export function FiltersSection({
                                             <div className="text-xs text-gray-400 mt-1">
                                                 {gameTypeName} • Based on current filtered data
                                             </div>
+
+                                            {/* Win Amount Breakdown */}
+                                            {(() => {
+                                                if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
+                                                    const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                                    const pannaAmount = pannaData[resultNumber] || 0;
+                                                    const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+                                                    const digitSum = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                    const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
+                                                    const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+
+                                                    return (
+                                                        <div className="mt-3 space-y-2 text-xs">
+                                                            <div className="border-t border-yellow-600/30 pt-2">
+                                                                <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
+
+                                                                {/* Main Panna Win */}
+                                                                <div className="bg-blue-900/20 p-2 rounded mb-2">
+                                                                    <div className="text-blue-400 font-bold">Main Panna Win:</div>
+                                                                    <div className="text-gray-300">Bet Amount: ₹{pannaAmount.toLocaleString()}</div>
+                                                                    <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
+                                                                    <div className="text-green-400 font-bold">Panna Win: ₹{pannaWin.toLocaleString()}</div>
+                                                                </div>
+
+                                                                {/* Digit Sum Win */}
+                                                                <div className="bg-purple-900/20 p-2 rounded mb-2">
+                                                                    <div className="text-purple-400 font-bold">Digit Sum Win:</div>
+                                                                    <div className="text-gray-300">Digit Sum ({resultNumber}): {digitSum}</div>
+                                                                    <div className="text-gray-300">Single Number Bet: ₹{singleNumberAmount.toLocaleString()}</div>
+                                                                    <div className="text-gray-300">Single Rate: {WINNING_RATES.single}x</div>
+                                                                    <div className="text-green-400 font-bold">Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
+                                                                </div>
+
+                                                                {/* Total */}
+                                                                <div className="bg-green-900/20 p-2 rounded">
+                                                                    <div className="text-green-400 font-bold">Total Win:</div>
+                                                                    <div className="text-gray-300">Panna Win: ₹{pannaWin.toLocaleString()}</div>
+                                                                    <div className="text-gray-300">+ Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
+                                                                    <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    // For single and double numbers, show simple breakdown
+                                                    const gameData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                                    const amount = gameData[resultNumber] || 0;
+                                                    const winAmount = amount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+
+                                                    return (
+                                                        <div className="mt-3 space-y-2 text-xs">
+                                                            <div className="border-t border-yellow-600/30 pt-2">
+                                                                <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
+                                                                <div className="bg-blue-900/20 p-2 rounded">
+                                                                    <div className="text-blue-400 font-bold">{gameTypeName} Win:</div>
+                                                                    <div className="text-gray-300">Bet Amount: ₹{amount.toLocaleString()}</div>
+                                                                    <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
+                                                                    <div className="text-green-400 font-bold">Total Win: ₹{winAmount.toLocaleString()}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                            })()}
                                         </div>
                                     );
                                 }
