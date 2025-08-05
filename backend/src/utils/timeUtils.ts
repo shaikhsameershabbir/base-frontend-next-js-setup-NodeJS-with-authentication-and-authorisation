@@ -44,9 +44,11 @@ export const parseTimeToIndianMoment = (timeString: string, date?: Date): moment
         const baseDate = date || getCurrentIndianTimeAsDate();
         const [hours, minutes] = timeString.split(':').map(Number);
 
-        return moment(baseDate)
+        const result = moment(baseDate)
             .tz(INDIAN_TIMEZONE)
             .set({ hour: hours, minute: minutes, second: 0, millisecond: 0 });
+
+        return result;
     }
 };
 

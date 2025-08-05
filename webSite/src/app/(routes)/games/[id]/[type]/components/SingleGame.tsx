@@ -26,6 +26,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
     const marketStatusData = getMarketStatus(marketId);
+
     if (!marketStatusData) {
       return false;
     }

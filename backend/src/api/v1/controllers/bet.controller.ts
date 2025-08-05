@@ -50,8 +50,6 @@ export class BetController {
             // Check if betting is allowed based on current time and bet type
             const timeValidation = isBettingAllowed(betType, market.openTime, market.closeTime);
 
-
-
             if (!timeValidation.allowed) {
                 res.status(400).json({
                     success: false,
@@ -124,8 +122,6 @@ export class BetController {
             user.balance = userAfterAmount;
             await user.save();
 
-
-
             res.json({
                 success: true,
                 message: 'Bet placed successfully',
@@ -143,7 +139,7 @@ export class BetController {
                     createdAt: bet.createdAt
                 }
             });
-        } catch (error) {
+        } catch (error: unknown) {
             logger.error('Place bet error:', error);
             res.status(500).json({
                 success: false,

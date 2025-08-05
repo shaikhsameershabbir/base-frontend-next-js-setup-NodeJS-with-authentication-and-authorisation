@@ -271,11 +271,6 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
             }
         }
 
-        // Prevent API calls if component is unmounted
-        if (!isMountedRef.current) {
-            return;
-        }
-
         // Create a new request promise
         const requestPromise = (async () => {
             try {
@@ -283,7 +278,7 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
 
                 const response = await betAPI.getMarketStatus(marketId);
 
-                // Check if component is still mounted before updating state
+                // Only check if component is mounted after we get the response
                 if (!isMountedRef.current) {
                     return;
                 }
@@ -299,10 +294,13 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
                     throw new Error(response.message || 'Failed to fetch market status');
                 }
             } catch (error: any) {
-                dispatch({
-                    type: 'FETCH_DATA_ERROR',
-                    payload: error.message || 'Failed to fetch market status'
-                });
+                // Only dispatch error if component is still mounted
+                if (isMountedRef.current) {
+                    dispatch({
+                        type: 'FETCH_DATA_ERROR',
+                        payload: error.message || 'Failed to fetch market status'
+                    });
+                }
                 throw error; // Re-throw so other waiting requests know it failed
             } finally {
                 // Clean up the pending request

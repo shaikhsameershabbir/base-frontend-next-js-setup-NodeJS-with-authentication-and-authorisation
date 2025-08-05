@@ -571,23 +571,28 @@ export class PlayerController {
                 return;
             }
 
+            // Get current Indian time
+            const currentTime = getCurrentIndianTime();
+
             // Get market status
             const status = getMarketStatus(market.openTime, market.closeTime);
+
+            const responseData = {
+                marketId,
+                marketName: market.marketName,
+                openTime: market.openTime,
+                closeTime: market.closeTime,
+                status: status.status,
+                message: status.message,
+                nextEvent: status.nextEvent
+            };
 
             res.json({
                 success: true,
                 message: 'Market status retrieved successfully',
-                data: {
-                    marketId,
-                    marketName: market.marketName,
-                    openTime: market.openTime,
-                    closeTime: market.closeTime,
-                    status: status.status,
-                    message: status.message,
-                    nextEvent: status.nextEvent
-                }
+                data: responseData
             });
-        } catch (error) {
+        } catch (error: any) {
             logger.error('Get market status error:', error);
             res.status(500).json({
                 success: false,
