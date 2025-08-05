@@ -4,15 +4,19 @@ import { useState, useEffect } from 'react';
 import { loadApiV2, type LoadV2Response, type HierarchicalUser, type Market } from '@/lib/loadApiV2';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, doubleNumbers, WINNING_RATES } from '@/components/winner/constants';
+import { WINNING_RATES, singlePannaNumbers, doublePannaNumbers, triplePannaNumbers } from '@/components/winner/constants';
 import { declareResult, getMarketResults, getAllResults, type Result, type DeclareResultRequest } from '@/lib/api-service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
+import {
+    FiltersSection,
+    TodayResults,
+    BetDetailsModal,
+    BetTotals,
+    DetailedBetData
+} from '@/components/loadv2';
 
 // Types for processed data
 interface ProcessedBetData {
@@ -37,6 +41,14 @@ interface BetTotals {
     halfSangamClose: { total: number; count: number };
     fullSangam: { total: number; count: number };
     overall: { total: number; count: number };
+}
+
+interface BetDetails {
+    number: string;
+    betAmount: number;
+    gameType: string;
+    winAmount: number;
+    riskStatus: { status: string; color: string; icon: string };
 }
 
 export default function LoadV2Page() {
@@ -90,19 +102,13 @@ export default function LoadV2Page() {
     });
     const [declareLoading, setDeclareLoading] = useState(false);
 
-    const [marketResults, setMarketResults] = useState<Result | null>(null);
-    const [allResults, setAllResults] = useState<Result[]>([]);
+    const [marketResults, setMarketResults] = useState<import('@/lib/api-service').Result | null>(null);
+    const [allResults, setAllResults] = useState<import('@/lib/api-service').Result[]>([]);
     const [loadingResults, setLoadingResults] = useState(false);
 
     // Details modal state
     const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [selectedBetDetails, setSelectedBetDetails] = useState<{
-        number: string;
-        betAmount: number;
-        gameType: string;
-        winAmount: number;
-        riskStatus: { status: string; color: string; icon: string };
-    } | null>(null);
+    const [selectedBetDetails, setSelectedBetDetails] = useState<BetDetails | null>(null);
 
     useEffect(() => {
         fetchLoadData();
@@ -135,8 +141,6 @@ export default function LoadV2Page() {
             setResultType('open');
         }
     }, [marketResults, resultType, targetDate]);
-
-
 
     // Process bet data when data changes
     useEffect(() => {
@@ -348,7 +352,6 @@ export default function LoadV2Page() {
     };
 
     const handleTodayClick = () => {
-
         setSelectedDate('');
         const userId = selectedUser !== 'all' ? selectedUser : undefined;
         setCurrentDataUser(userId || 'all');
@@ -434,7 +437,7 @@ export default function LoadV2Page() {
             // Additional validation for close result
             if (resultType === 'close' && marketResults) {
                 const dayName = getDayName(new Date(targetDate));
-                const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
+                const dayResult = marketResults.results[dayName as keyof import('@/lib/api-service').WeeklyResult];
                 if (!dayResult || !dayResult.open) {
                     toast.error('Open result must be declared before declaring close result');
                     return;
@@ -483,7 +486,7 @@ export default function LoadV2Page() {
         if (!marketResults || !targetDate) return false;
 
         const dayName = getDayName(new Date(targetDate));
-        const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
+        const dayResult = marketResults.results[dayName as keyof import('@/lib/api-service').WeeklyResult];
 
         const canDeclare = !!(dayResult && dayResult.open !== null && dayResult.open !== undefined);
         console.log('Debug - canDeclareClose:', {
@@ -497,7 +500,83 @@ export default function LoadV2Page() {
         return canDeclare;
     };
 
+    const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
+        switch (betType) {
+            case 'singleNumbers':
+                return betAmount * WINNING_RATES.single;
+            case 'doubleNumbers':
+                return betAmount * WINNING_RATES.double;
+            case 'singlePanna':
+                // Main panna win: betAmount * 150
+                const pannaWin = betAmount * WINNING_RATES.singlePanna;
+                // Digit sum win: sum of digits * 10 (if that single number has bets)
+                const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
+                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+                return pannaWin + digitSumWin;
+            case 'doublePanna':
+                // Main panna win: betAmount * 300
+                const doublePannaWin = betAmount * WINNING_RATES.doublePanna;
+                // Digit sum win: sum of digits * 10 (if that single number has bets)
+                const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
+                const digitSumWin2 = singleNumberAmount2 * WINNING_RATES.single;
+                return doublePannaWin + digitSumWin2;
+            case 'triplePanna':
+                // Main panna win: betAmount * 1000
+                const triplePannaWin = betAmount * WINNING_RATES.triplePanna;
+                // Digit sum win: sum of digits * 10 (if that single number has bets)
+                const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
+                const digitSumWin3 = singleNumberAmount3 * WINNING_RATES.single;
+                return triplePannaWin + digitSumWin3;
+            case 'halfSangamOpen':
+            case 'halfSangamClose':
+                return betAmount * WINNING_RATES.halfSangam;
+            case 'fullSangam':
+                return betAmount * WINNING_RATES.fullSangam;
+            default:
+                return betAmount * WINNING_RATES.single; // default to single rate
+        }
+    };
 
+    const getRiskStatus = (betAmount: number, winAmount: number): { status: string; color: string; icon: string } => {
+        // Simple risk calculation based on bet amount and win amount
+        if (betAmount <= 500) {
+            return { status: 'SAFE', color: 'text-green-400', icon: '✓' };
+        } else if (betAmount <= 1500) {
+            return { status: 'LOW RISK', color: 'text-orange-400', icon: '⚡' };
+        } else {
+            return { status: 'HIGH RISK', color: 'text-red-400', icon: '⚠' };
+        }
+    };
+
+    const clearFilters = () => {
+        setSelectedUser('all');
+        setSelectedMarket('all');
+        setSelectedDate('');
+        setSelectedAdmin('all');
+        setSelectedDistributor('all');
+        setSelectedAgent('all');
+        setSelectedPlayer('all');
+        setCuttingAmount(''); // Clear cutting amount
+        setSelectedBetType('all'); // Clear bet type filter
+        setCurrentDataUser('all');
+        setResultNumber(''); // Clear result number
+        setResultType('open'); // Reset result type
+        setTargetDate(() => {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        });
+        fetchLoadData();
+    };
+
+    const toggleSection = (sectionKey: string) => {
+        setExpandedSections(prev => ({
+            ...prev,
+            [sectionKey]: !prev[sectionKey]
+        }));
+    };
 
     const exportToPDF = (sectionKey: string, data: { [key: string]: number }) => {
         const doc = new jsPDF();
@@ -702,811 +781,14 @@ export default function LoadV2Page() {
         doc.save(fileName);
     };
 
-    const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
-
-
-        switch (betType) {
-            case 'singleNumbers':
-                return betAmount * WINNING_RATES.single;
-            case 'doubleNumbers':
-                return betAmount * WINNING_RATES.double;
-            case 'singlePanna':
-                // Main panna win: betAmount * 150
-                const pannaWin = betAmount * WINNING_RATES.singlePanna;
-                // Digit sum win: sum of digits * 9 (if that single number has bets)
-                const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
-                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-                return pannaWin + digitSumWin;
-            case 'doublePanna':
-                // Main panna win: betAmount * 300
-                const doublePannaWin = betAmount * WINNING_RATES.doublePanna;
-                // Digit sum win: sum of digits * 9 (if that single number has bets)
-                const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
-                const digitSumWin2 = singleNumberAmount2 * WINNING_RATES.single;
-                return doublePannaWin + digitSumWin2;
-            case 'triplePanna':
-                // Main panna win: betAmount * 1000
-                const triplePannaWin = betAmount * WINNING_RATES.triplePanna;
-                // Digit sum win: sum of digits * 9 (if that single number has bets)
-                const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
-                const digitSumWin3 = singleNumberAmount3 * WINNING_RATES.single;
-                return triplePannaWin + digitSumWin3;
-            case 'halfSangamOpen':
-            case 'halfSangamClose':
-                return betAmount * WINNING_RATES.halfSangam;
-            case 'fullSangam':
-                return betAmount * WINNING_RATES.fullSangam;
-            default:
-                return betAmount * 9; // default to single rate
-        }
+    const handleShowBetDetails = (details: BetDetails) => {
+        setSelectedBetDetails(details);
+        setShowDetailsModal(true);
     };
 
-    const clearFilters = () => {
-        setSelectedUser('all');
-        setSelectedMarket('all');
-        setSelectedDate('');
-        setSelectedAdmin('all');
-        setSelectedDistributor('all');
-        setSelectedAgent('all');
-        setSelectedPlayer('all');
-        setCuttingAmount(''); // Clear cutting amount
-        setSelectedBetType('all'); // Clear bet type filter
-        setCurrentDataUser('all');
-        setResultNumber(''); // Clear result number
-        setResultType('open'); // Reset result type
-        setTargetDate(() => {
-            const today = new Date();
-            return today.toISOString().split('T')[0];
-        });
-        fetchLoadData();
-    };
-
-    const renderFilters = () => {
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <CardTitle className="text-white">Filters</CardTitle>
-                    {/* Status Indicator */}
-                    {currentDataUser !== 'all' && (
-                        <div className="mt-2">
-                            <span className="text-sm text-blue-400">
-                                📊 Showing hierarchical data for selected user and all downline
-                            </span>
-                        </div>
-                    )}
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {/* Date Filter */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Date Filter</Label>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <Input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={handleDateChange}
-                                    className="flex-1"
-                                />
-                                <Button onClick={handleDateSubmit} disabled={!selectedDate} size="sm" className="whitespace-nowrap">
-                                    Load
-                                </Button>
-                            </div>
-                            <Button variant="outline" onClick={handleTodayClick} size="sm" className="w-full sm:w-auto">
-                                Today
-                            </Button>
-                        </div>
-
-                        {/* Market Filter */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Market Filter</Label>
-                            <Select value={selectedMarket} onValueChange={handleMarketChange}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select market" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Markets</SelectItem>
-                                    {assignedMarkets.map((market) => (
-                                        <SelectItem key={market._id} value={market._id}>
-                                            {market.marketName}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Bet Type Filter */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Bet Type Filter</Label>
-                            <Select value={selectedBetType} onValueChange={handleBetTypeChange}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select bet type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Bet Types</SelectItem>
-                                    <SelectItem value="open">Open Only</SelectItem>
-                                    <SelectItem value="close">Close Only</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Cutting Amount Filter */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Cutting Amount</Label>
-                            <Input
-                                type="number"
-                                placeholder="Show bets ≥ amount (e.g., 1000)"
-                                value={cuttingAmount}
-                                onChange={(e) => handleCuttingAmountChange(e.target.value)}
-                                className="flex-1"
-                            />
-                            {cuttingAmount && cuttingAmount !== '' && (
-                                <div className="text-xs text-blue-400">
-                                    Showing bets ≥ ₹{parseInt(cuttingAmount).toLocaleString()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Hierarchical User Selection */}
-                        <div className="space-y-3 lg:col-span-2 xl:col-span-1">
-                            <Label className="text-gray-300 font-medium">User Hierarchy</Label>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-                                {/* Admin Selection */}
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-gray-400">Admin</Label>
-                                    <Select value={selectedAdmin} onValueChange={handleAdminChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select admin" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Admins</SelectItem>
-                                            {hierarchicalUsers.admin?.map((admin) => (
-                                                <SelectItem key={admin._id} value={admin._id}>
-                                                    {admin.username}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Distributor Selection - Only show if admin is selected */}
-                                {selectedAdmin !== 'all' && (
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-gray-400">Distributor</Label>
-                                        <Select value={selectedDistributor} onValueChange={handleDistributorChange}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select distributor" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Distributors</SelectItem>
-                                                {hierarchicalUsers.distributor?.filter(dist => dist.parentId === selectedAdmin).map((distributor) => (
-                                                    <SelectItem key={distributor._id} value={distributor._id}>
-                                                        {distributor.username}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-
-                                {/* Agent Selection - Only show if distributor is selected */}
-                                {selectedDistributor !== 'all' && (
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-gray-400">Agent</Label>
-                                        <Select value={selectedAgent} onValueChange={handleAgentChange}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select agent" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Agents</SelectItem>
-                                                {hierarchicalUsers.agent?.filter(agent => agent.parentId === selectedDistributor).map((agent) => (
-                                                    <SelectItem key={agent._id} value={agent._id}>
-                                                        {agent.username}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-
-                                {/* Player Selection - Only show if agent is selected */}
-                                {selectedAgent !== 'all' && (
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-gray-400">Player</Label>
-                                        <Select value={selectedPlayer} onValueChange={handlePlayerChange}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select player" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">All Players</SelectItem>
-                                                {hierarchicalUsers.player?.filter(player => player.parentId === selectedAgent).map((player) => (
-                                                    <SelectItem key={player._id} value={player._id}>
-                                                        {player.username}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    {/* Simple Result Declaration */}
-                    <div className="mt-6 border-t border-gray-700 pt-6">
-                        <div className="mb-4">
-                            <h3 className="text-lg font-bold text-white mb-2">🎯 Declare Result</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            {/* Result Type */}
-                            <div className="space-y-3">
-                                <Label className="text-gray-300 font-medium">Result Type</Label>
-                                <div className="flex space-x-4">
-                                    <label className="flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            name="resultType"
-                                            value="open"
-                                            checked={resultType === 'open'}
-                                            onChange={() => setResultType('open')}
-                                        />
-                                        <span className="text-gray-300">Open</span>
-                                    </label>
-                                    <label className={`flex items-center space-x-2 ${canDeclareClose() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-                                        <input
-                                            type="radio"
-                                            name="resultType"
-                                            value="close"
-                                            checked={resultType === 'close'}
-                                            onChange={() => {
-                                                if (canDeclareClose()) {
-                                                    setResultType('close');
-                                                } else {
-                                                    toast.error('Open result must be declared first');
-                                                }
-                                            }}
-                                            disabled={!canDeclareClose()}
-                                        />
-                                        <span className={`${canDeclareClose() ? 'text-gray-300' : 'text-gray-500'}`}>
-                                            Close {canDeclareClose() ? '' : '(Open Required)'}
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Result Number */}
-                            <div className="space-y-3">
-                                <Label className="text-gray-300 font-medium">Result Number</Label>
-                                <Input
-                                    type="text"
-                                    placeholder="Enter 3-digit panna number"
-                                    value={resultNumber}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        // Only allow 3 digits and numeric characters
-                                        if (value.length <= 3 && /^\d*$/.test(value)) {
-                                            setResultNumber(value);
-                                        }
-                                    }}
-                                    onBlur={(e) => {
-                                        const value = e.target.value;
-                                        if (value.length === 3) {
-                                            const num = parseInt(value);
-                                            const allPannaNumbers = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
-                                            if (!allPannaNumbers.includes(num)) {
-                                                setResultNumber('');
-                                                toast.error('Please enter a valid panna number from the game list');
-                                            }
-                                        }
-                                    }}
-                                    className="text-center text-lg font-bold"
-                                />
-                                <div className="text-xs text-gray-400">
-                                    Enter a valid 3-digit panna number from the game list
-                                </div>
-                                {resultNumber && resultNumber.length === 3 && (
-                                    <div className="space-y-2">
-                                        <div className="text-xs text-blue-400">
-                                            Main will be: {(() => {
-                                                const digits = resultNumber.split('').map(d => parseInt(d));
-                                                const sum = digits.reduce((a, b) => a + b, 0);
-                                                return sum > 9 ? sum % 10 : sum;
-                                            })()}
-                                        </div>
-                                        {/* Winning Amount Calculation */}
-                                        {(() => {
-                                            const num = parseInt(resultNumber);
-                                            let winningAmount = 0;
-                                            let gameType = '';
-
-                                            if (singlePannaNumbers.includes(num)) {
-                                                winningAmount = 150; // 150x for single panna
-                                                gameType = 'Single Panna';
-                                            } else if (doublePannaNumbers.includes(num)) {
-                                                winningAmount = 300; // 300x for double panna
-                                                gameType = 'Double Panna';
-                                            } else if (triplePannaNumbers.includes(num.toString().padStart(3, '0'))) {
-                                                winningAmount = 1000; // 1000x for triple panna
-                                                gameType = 'Triple Panna';
-                                            }
-
-                                            if (winningAmount > 0) {
-                                                return (
-                                                    <div className="text-xs text-green-400">
-                                                        <div>Game Type: <span className="font-bold">{gameType}</span></div>
-                                                        <div>Winning Rate: <span className="font-bold">{winningAmount}x</span></div>
-                                                        <div className="space-y-1 mt-1">
-                                                            <div>₹1 bet → <span className="font-bold text-yellow-400">₹{winningAmount}</span></div>
-                                                            <div>₹10 bet → <span className="font-bold text-yellow-400">₹{winningAmount * 10}</span></div>
-                                                            <div>₹100 bet → <span className="font-bold text-yellow-400">₹{winningAmount * 100}</span></div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
-                                    </div>
-                                )}
-                                {/* Panna Number Suggestions */}
-                                {resultNumber && resultNumber.length > 0 && (
-                                    <div className="text-xs text-green-400">
-                                        Suggestions: {
-                                            [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers]
-                                                .filter(num => num.toString().includes(resultNumber))
-                                                .slice(0, 5)
-                                                .join(', ')
-                                        }
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Target Date */}
-                            <div className="space-y-3">
-                                <Label className="text-gray-300 font-medium">Target Date</Label>
-                                <Input
-                                    type="date"
-                                    value={targetDate}
-                                    onChange={(e) => setTargetDate(e.target.value)}
-                                    className="text-center"
-                                />
-                            </div>
-
-                            {/* Submit Button */}
-                            <div className="space-y-3">
-                                <Label className="text-gray-300 font-medium">&nbsp;</Label>
-                                <Button
-                                    onClick={handleDeclareResult}
-                                    disabled={
-                                        declareLoading ||
-                                        selectedMarket === 'all' ||
-                                        !resultNumber ||
-                                        !targetDate ||
-                                        resultNumber.length !== 3 ||
-                                        ![...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers].includes(parseInt(resultNumber))
-                                    }
-                                    className="w-full bg-green-600 hover:bg-green-700"
-                                >
-                                    {declareLoading ? 'Declaring...' : `Declare ${resultType}`}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Clear Filters Button */}
-                    <div className="mt-6 flex justify-center">
-                        <Button variant="outline" onClick={clearFilters} size="sm" className="px-6">
-                            Clear All Filters
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    // Render today's results section
-    const renderTodayResults = () => {
-        if (!marketResults || selectedMarket === 'all') return null;
-
-        const today = new Date();
-        const dayName = getDayName(today);
-        const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
-
-        if (!dayResult || (!dayResult.open && !dayResult.close)) {
-            return null;
-        }
-
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <CardTitle className="text-white">📅 Today's Results</CardTitle>
-                    <div className="text-sm text-gray-400">
-                        {assignedMarkets.find(m => m._id === selectedMarket)?.marketName} - {today.toLocaleDateString('en-IN')}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-800 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-gray-300">Open Result</span>
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.open ? 'bg-green-900 text-green-400' : 'bg-gray-700 text-gray-400'
-                                    }`}>
-                                    {dayResult.open ? 'DECLARED' : 'NOT DECLARED'}
-                                </span>
-                            </div>
-                            {dayResult.open ? (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold text-green-400">{dayResult.open}</div>
-                                    <div className="text-xs text-gray-400">
-                                        {dayResult.openDeclationTime ? formatDate(dayResult.openDeclationTime) : ''}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-500 text-lg">-</div>
-                            )}
-                        </div>
-
-                        <div className="bg-gray-800 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-gray-300">Close Result</span>
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.close ? 'bg-green-900 text-green-400' : 'bg-gray-700 text-gray-400'
-                                    }`}>
-                                    {dayResult.close ? 'DECLARED' : 'NOT DECLARED'}
-                                </span>
-                            </div>
-                            {dayResult.close ? (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold text-blue-400">{dayResult.close}</div>
-                                    <div className="text-xs text-gray-400">
-                                        {dayResult.closeDeclationTime ? formatDate(dayResult.closeDeclationTime) : ''}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-500 text-lg">-</div>
-                            )}
-                        </div>
-
-                        <div className="bg-gray-800 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm text-gray-300">Main Result</span>
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.main ? 'bg-yellow-900 text-yellow-400' : 'bg-gray-700 text-gray-400'
-                                    }`}>
-                                    {dayResult.main ? 'CALCULATED' : 'NOT CALCULATED'}
-                                </span>
-                            </div>
-                            {dayResult.main ? (
-                                <div className="text-center">
-                                    <div className="text-3xl font-bold text-yellow-400">{dayResult.main}</div>
-                                    <div className="text-xs text-gray-400">Combined Result</div>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-500 text-lg">-</div>
-                            )}
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    const renderProcessedData = () => {
-        if (!processedData) return null;
-
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <CardTitle className="text-white">Processed Bet Data (JSON)</CardTitle>
-                    <div className="text-sm text-gray-400">
-                        Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
-                        {cuttingAmount && cuttingAmount !== '' && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}+`}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
-                        <pre className="text-sm text-green-400 whitespace-pre-wrap font-mono">
-                            {JSON.stringify(processedData, null, 2)}
-                        </pre>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    const renderBetTotals = () => {
-        if (!betTotals) return null;
-
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle className="text-white">Bet Totals Summary</CardTitle>
-                            <div className="text-sm text-gray-400">
-                                Total Amount: ₹{betTotals.overall.total.toLocaleString()} | Total Numbers: {betTotals.overall.count}
-                                {cuttingAmount && cuttingAmount !== '' && ` | Showing bets ≥ ₹${parseInt(cuttingAmount).toLocaleString()}`}
-                            </div>
-                        </div>
-                        <Button
-                            onClick={exportAllToPDF}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            📄 Export All PDF
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Single Numbers</div>
-                            <div className="text-lg font-bold text-green-400">₹{betTotals.singleNumbers.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.singleNumbers.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Double Numbers</div>
-                            <div className="text-lg font-bold text-blue-400">₹{betTotals.doubleNumbers.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.doubleNumbers.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Single Panna</div>
-                            <div className="text-lg font-bold text-purple-400">₹{betTotals.singlePanna.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.singlePanna.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Double Panna</div>
-                            <div className="text-lg font-bold text-yellow-400">₹{betTotals.doublePanna.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.doublePanna.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Triple Panna</div>
-                            <div className="text-lg font-bold text-red-400">₹{betTotals.triplePanna.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.triplePanna.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Half Sangam Open</div>
-                            <div className="text-lg font-bold text-pink-400">₹{betTotals.halfSangamOpen.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.halfSangamOpen.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Half Sangam Close</div>
-                            <div className="text-lg font-bold text-indigo-400">₹{betTotals.halfSangamClose.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.halfSangamClose.count} numbers</div>
-                        </div>
-                        <div className="bg-gray-800 rounded-lg p-3">
-                            <div className="text-sm text-gray-400">Full Sangam</div>
-                            <div className="text-lg font-bold text-orange-400">₹{betTotals.fullSangam.total.toLocaleString()}</div>
-                            <div className="text-xs text-gray-500">{betTotals.fullSangam.count} numbers</div>
-                        </div>
-                    </div>
-
-                    {/* Overall Total */}
-                    <div className="mt-4 p-4 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg">
-                        <div className="text-center">
-                            <div className="text-sm text-white opacity-90">Overall Total</div>
-                            <div className="text-2xl font-bold text-white">₹{betTotals.overall.total.toLocaleString()}</div>
-                            <div className="text-sm text-white opacity-75">{betTotals.overall.count} total numbers</div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    const renderDetailedBetData = () => {
-        if (!processedData) return null;
-
-        const toggleSection = (sectionKey: string) => {
-            setExpandedSections(prev => ({
-                ...prev,
-                [sectionKey]: !prev[sectionKey]
-            }));
-        };
-
-
-
-        const getColumnForNumber = (betType: string, number: string): number => {
-            switch (betType) {
-                case 'singleNumbers':
-                    return parseInt(number);
-                case 'doubleNumbers':
-                    return parseInt(number) % 10; // Last digit
-                case 'singlePanna':
-                case 'doublePanna':
-                case 'triplePanna':
-                    // Calculate digit sum and use that as column
-                    return number.split('').reduce((sum, digit) => sum + parseInt(digit), 0) % 10;
-                case 'halfSangamOpen':
-                case 'halfSangamClose':
-                case 'fullSangam':
-                    // For sangam, use the first digit or a specific pattern
-                    return parseInt(number.charAt(0));
-                default:
-                    return 0;
-            }
-        };
-
-        const getRiskStatus = (betAmount: number, winAmount: number): { status: string; color: string; icon: string } => {
-            // Simple risk calculation based on bet amount and win amount
-            if (betAmount <= 500) {
-                return { status: 'SAFE', color: 'text-green-400', icon: '✓' };
-            } else if (betAmount <= 1500) {
-                return { status: 'LOW RISK', color: 'text-orange-400', icon: '⚡' };
-            } else {
-                return { status: 'HIGH RISK', color: 'text-red-400', icon: '⚠' };
-            }
-        };
-
-        const renderSection = (title: string, data: { [key: string]: number }, color: string, sectionKey: string) => {
-            const sortedEntries = Object.entries(data).sort(([a], [b]) => a.localeCompare(b));
-            const totalAmount = Object.values(data).reduce((sum, amount) => sum + amount, 0);
-            const count = Object.keys(data).length;
-
-            // Group entries by column
-            const columnData: Record<number, Array<[string, number]>> = {
-                0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []
-            };
-
-            sortedEntries.forEach(([number, amount]) => {
-                const column = getColumnForNumber(sectionKey, number);
-                if (!columnData[column]) {
-                    columnData[column] = [];
-                }
-                columnData[column].push([number, amount]);
-            });
-
-            // Find the maximum number of entries across all columns
-            const maxEntries = Math.max(...Object.values(columnData).map(col => col.length));
-
-            return (
-                <div key={sectionKey} className="mb-4 border border-gray-600 bg-gray-700 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <div className="font-bold text-white text-lg">
-                                {sectionKey === 'singleNumbers' ? '🔢 Single Numbers' :
-                                    sectionKey === 'doubleNumbers' ? '🔢 Double Numbers' :
-                                        sectionKey === 'singlePanna' ? '🎯 Single Panna' :
-                                            sectionKey === 'doublePanna' ? '🎲 Double Panna' :
-                                                sectionKey === 'triplePanna' ? '👑 Triple Panna' :
-                                                    sectionKey === 'halfSangamOpen' ? '🎪 Half Sangam Open' :
-                                                        sectionKey === 'halfSangamClose' ? '🎪 Half Sangam Close' :
-                                                            sectionKey === 'fullSangam' ? '🎭 Full Sangam' : title}
-                            </div>
-                            <div className="text-green-400 font-bold">
-                                Total: ₹{totalAmount.toLocaleString()}
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                                {count} numbers
-                            </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <Button
-                                onClick={() => toggleSection(sectionKey)}
-                                variant="outline"
-                                size="sm"
-                                className="text-xs"
-                            >
-                                {expandedSections[sectionKey] ? 'Collapse' : 'Expand'}
-                            </Button>
-                            <Button
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700"
-                                onClick={() => exportToPDF(sectionKey, data)}
-                            >
-                                📄 Export PDF
-                            </Button>
-                        </div>
-                    </div>
-
-                    {/* Table - Collapsible */}
-                    {expandedSections[sectionKey] && maxEntries > 0 && (
-                        <table className="w-full border-collapse border border-gray-600 mt-3">
-                            <thead>
-                                <tr className="bg-gray-800">
-                                    {Array.from({ length: 10 }, (_, index) => (
-                                        <th key={index} className="border border-gray-600 p-2 text-center text-white">
-                                            <div className="text-lg font-bold">{index}</div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {Array.from({ length: maxEntries }, (_, rowIndex) => (
-                                    <tr key={rowIndex}>
-                                        {Array.from({ length: 10 }, (_, colIndex) => {
-                                            const columnEntries = columnData[colIndex] || [];
-                                            const entry = columnEntries[rowIndex];
-
-                                            return (
-                                                <td key={colIndex} className="border border-gray-600 p-2 text-center text-sm">
-                                                    {entry ? (
-                                                        <div className="space-y-2 p-2 bg-gray-800 rounded">
-                                                            {/* Number */}
-                                                            <div className="font-bold text-blue-400 text-lg">{entry[0]}</div>
-
-                                                            {/* Bet Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Bet:</span>
-                                                                <span className="text-green-400 font-bold ml-1">₹{entry[1].toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Winning Amount */}
-                                                            <div className="text-xs">
-                                                                <span className="text-gray-400">Win:</span>
-                                                                <span className="text-yellow-400 font-bold ml-1">₹{calculateWinAmount(sectionKey, entry[1], entry[0]).toLocaleString()}</span>
-                                                            </div>
-
-                                                            {/* Risk Level Indicator */}
-                                                            {(() => {
-                                                                const winAmount = calculateWinAmount(sectionKey, entry[1], entry[0]);
-                                                                const risk = getRiskStatus(entry[1], winAmount);
-                                                                return (
-                                                                    <div className={`text-xs px-1 rounded ${risk.color.replace('text-', 'bg-').replace('-400', '-900/50')} ${risk.color}`}>
-                                                                        {risk.icon} {risk.status}
-                                                                    </div>
-                                                                );
-                                                            })()}
-
-                                                            {/* Click to see details */}
-                                                            <button
-                                                                onClick={() => {
-                                                                    const winAmount = calculateWinAmount(sectionKey, entry[1], entry[0]);
-                                                                    const riskStatus = getRiskStatus(entry[1], winAmount);
-
-                                                                    setSelectedBetDetails({
-                                                                        number: entry[0],
-                                                                        betAmount: entry[1],
-                                                                        gameType: sectionKey,
-                                                                        winAmount,
-                                                                        riskStatus
-                                                                    });
-                                                                    setShowDetailsModal(true);
-                                                                }}
-                                                                className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
-                                                            >
-                                                                📊 View Details
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-gray-500 text-xs">-</div>
-                                                    )}
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            );
-        };
-
-        return (
-            <Card className="mb-6 bg-gray-900 border-gray-700">
-                <CardHeader>
-                    <CardTitle className="text-white">Detailed Bet Data</CardTitle>
-                    <div className="text-sm text-gray-400">
-                        Filtered by: {selectedBetType === 'all' ? 'All Bet Types' : selectedBetType === 'open' ? 'Open Only' : 'Close Only'}
-                        {cuttingAmount && cuttingAmount !== '' && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}+`}
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {renderSection('Single Numbers (0-9)', processedData.singleNumbers, 'text-green-400', 'singleNumbers')}
-                    {renderSection('Double Numbers (00-99)', processedData.doubleNumbers, 'text-blue-400', 'doubleNumbers')}
-                    {renderSection('Single Panna', processedData.singlePanna, 'text-purple-400', 'singlePanna')}
-                    {renderSection('Double Panna', processedData.doublePanna, 'text-yellow-400', 'doublePanna')}
-                    {renderSection('Triple Panna', processedData.triplePanna, 'text-red-400', 'triplePanna')}
-                    {renderSection('Half Sangam Open', processedData.halfSangamOpen, 'text-pink-400', 'halfSangamOpen')}
-                    {renderSection('Half Sangam Close', processedData.halfSangamClose, 'text-indigo-400', 'halfSangamClose')}
-                    {renderSection('Full Sangam', processedData.fullSangam, 'text-orange-400', 'fullSangam')}
-                </CardContent>
-            </Card>
-        );
+    const handleCloseModal = () => {
+        setShowDetailsModal(false);
+        setSelectedBetDetails(null);
     };
 
     if (loading) {
@@ -1548,181 +830,83 @@ export default function LoadV2Page() {
                     </div>
                 </div>
 
-                {/* Filters */}
-                {renderFilters()}
+                {/* Filters Section */}
+                <FiltersSection
+                    selectedDate={selectedDate}
+                    selectedBetType={selectedBetType}
+                    selectedUser={selectedUser}
+                    selectedMarket={selectedMarket}
+                    selectedAdmin={selectedAdmin}
+                    selectedDistributor={selectedDistributor}
+                    selectedAgent={selectedAgent}
+                    selectedPlayer={selectedPlayer}
+                    cuttingAmount={cuttingAmount}
+                    currentDataUser={currentDataUser}
+                    hierarchicalUsers={hierarchicalUsers}
+                    assignedMarkets={assignedMarkets}
+                    resultType={resultType}
+                    resultNumber={resultNumber}
+                    targetDate={targetDate}
+                    declareLoading={declareLoading}
+                    marketResults={marketResults}
+                    processedData={processedData}
+                    onDateChange={handleDateChange}
+                    onDateSubmit={handleDateSubmit}
+                    onTodayClick={handleTodayClick}
+                    onMarketChange={handleMarketChange}
+                    onBetTypeChange={handleBetTypeChange}
+                    onCuttingAmountChange={handleCuttingAmountChange}
+                    onAdminChange={handleAdminChange}
+                    onDistributorChange={handleDistributorChange}
+                    onAgentChange={handleAgentChange}
+                    onPlayerChange={handlePlayerChange}
+                    onClearFilters={clearFilters}
+                    onResultTypeChange={setResultType}
+                    onResultNumberChange={setResultNumber}
+                    onTargetDateChange={setTargetDate}
+                    onDeclareResult={handleDeclareResult}
+                    canDeclareClose={canDeclareClose}
+                    getDayName={getDayName}
+                    calculateWinAmount={calculateWinAmount}
+                />
 
                 {/* Today's Results */}
-                {renderTodayResults()}
+                <TodayResults
+                    marketResults={marketResults}
+                    selectedMarket={selectedMarket}
+                    assignedMarkets={assignedMarkets}
+                    getDayName={getDayName}
+                    formatDate={formatDate}
+                />
 
-                {/* Processed Data Display */}
-                {processedData && renderProcessedData()}
+                {/* Bet Totals */}
+                <BetTotals
+                    betTotals={betTotals}
+                    cuttingAmount={cuttingAmount}
+                    onExportAllPDF={exportAllToPDF}
+                />
 
-                {/* Bet Totals Display */}
-                {betTotals && renderBetTotals()}
-
-                {/* Detailed Bet Data Display */}
-                {processedData && renderDetailedBetData()}
+                {/* Detailed Bet Data */}
+                <DetailedBetData
+                    processedData={processedData}
+                    selectedBetType={selectedBetType}
+                    cuttingAmount={cuttingAmount}
+                    expandedSections={expandedSections}
+                    onToggleSection={toggleSection}
+                    onExportPDF={exportToPDF}
+                    onShowBetDetails={handleShowBetDetails}
+                    calculateWinAmount={calculateWinAmount}
+                    getRiskStatus={getRiskStatus}
+                />
 
                 {/* Bet Details Modal */}
-                {showDetailsModal && selectedBetDetails && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                            <div className="p-6">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-xl font-bold text-white">Bet Details Analysis</h2>
-                                    <button
-                                        onClick={() => setShowDetailsModal(false)}
-                                        className="text-gray-400 hover:text-white"
-                                    >
-                                        ✕
-                                    </button>
-                                </div>
-
-                                <div className="space-y-6">
-                                    {/* Basic Info */}
-                                    <div className="grid ">
-                                        <div className="bg-gray-800 p-4 rounded-lg">
-                                            <h3 className="text-lg font-bold text-white mb-2">Bet Information</h3>
-                                            <div className="space-y-2 text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-400">Number:</span>
-                                                    <span className="text-white font-bold">{selectedBetDetails.number}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-400">Bet Amount:</span>
-                                                    <span className="text-green-400 font-bold">₹{selectedBetDetails.betAmount.toLocaleString()}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-400">Game Type:</span>
-                                                    <span className="text-blue-400 font-bold">{selectedBetDetails.gameType}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-
-                                    </div>
-
-
-                                    {/* Winning Rate Breakdown */}
-                                    <div className="bg-gray-800 p-4 rounded-lg">
-                                        <h3 className="text-lg font-bold text-white mb-2">Winning Rate Breakdown</h3>
-                                        <div className="space-y-3 text-sm">
-                                            {(() => {
-                                                const rates = {
-                                                    singleNumbers: 9,
-                                                    doubleNumbers: 90,
-                                                    singlePanna: 150,
-                                                    doublePanna: 300,
-                                                    triplePanna: 1000,
-                                                    halfSangamOpen: 1000,
-                                                    halfSangamClose: 1000,
-                                                    fullSangam: 10000
-                                                };
-                                                const rate = rates[selectedBetDetails.gameType as keyof typeof rates] || 9;
-
-                                                // Calculate detailed breakdown for panna games
-                                                if (['singlePanna', 'doublePanna', 'triplePanna'].includes(selectedBetDetails.gameType)) {
-                                                    const digitSum = selectedBetDetails.number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                                                    const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
-                                                    const pannaWin = selectedBetDetails.betAmount * rate;
-                                                    const digitSumWin = singleNumberAmount * 9;
-
-                                                    return (
-                                                        <div className="space-y-3">
-                                                            <div className="bg-gray-700 p-3 rounded">
-                                                                <div className="font-bold text-blue-400 mb-2">Main Panna Win:</div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Bet Amount:</span>
-                                                                    <span className="text-white">₹{selectedBetDetails.betAmount.toLocaleString()}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Rate:</span>
-                                                                    <span className="text-yellow-400">{rate}x</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Panna Win:</span>
-                                                                    <span className="text-green-400 font-bold">₹{pannaWin.toLocaleString()}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="bg-gray-700 p-3 rounded">
-                                                                <div className="font-bold text-purple-400 mb-2">Digit Sum Win:</div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Digit Sum ({selectedBetDetails.number}):</span>
-                                                                    <span className="text-white">{digitSum}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Single Number Bet:</span>
-                                                                    <span className="text-white">₹{singleNumberAmount.toLocaleString()}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Single Rate:</span>
-                                                                    <span className="text-yellow-400">9x</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Calculation:</span>
-                                                                    <span className="text-white">₹{singleNumberAmount.toLocaleString()} × 9</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-400">Digit Sum Win:</span>
-                                                                    <span className="text-green-400 font-bold">₹{digitSumWin.toLocaleString()}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="bg-green-900 p-3 rounded">
-                                                                <div className="font-bold text-white mb-2">Total Win:</div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-300">Panna Win:</span>
-                                                                    <span className="text-green-400">₹{pannaWin.toLocaleString()}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-300">+ Digit Sum Win:</span>
-                                                                    <span className="text-green-400">₹{digitSumWin.toLocaleString()}</span>
-                                                                </div>
-                                                                <div className="flex justify-between border-t border-green-600 pt-2 mt-2">
-                                                                    <span className="text-white font-bold">Total:</span>
-                                                                    <span className="text-yellow-400 font-bold text-lg">₹{selectedBetDetails.winAmount.toLocaleString()}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                } else {
-                                                    // Simple calculation for non-panna games
-                                                    return (
-                                                        <div className="space-y-2">
-                                                            <div className="flex justify-between">
-                                                                <span className="text-gray-400">Winning Rate:</span>
-                                                                <span className="text-yellow-400 font-bold">{rate}x</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="text-gray-400">Calculation:</span>
-                                                                <span className="text-white">₹{selectedBetDetails.betAmount} × {rate} = ₹{selectedBetDetails.winAmount}</span>
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 mt-2">
-                                                                *Winning rates may vary based on game type and market rules
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                }
-                                            })()}
-                                        </div>
-                                    </div>
-
-
-                                </div>
-
-                                <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={() => setShowDetailsModal(false)}
-                                        className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
-                                    >
-                                        Close
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <BetDetailsModal
+                    showModal={showDetailsModal}
+                    betDetails={selectedBetDetails}
+                    processedData={processedData}
+                    onClose={handleCloseModal}
+                    calculateWinAmount={calculateWinAmount}
+                />
 
                 {/* Results History */}
                 <Card className="bg-gray-900 border-gray-700">

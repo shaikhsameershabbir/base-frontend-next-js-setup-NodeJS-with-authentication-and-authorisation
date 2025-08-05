@@ -77,7 +77,7 @@ export const doubleNumbers = [
 
 // Winning rates
 export const WINNING_RATES = {
-    single: 9,
+    single: 10,
     double: 90,
     singlePanna: 150,
     doublePanna: 300,
