@@ -459,22 +459,39 @@ export const apiUtils = {
 // RESULT INTERFACES
 // ============================================================================
 
-export interface Result {
-    _id: string;
-    marketId: {
-        _id: string;
-        marketName: string;
-    };
-    declaredBy: {
-        _id: string;
-        username: string;
-    };
-    totalWin: number;
+export interface DayResult {
     open: number | null;
     main: number | null;
     close: number | null;
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
+}
+
+export interface WeeklyResult {
+    monday?: DayResult;
+    tuesday?: DayResult;
+    wednesday?: DayResult;
+    thursday?: DayResult;
+    friday?: DayResult;
+    saturday?: DayResult;
+    sunday?: DayResult;
+}
+
+export interface Result {
+    _id: string;
+    marketId: {
+        _id: string;
+        marketName: string;
+        weekDays: number;
+    };
+    declaredBy: {
+        _id: string;
+        username: string;
+    };
+    weekStartDate: Date;
+    weekEndDate: Date;
+    weekDays: number;
+    results: WeeklyResult;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -483,6 +500,7 @@ export interface DeclareResultRequest {
     marketId: string;
     resultType: 'open' | 'close';
     resultNumber: number;
+    targetDate: string; // ISO date string
 }
 
 export interface DeclareResultResponse {

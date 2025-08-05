@@ -3,7 +3,32 @@ import { AuthenticatedRequest } from '../../../middlewares/auth';
 import { Result } from '../../../models/result';
 import { Market } from '../../../models/Market';
 
-// Declare result for a specific market
+// Helper function to get week start and end dates
+const getWeekDates = (weekDays: number): { startDate: Date; endDate: Date } => {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+
+    // Calculate Monday of current week
+    const monday = new Date(today);
+    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1; // Monday is 1
+    monday.setDate(today.getDate() - daysToMonday);
+    monday.setHours(0, 0, 0, 0);
+
+    // Calculate end date based on weekDays
+    const endDate = new Date(monday);
+    endDate.setDate(monday.getDate() + weekDays - 1);
+    endDate.setHours(23, 59, 59, 999);
+
+    return { startDate: monday, endDate };
+};
+
+// Helper function to get day name from date
+const getDayName = (date: Date): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return days[date.getDay()];
+};
+
+// Declare result for a specific market and day
 export const declareResult = async (req: Request, res: Response): Promise<void> => {
     try {
         const currentUser = (req as AuthenticatedRequest).user;
@@ -12,13 +37,13 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        const { marketId, resultType, resultNumber } = req.body;
+        const { marketId, resultType, resultNumber, targetDate } = req.body;
 
         // Validate required fields
-        if (!marketId || !resultType || resultNumber === undefined || resultNumber === null) {
+        if (!marketId || !resultType || resultNumber === undefined || resultNumber === null || !targetDate) {
             res.status(400).json({
                 success: false,
-                message: 'Market ID, result type, and result number are required'
+                message: 'Market ID, result type, result number, and target date are required'
             });
             return;
         }
@@ -57,19 +82,60 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Check if result already exists for this market
-        let existingResult = await Result.findOne({ marketId });
+        // Parse target date
+        const targetDateObj = new Date(targetDate);
+        const dayName = getDayName(targetDateObj);
+
+        // Get week dates based on market's week days
+        const { startDate, endDate } = getWeekDates(market.weekDays || 7);
+
+        // Check if target date is within the current week
+        if (targetDateObj < startDate || targetDateObj > endDate) {
+            res.status(400).json({
+                success: false,
+                message: 'Target date must be within the current week'
+            });
+            return;
+        }
+
+        // Find or create weekly result
+        let existingResult = await Result.findOne({
+            marketId,
+            weekStartDate: startDate,
+            weekEndDate: endDate
+        });
 
         if (existingResult) {
-            // Update existing result
+            // Update existing weekly result
+            if (!existingResult.results) {
+                existingResult.results = {};
+            }
+
+            if (!existingResult.results[dayName as keyof typeof existingResult.results]) {
+                existingResult.results[dayName as keyof typeof existingResult.results] = {
+                    open: null,
+                    main: null,
+                    close: null,
+                    openDeclationTime: null,
+                    closeDeclationTime: null
+                };
+            }
+
+            const dayResult = existingResult.results[dayName as keyof typeof existingResult.results];
+
+            if (!dayResult) {
+                res.status(500).json({ success: false, message: 'Failed to get day result' });
+                return;
+            }
+
             if (resultType === 'open') {
-                existingResult.open = resultNumber;
-                existingResult.main = mainValue;
-                existingResult.openDeclationTime = new Date();
-                console.log(`Open Result - Number: ${resultNumber}, Main: ${mainValue}`);
+                dayResult.open = resultNumber;
+                dayResult.main = mainValue;
+                dayResult.openDeclationTime = new Date();
+                console.log(`Open Result - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
             } else {
                 // For close, check if open is already declared
-                if (!existingResult.open || existingResult.open === null) {
+                if (!dayResult.open || dayResult.open === null) {
                     res.status(400).json({
                         success: false,
                         message: 'Open result must be declared before declaring close result'
@@ -77,23 +143,20 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     return;
                 }
 
-                existingResult.close = resultNumber;
+                dayResult.close = resultNumber;
                 // For close, main becomes the combination of open main and close main
-                const openMain = existingResult.main || 0;
+                const openMain = dayResult.main || 0;
                 const closeMain = mainValue;
                 const combinedMain = parseInt(openMain.toString() + closeMain.toString());
-                existingResult.main = combinedMain;
-                existingResult.closeDeclationTime = new Date();
+                dayResult.main = combinedMain;
+                dayResult.closeDeclationTime = new Date();
 
-                console.log(`Close Result - Open Main: ${openMain}, Close Main: ${closeMain}, Combined Main: ${combinedMain}`);
+                console.log(`Close Result - Day: ${dayName}, Open Main: ${openMain}, Close Main: ${closeMain}, Combined Main: ${combinedMain}`);
             }
-
-            // Update total win calculation
-            existingResult.totalWin = (existingResult.open || 0) + (existingResult.close || 0);
 
             await existingResult.save();
         } else {
-            // Create new result - only allow open for new results
+            // Create new weekly result
             if (resultType === 'close') {
                 res.status(400).json({
                     success: false,
@@ -102,31 +165,42 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 return;
             }
 
-            const resultData = {
-                marketId,
-                declaredBy: currentUser.userId,
-                totalWin: resultNumber,
+            const newDayResult = {
                 open: resultNumber,
-                close: null,
                 main: mainValue,
+                close: null,
                 openDeclationTime: new Date(),
                 closeDeclationTime: null
             };
 
+            const resultData = {
+                marketId,
+                declaredBy: currentUser.userId,
+                weekStartDate: startDate,
+                weekEndDate: endDate,
+                weekDays: market.weekDays || 7,
+                results: {
+                    [dayName]: newDayResult
+                }
+            };
+
             existingResult = new Result(resultData);
             await existingResult.save();
-            console.log(`New Result Created - Number: ${resultNumber}, Main: ${mainValue}`);
+            console.log(`New Weekly Result Created - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
         }
 
         res.json({
             success: true,
-            message: `${resultType.charAt(0).toUpperCase() + resultType.slice(1)} result declared successfully`,
+            message: `${resultType.charAt(0).toUpperCase() + resultType.slice(1)} result declared successfully for ${dayName}`,
             data: {
                 marketId,
+                dayName,
                 resultType,
                 resultNumber,
                 declaredBy: currentUser.userId,
-                declarationTime: resultType === 'open' ? existingResult.openDeclationTime : existingResult.closeDeclationTime
+                declarationTime: resultType === 'open' ?
+                    existingResult.results[dayName as keyof typeof existingResult.results]?.openDeclationTime :
+                    existingResult.results[dayName as keyof typeof existingResult.results]?.closeDeclationTime
             }
         });
     } catch (error) {
@@ -135,7 +209,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-// Get results for a specific market
+// Get weekly results for a specific market
 export const getMarketResults = async (req: Request, res: Response): Promise<void> => {
     try {
         const currentUser = (req as AuthenticatedRequest).user;
@@ -151,20 +225,39 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        const result = await Result.findOne({ marketId }).populate('marketId', 'marketName').populate('declaredBy', 'username');
+        // Get market to determine week days
+        const market = await Market.findById(marketId);
+        if (!market) {
+            res.status(404).json({ success: false, message: 'Market not found' });
+            return;
+        }
+
+        const { startDate, endDate } = getWeekDates(market.weekDays || 7);
+
+        const result = await Result.findOne({
+            marketId,
+            weekStartDate: startDate,
+            weekEndDate: endDate
+        }).populate('marketId', 'marketName weekDays').populate('declaredBy', 'username');
 
         if (!result) {
             res.json({
                 success: true,
-                message: 'No results found for this market',
-                data: null
+                message: 'No results found for this week',
+                data: {
+                    marketId: marketId,
+                    weekStartDate: startDate,
+                    weekEndDate: endDate,
+                    weekDays: market.weekDays || 7,
+                    results: {}
+                }
             });
             return;
         }
 
         res.json({
             success: true,
-            message: 'Market results retrieved successfully',
+            message: 'Weekly results retrieved successfully',
             data: result
         });
     } catch (error) {
@@ -173,7 +266,7 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
     }
 };
 
-// Get all results
+// Get all weekly results
 export const getAllResults = async (req: Request, res: Response): Promise<void> => {
     try {
         const currentUser = (req as AuthenticatedRequest).user;
@@ -183,13 +276,13 @@ export const getAllResults = async (req: Request, res: Response): Promise<void> 
         }
 
         const results = await Result.find()
-            .populate('marketId', 'marketName')
+            .populate('marketId', 'marketName weekDays')
             .populate('declaredBy', 'username')
-            .sort({ createdAt: -1 });
+            .sort({ weekStartDate: -1 });
 
         res.json({
             success: true,
-            message: 'All results retrieved successfully',
+            message: 'All weekly results retrieved successfully',
             data: results
         });
     } catch (error) {

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, jodiNumbers, doubleNumbers } from '@/components/winner/constants';
+import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, doubleNumbers } from '@/components/winner/constants';
 import { declareResult, getMarketResults, getAllResults, type Result, type DeclareResultRequest } from '@/lib/api-service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -84,7 +84,12 @@ export default function LoadV2Page() {
     // Declare result states
     const [resultType, setResultType] = useState<'open' | 'close'>('open');
     const [resultNumber, setResultNumber] = useState<string>('');
+    const [targetDate, setTargetDate] = useState<string>(() => {
+        const today = new Date();
+        return today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    });
     const [declareLoading, setDeclareLoading] = useState(false);
+
     const [marketResults, setMarketResults] = useState<Result | null>(null);
     const [allResults, setAllResults] = useState<Result[]>([]);
     const [loadingResults, setLoadingResults] = useState(false);
@@ -94,6 +99,17 @@ export default function LoadV2Page() {
         fetchFilters();
         fetchAllResults();
     }, []);
+
+    // Auto-refresh today's results every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (selectedMarket && selectedMarket !== 'all') {
+                fetchMarketResults(selectedMarket);
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [selectedMarket]);
 
     useEffect(() => {
         if (selectedMarket && selectedMarket !== 'all') {
@@ -109,6 +125,8 @@ export default function LoadV2Page() {
             setResultType('open');
         }
     }, [marketResults, resultType]);
+
+
 
     // Process bet data when data changes
     useEffect(() => {
@@ -403,15 +421,20 @@ export default function LoadV2Page() {
             setDeclareLoading(true);
 
             // Additional validation for close result
-            if (resultType === 'close' && marketResults && !marketResults.open) {
-                toast.error('Open result must be declared before declaring close result');
-                return;
+            if (resultType === 'close' && marketResults) {
+                const dayName = getDayName(new Date(targetDate));
+                const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
+                if (!dayResult || !dayResult.open) {
+                    toast.error('Open result must be declared before declaring close result');
+                    return;
+                }
             }
 
             const requestData: DeclareResultRequest = {
                 marketId: selectedMarket,
                 resultType,
-                resultNumber: number
+                resultNumber: number,
+                targetDate: targetDate
             };
 
             const response = await declareResult(requestData);
@@ -438,23 +461,13 @@ export default function LoadV2Page() {
         return new Date(date).toLocaleString('en-IN');
     };
 
-    const getResultStatus = (result: Result | null, type: 'open' | 'close') => {
-        if (!result) return { declared: false, number: null, time: null };
-
-        if (type === 'open') {
-            return {
-                declared: result.open !== null,
-                number: result.open,
-                time: result.openDeclationTime
-            };
-        } else {
-            return {
-                declared: result.close !== null,
-                number: result.close,
-                time: result.closeDeclationTime
-            };
-        }
+    // Helper function to get day name from date
+    const getDayName = (date: Date): string => {
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        return days[date.getDay()];
     };
+
+
 
     const exportToPDF = (sectionKey: string, data: { [key: string]: number }) => {
         const doc = new jsPDF();
@@ -672,6 +685,10 @@ export default function LoadV2Page() {
         setCurrentDataUser('all');
         setResultNumber(''); // Clear result number
         setResultType('open'); // Reset result type
+        setTargetDate(() => {
+            const today = new Date();
+            return today.toISOString().split('T')[0];
+        });
         fetchLoadData();
     };
 
@@ -846,65 +863,63 @@ export default function LoadV2Page() {
                         </div>
                     </div>
 
-                    {/* Declare Result Section */}
+
+
+                    {/* Simple Result Declaration */}
                     <div className="mt-6 border-t border-gray-700 pt-6">
                         <div className="mb-4">
                             <h3 className="text-lg font-bold text-white mb-2">🎯 Declare Result</h3>
-                            <p className="text-sm text-gray-400">
-                                Declare open or close results for the selected market using 3-digit panna numbers.
-                                Main result is automatically calculated (sum of digits).
-                            </p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {/* Result Type Selection */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {/* Result Type */}
                             <div className="space-y-3">
                                 <Label className="text-gray-300 font-medium">Result Type</Label>
-                                <Select value={resultType} onValueChange={(value: 'open' | 'close') => setResultType(value)}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="open">Open Result</SelectItem>
-                                        <SelectItem
+                                <div className="flex space-x-4">
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="radio"
+                                            name="resultType"
+                                            value="open"
+                                            checked={resultType === 'open'}
+                                            onChange={() => setResultType('open')}
+                                        />
+                                        <span className="text-gray-300">Open</span>
+                                    </label>
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="radio"
+                                            name="resultType"
                                             value="close"
-                                            disabled={!marketResults || !marketResults.open}
-                                        >
-                                            Close Result {(!marketResults || !marketResults.open) && '(Open Required)'}
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                {(!marketResults || !marketResults.open) && resultType === 'close' && (
-                                    <div className="text-xs text-orange-400">
-                                        ⚠️ Open result must be declared first
-                                    </div>
-                                )}
+                                            checked={resultType === 'close'}
+                                            onChange={() => setResultType('close')}
+                                        />
+                                        <span className="text-gray-300">Close</span>
+                                    </label>
+                                </div>
                             </div>
 
-                            {/* Result Number Input */}
+                            {/* Result Number */}
                             <div className="space-y-3">
                                 <Label className="text-gray-300 font-medium">Result Number</Label>
                                 <Input
-                                    type="number"
-                                    min="100"
-                                    max="999"
-                                    placeholder="100-999"
+                                    type="text"
+                                    placeholder="Enter 3-digit number"
                                     value={resultNumber}
                                     onChange={(e) => setResultNumber(e.target.value)}
-                                    className="text-center text-lg font-bold"
+                                    className="text-center"
                                 />
-                                <div className="text-xs text-gray-400">
-                                    Enter a 3-digit panna number (e.g., 123, 355, 778)
-                                </div>
-                                {resultNumber && resultNumber.length === 3 && (
-                                    <div className="text-xs text-blue-400">
-                                        Main will be: {(() => {
-                                            const digits = resultNumber.split('').map(d => parseInt(d));
-                                            const sum = digits.reduce((a, b) => a + b, 0);
-                                            return sum > 9 ? sum % 10 : sum;
-                                        })()}
-                                    </div>
-                                )}
+                            </div>
+
+                            {/* Target Date */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Target Date</Label>
+                                <Input
+                                    type="date"
+                                    value={targetDate}
+                                    onChange={(e) => setTargetDate(e.target.value)}
+                                    className="text-center"
+                                />
                             </div>
 
                             {/* Submit Button */}
@@ -912,100 +927,13 @@ export default function LoadV2Page() {
                                 <Label className="text-gray-300 font-medium">&nbsp;</Label>
                                 <Button
                                     onClick={handleDeclareResult}
-                                    disabled={
-                                        declareLoading ||
-                                        selectedMarket === 'all' ||
-                                        !resultNumber ||
-                                        (resultType === 'close' && (!marketResults || !marketResults.open))
-                                    }
+                                    disabled={declareLoading || selectedMarket === 'all' || !resultNumber || !targetDate}
                                     className="w-full bg-green-600 hover:bg-green-700"
                                 >
-                                    {declareLoading ? 'Declaring...' : `Declare ${resultType.charAt(0).toUpperCase() + resultType.slice(1)}`}
+                                    {declareLoading ? 'Declaring...' : `Declare ${resultType}`}
                                 </Button>
                             </div>
-
-                            {/* Current Market Status */}
-                            <div className="space-y-3">
-                                <Label className="text-gray-300 font-medium">Market Status</Label>
-                                <div className="text-sm text-gray-400">
-                                    {selectedMarket === 'all' ? (
-                                        <span className="text-orange-400">Select a specific market</span>
-                                    ) : (
-                                        <span className="text-green-400">
-                                            {assignedMarkets.find(m => m._id === selectedMarket)?.marketName}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
                         </div>
-
-                        {/* Current Results Display */}
-                        {selectedMarket && selectedMarket !== 'all' && marketResults && (
-                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {(() => {
-                                    const openStatus = getResultStatus(marketResults, 'open');
-                                    const closeStatus = getResultStatus(marketResults, 'close');
-
-                                    return (
-                                        <>
-                                            <div className="bg-gray-800 rounded-lg p-3">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm text-gray-300">Open Result</span>
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${openStatus.declared
-                                                        ? 'bg-green-900 text-green-400'
-                                                        : 'bg-gray-700 text-gray-400'
-                                                        }`}>
-                                                        {openStatus.declared ? 'DECLARED' : 'NOT DECLARED'}
-                                                    </span>
-                                                </div>
-                                                {openStatus.declared && (
-                                                    <div className="text-center">
-                                                        <div className="text-2xl font-bold text-green-400">{openStatus.number}</div>
-                                                        <div className="text-xs text-gray-400">{formatDate(openStatus.time)}</div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="bg-gray-800 rounded-lg p-3">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm text-gray-300">Close Result</span>
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${closeStatus.declared
-                                                        ? 'bg-green-900 text-green-400'
-                                                        : 'bg-gray-700 text-gray-400'
-                                                        }`}>
-                                                        {closeStatus.declared ? 'DECLARED' : 'NOT DECLARED'}
-                                                    </span>
-                                                </div>
-                                                {closeStatus.declared && (
-                                                    <div className="text-center">
-                                                        <div className="text-2xl font-bold text-blue-400">{closeStatus.number}</div>
-                                                        <div className="text-xs text-gray-400">{formatDate(closeStatus.time)}</div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="bg-gray-800 rounded-lg p-3">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm text-gray-300">Main Result</span>
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${marketResults.main !== null
-                                                        ? 'bg-yellow-900 text-yellow-400'
-                                                        : 'bg-gray-700 text-gray-400'
-                                                        }`}>
-                                                        {marketResults.main !== null ? 'CALCULATED' : 'NOT CALCULATED'}
-                                                    </span>
-                                                </div>
-                                                {marketResults.main !== null && (
-                                                    <div className="text-center">
-                                                        <div className="text-2xl font-bold text-yellow-400">{marketResults.main}</div>
-                                                        <div className="text-xs text-gray-400">Combined Result</div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    );
-                                })()}
-                            </div>
-                        )}
                     </div>
 
                     {/* Clear Filters Button */}
@@ -1013,6 +941,91 @@ export default function LoadV2Page() {
                         <Button variant="outline" onClick={clearFilters} size="sm" className="px-6">
                             Clear All Filters
                         </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    // Render today's results section
+    const renderTodayResults = () => {
+        if (!marketResults || selectedMarket === 'all') return null;
+
+        const today = new Date();
+        const dayName = getDayName(today);
+        const dayResult = marketResults.results[dayName as keyof typeof marketResults.results];
+
+        if (!dayResult || (!dayResult.open && !dayResult.close)) {
+            return null;
+        }
+
+        return (
+            <Card className="mb-6 bg-gray-900 border-gray-700">
+                <CardHeader>
+                    <CardTitle className="text-white">📅 Today's Results</CardTitle>
+                    <div className="text-sm text-gray-400">
+                        {assignedMarkets.find(m => m._id === selectedMarket)?.marketName} - {today.toLocaleDateString('en-IN')}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gray-800 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-300">Open Result</span>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.open ? 'bg-green-900 text-green-400' : 'bg-gray-700 text-gray-400'
+                                    }`}>
+                                    {dayResult.open ? 'DECLARED' : 'NOT DECLARED'}
+                                </span>
+                            </div>
+                            {dayResult.open ? (
+                                <div className="text-center">
+                                    <div className="text-3xl font-bold text-green-400">{dayResult.open}</div>
+                                    <div className="text-xs text-gray-400">
+                                        {dayResult.openDeclationTime ? formatDate(dayResult.openDeclationTime) : ''}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500 text-lg">-</div>
+                            )}
+                        </div>
+
+                        <div className="bg-gray-800 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-300">Close Result</span>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.close ? 'bg-green-900 text-green-400' : 'bg-gray-700 text-gray-400'
+                                    }`}>
+                                    {dayResult.close ? 'DECLARED' : 'NOT DECLARED'}
+                                </span>
+                            </div>
+                            {dayResult.close ? (
+                                <div className="text-center">
+                                    <div className="text-3xl font-bold text-blue-400">{dayResult.close}</div>
+                                    <div className="text-xs text-gray-400">
+                                        {dayResult.closeDeclationTime ? formatDate(dayResult.closeDeclationTime) : ''}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500 text-lg">-</div>
+                            )}
+                        </div>
+
+                        <div className="bg-gray-800 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-gray-300">Main Result</span>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${dayResult.main ? 'bg-yellow-900 text-yellow-400' : 'bg-gray-700 text-gray-400'
+                                    }`}>
+                                    {dayResult.main ? 'CALCULATED' : 'NOT CALCULATED'}
+                                </span>
+                            </div>
+                            {dayResult.main ? (
+                                <div className="text-center">
+                                    <div className="text-3xl font-bold text-yellow-400">{dayResult.main}</div>
+                                    <div className="text-xs text-gray-400">Combined Result</div>
+                                </div>
+                            ) : (
+                                <div className="text-center text-gray-500 text-lg">-</div>
+                            )}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -1409,6 +1422,9 @@ export default function LoadV2Page() {
 
                 {/* Filters */}
                 {renderFilters()}
+
+                {/* Today's Results */}
+                {renderTodayResults()}
 
                 {/* Processed Data Display */}
                 {processedData && renderProcessedData()}

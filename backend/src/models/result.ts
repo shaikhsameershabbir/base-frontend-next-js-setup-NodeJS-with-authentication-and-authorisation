@@ -1,35 +1,37 @@
 import { Schema, model, Document } from 'mongoose';
 
-export interface IResult extends Document {
-    marketId: object;
-    declaredBy: object;
-    totalWin: number;
+// Interface for individual day result
+interface DayResult {
     open: number | null;
     main: number | null;
     close: number | null;
-    openDeclationTime: Date;
-    closeDeclationTime: Date;
-    createdAt: Date;
+    openDeclationTime: Date | null;
+    closeDeclationTime: Date | null;
 }
 
-const resultSchema = new Schema<IResult>({
-    marketId: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: 'Market',
-    },
+// Interface for weekly result
+interface WeeklyResult {
+    monday?: DayResult;
+    tuesday?: DayResult;
+    wednesday?: DayResult;
+    thursday?: DayResult;
+    friday?: DayResult;
+    saturday?: DayResult;
+    sunday?: DayResult;
+}
 
+export interface IResult extends Document {
+    marketId: object;
+    declaredBy: object;
+    weekStartDate: Date;
+    weekEndDate: Date;
+    weekDays: number; // Number of days in the week (5, 6, or 7)
+    results: WeeklyResult;
+    createdAt: Date;
+    updatedAt: Date;
+}
 
-    declaredBy: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    totalWin: {
-        type: Number,
-        default: 0,
-        required: true
-    },
+const dayResultSchema = new Schema<DayResult>({
     open: {
         type: Number,
         default: null,
@@ -54,6 +56,47 @@ const resultSchema = new Schema<IResult>({
         type: Date,
         default: null,
         required: false
+    }
+}, { _id: false });
+
+const weeklyResultSchema = new Schema<WeeklyResult>({
+    monday: dayResultSchema,
+    tuesday: dayResultSchema,
+    wednesday: dayResultSchema,
+    thursday: dayResultSchema,
+    friday: dayResultSchema,
+    saturday: dayResultSchema,
+    sunday: dayResultSchema
+}, { _id: false });
+
+const resultSchema = new Schema<IResult>({
+    marketId: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: 'Market',
+    },
+    declaredBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    weekStartDate: {
+        type: Date,
+        required: true
+    },
+    weekEndDate: {
+        type: Date,
+        required: true
+    },
+    weekDays: {
+        type: Number,
+        required: true,
+        enum: [5, 6, 7],
+        default: 7
+    },
+    results: {
+        type: weeklyResultSchema,
+        default: {}
     }
 }, { timestamps: true });
 
