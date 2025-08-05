@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Time input picker styling */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  background-color: white;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #f3f4f6;
+}
+
+/* For Firefox */
+input[type="time"]::-moz-calendar-picker-indicator {
+  background-color: white;
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+}
+
+input[type="time"]::-moz-calendar-picker-indicator:hover {
+  background-color: #f3f4f6;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 body {

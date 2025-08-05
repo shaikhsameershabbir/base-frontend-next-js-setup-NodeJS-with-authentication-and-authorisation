@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, jodiNumbers, doubleNumbers } from '@/components/winner/constants';
+import { declareResult, getMarketResults, getAllResults, type Result, type DeclareResultRequest } from '@/lib/api-service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import toast from 'react-hot-toast';
 
 // Types for processed data
 interface ProcessedBetData {
@@ -79,10 +81,34 @@ export default function LoadV2Page() {
         fullSangam: true
     });
 
+    // Declare result states
+    const [resultType, setResultType] = useState<'open' | 'close'>('open');
+    const [resultNumber, setResultNumber] = useState<string>('');
+    const [declareLoading, setDeclareLoading] = useState(false);
+    const [marketResults, setMarketResults] = useState<Result | null>(null);
+    const [allResults, setAllResults] = useState<Result[]>([]);
+    const [loadingResults, setLoadingResults] = useState(false);
+
     useEffect(() => {
         fetchLoadData();
         fetchFilters();
+        fetchAllResults();
     }, []);
+
+    useEffect(() => {
+        if (selectedMarket && selectedMarket !== 'all') {
+            fetchMarketResults(selectedMarket);
+        } else {
+            setMarketResults(null);
+        }
+    }, [selectedMarket]);
+
+    // Auto-switch to open if close is selected but open is not declared
+    useEffect(() => {
+        if (resultType === 'close' && marketResults && !marketResults.open) {
+            setResultType('open');
+        }
+    }, [marketResults, resultType]);
 
     // Process bet data when data changes
     useEffect(() => {
@@ -255,6 +281,32 @@ export default function LoadV2Page() {
         }
     };
 
+    const fetchMarketResults = async (marketId: string) => {
+        try {
+            setLoadingResults(true);
+            const response = await getMarketResults(marketId);
+            setMarketResults(response.data);
+        } catch (error: any) {
+            console.error('Failed to fetch market results:', error);
+            toast.error('Failed to fetch market results');
+        } finally {
+            setLoadingResults(false);
+        }
+    };
+
+    const fetchAllResults = async () => {
+        try {
+            setLoadingResults(true);
+            const response = await getAllResults();
+            setAllResults(response.data);
+        } catch (error: any) {
+            console.error('Failed to fetch all results:', error);
+            toast.error('Failed to fetch all results');
+        } finally {
+            setLoadingResults(false);
+        }
+    };
+
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedDate(e.target.value);
     };
@@ -326,6 +378,82 @@ export default function LoadV2Page() {
 
     const handleBetTypeChange = (betType: string) => {
         setSelectedBetType(betType);
+    };
+
+    const handleDeclareResult = async () => {
+        if (!selectedMarket || selectedMarket === 'all' || !resultNumber) {
+            toast.error('Please select a specific market and enter a result number');
+            return;
+        }
+
+        const number = parseInt(resultNumber);
+        if (isNaN(number) || number < 100 || number > 999) {
+            toast.error('Result number must be a 3-digit panna number (100-999)');
+            return;
+        }
+
+        // Check if it's a valid panna number (optional validation)
+        const validPannaNumbers = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
+        if (!validPannaNumbers.includes(number)) {
+            toast.error('Please enter a valid panna number');
+            return;
+        }
+
+        try {
+            setDeclareLoading(true);
+
+            // Additional validation for close result
+            if (resultType === 'close' && marketResults && !marketResults.open) {
+                toast.error('Open result must be declared before declaring close result');
+                return;
+            }
+
+            const requestData: DeclareResultRequest = {
+                marketId: selectedMarket,
+                resultType,
+                resultNumber: number
+            };
+
+            const response = await declareResult(requestData);
+
+            if (response.success) {
+                toast.success(response.message);
+                setResultNumber('');
+                // Refresh results
+                await fetchMarketResults(selectedMarket);
+                await fetchAllResults();
+            } else {
+                toast.error(response.message);
+            }
+        } catch (error: any) {
+            console.error('Failed to declare result:', error);
+            toast.error(error.response?.data?.message || 'Failed to declare result');
+        } finally {
+            setDeclareLoading(false);
+        }
+    };
+
+    const formatDate = (date: Date | null) => {
+        if (!date) return 'Not declared';
+        return new Date(date).toLocaleString('en-IN');
+    };
+
+    const getResultStatus = (result: Result | null, type: 'open' | 'close') => {
+        if (!result) return { declared: false, number: null, time: null };
+
+        if (type === 'open') {
+            return {
+                declared: result.open !== null,
+                number: result.open,
+                time: result.openDeclationTime
+            };
+        } else {
+            return {
+                declared: result.close !== null,
+                number: result.close,
+                time: result.closeDeclationTime
+            };
+        }
     };
 
     const exportToPDF = (sectionKey: string, data: { [key: string]: number }) => {
@@ -542,6 +670,8 @@ export default function LoadV2Page() {
         setCuttingAmount(''); // Clear cutting amount
         setSelectedBetType('all'); // Clear bet type filter
         setCurrentDataUser('all');
+        setResultNumber(''); // Clear result number
+        setResultType('open'); // Reset result type
         fetchLoadData();
     };
 
@@ -714,6 +844,168 @@ export default function LoadV2Page() {
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Declare Result Section */}
+                    <div className="mt-6 border-t border-gray-700 pt-6">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-bold text-white mb-2">🎯 Declare Result</h3>
+                            <p className="text-sm text-gray-400">
+                                Declare open or close results for the selected market using 3-digit panna numbers.
+                                Main result is automatically calculated (sum of digits).
+                            </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Result Type Selection */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Result Type</Label>
+                                <Select value={resultType} onValueChange={(value: 'open' | 'close') => setResultType(value)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="open">Open Result</SelectItem>
+                                        <SelectItem
+                                            value="close"
+                                            disabled={!marketResults || !marketResults.open}
+                                        >
+                                            Close Result {(!marketResults || !marketResults.open) && '(Open Required)'}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                {(!marketResults || !marketResults.open) && resultType === 'close' && (
+                                    <div className="text-xs text-orange-400">
+                                        ⚠️ Open result must be declared first
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Result Number Input */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Result Number</Label>
+                                <Input
+                                    type="number"
+                                    min="100"
+                                    max="999"
+                                    placeholder="100-999"
+                                    value={resultNumber}
+                                    onChange={(e) => setResultNumber(e.target.value)}
+                                    className="text-center text-lg font-bold"
+                                />
+                                <div className="text-xs text-gray-400">
+                                    Enter a 3-digit panna number (e.g., 123, 355, 778)
+                                </div>
+                                {resultNumber && resultNumber.length === 3 && (
+                                    <div className="text-xs text-blue-400">
+                                        Main will be: {(() => {
+                                            const digits = resultNumber.split('').map(d => parseInt(d));
+                                            const sum = digits.reduce((a, b) => a + b, 0);
+                                            return sum > 9 ? sum % 10 : sum;
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">&nbsp;</Label>
+                                <Button
+                                    onClick={handleDeclareResult}
+                                    disabled={
+                                        declareLoading ||
+                                        selectedMarket === 'all' ||
+                                        !resultNumber ||
+                                        (resultType === 'close' && (!marketResults || !marketResults.open))
+                                    }
+                                    className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                    {declareLoading ? 'Declaring...' : `Declare ${resultType.charAt(0).toUpperCase() + resultType.slice(1)}`}
+                                </Button>
+                            </div>
+
+                            {/* Current Market Status */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Market Status</Label>
+                                <div className="text-sm text-gray-400">
+                                    {selectedMarket === 'all' ? (
+                                        <span className="text-orange-400">Select a specific market</span>
+                                    ) : (
+                                        <span className="text-green-400">
+                                            {assignedMarkets.find(m => m._id === selectedMarket)?.marketName}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Current Results Display */}
+                        {selectedMarket && selectedMarket !== 'all' && marketResults && (
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {(() => {
+                                    const openStatus = getResultStatus(marketResults, 'open');
+                                    const closeStatus = getResultStatus(marketResults, 'close');
+
+                                    return (
+                                        <>
+                                            <div className="bg-gray-800 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm text-gray-300">Open Result</span>
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${openStatus.declared
+                                                        ? 'bg-green-900 text-green-400'
+                                                        : 'bg-gray-700 text-gray-400'
+                                                        }`}>
+                                                        {openStatus.declared ? 'DECLARED' : 'NOT DECLARED'}
+                                                    </span>
+                                                </div>
+                                                {openStatus.declared && (
+                                                    <div className="text-center">
+                                                        <div className="text-2xl font-bold text-green-400">{openStatus.number}</div>
+                                                        <div className="text-xs text-gray-400">{formatDate(openStatus.time)}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-gray-800 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm text-gray-300">Close Result</span>
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${closeStatus.declared
+                                                        ? 'bg-green-900 text-green-400'
+                                                        : 'bg-gray-700 text-gray-400'
+                                                        }`}>
+                                                        {closeStatus.declared ? 'DECLARED' : 'NOT DECLARED'}
+                                                    </span>
+                                                </div>
+                                                {closeStatus.declared && (
+                                                    <div className="text-center">
+                                                        <div className="text-2xl font-bold text-blue-400">{closeStatus.number}</div>
+                                                        <div className="text-xs text-gray-400">{formatDate(closeStatus.time)}</div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-gray-800 rounded-lg p-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm text-gray-300">Main Result</span>
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${marketResults.main !== null
+                                                        ? 'bg-yellow-900 text-yellow-400'
+                                                        : 'bg-gray-700 text-gray-400'
+                                                        }`}>
+                                                        {marketResults.main !== null ? 'CALCULATED' : 'NOT CALCULATED'}
+                                                    </span>
+                                                </div>
+                                                {marketResults.main !== null && (
+                                                    <div className="text-center">
+                                                        <div className="text-2xl font-bold text-yellow-400">{marketResults.main}</div>
+                                                        <div className="text-xs text-gray-400">Combined Result</div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        )}
                     </div>
 
                     {/* Clear Filters Button */}
@@ -1126,6 +1418,82 @@ export default function LoadV2Page() {
 
                 {/* Detailed Bet Data Display */}
                 {processedData && renderDetailedBetData()}
+
+                {/* Results History */}
+                <Card className="bg-gray-900 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-white">All Results History</CardTitle>
+                        <div className="text-sm text-gray-400">
+                            Recent result declarations across all markets
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingResults ? (
+                            <div className="flex items-center justify-center h-32">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                            </div>
+                        ) : allResults.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse border border-gray-600">
+                                    <thead>
+                                        <tr className="bg-gray-800">
+                                            <th className="border border-gray-600 p-3 text-left text-white">Market</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Open</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Close</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Main</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Total Win</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Declared By</th>
+                                            <th className="border border-gray-600 p-3 text-center text-white">Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allResults.map((result) => (
+                                            <tr key={result._id} className="border border-gray-600 hover:bg-gray-800">
+                                                <td className="border border-gray-600 p-3 text-white">
+                                                    {result.marketId.marketName}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center">
+                                                    {result.open !== null ? (
+                                                        <span className="text-green-400 font-bold">{result.open}</span>
+                                                    ) : (
+                                                        <span className="text-gray-500">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center">
+                                                    {result.close !== null ? (
+                                                        <span className="text-blue-400 font-bold">{result.close}</span>
+                                                    ) : (
+                                                        <span className="text-gray-500">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center">
+                                                    {result.main !== null ? (
+                                                        <span className="text-yellow-400 font-bold">{result.main}</span>
+                                                    ) : (
+                                                        <span className="text-gray-500">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center text-yellow-400 font-bold">
+                                                    {result.totalWin}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center text-gray-300">
+                                                    {result.declaredBy.username}
+                                                </td>
+                                                <td className="border border-gray-600 p-3 text-center text-gray-300">
+                                                    {new Date(result.createdAt).toLocaleDateString('en-IN')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center text-gray-500 py-8">
+                                No results declared yet
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {/* JSON Data Display */}
                 {data && (

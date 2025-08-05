@@ -6,6 +6,7 @@ export interface IMarket extends Document {
     closeTime: string;
     isActive: boolean;
     isGolden: boolean;
+    weekDays: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -32,6 +33,19 @@ const marketSchema = new Schema<IMarket>({
     isGolden: {
         type: Boolean,
         default: false
+    },
+    weekDays: {
+        type: Number,
+        required: true,
+        default: 7,
+        min: 1,
+        max: 7,
+        validate: {
+            validator: function (weekDays: number) {
+                return weekDays >= 1 && weekDays <= 7;
+            },
+            message: 'WeekDays must be a number between 1 and 7'
+        }
     },
 }, { timestamps: true });
 

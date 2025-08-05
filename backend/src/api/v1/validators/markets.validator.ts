@@ -23,6 +23,10 @@ export class MarketsValidator {
             .withMessage('Close Time is required')
             .isLength({ min: 2, max: 100 })
             .withMessage('Market name must be between 2 and 100 characters'),
+        body('weekDays')
+            .optional()
+            .isInt({ min: 1, max: 7 })
+            .withMessage('WeekDays must be a number between 1 and 7'),
 
         this.validationMiddleware.validateRequest
     ];
@@ -42,6 +46,11 @@ export class MarketsValidator {
             .optional()
             .isIn(['open', 'closed', 'suspended'])
             .withMessage('Invalid market status'),
+
+        body('weekDays')
+            .optional()
+            .isInt({ min: 1, max: 7 })
+            .withMessage('WeekDays must be a number between 1 and 7'),
 
         this.validationMiddleware.validateRequest
     ];

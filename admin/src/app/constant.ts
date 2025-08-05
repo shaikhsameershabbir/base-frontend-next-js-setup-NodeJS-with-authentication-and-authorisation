@@ -52,11 +52,16 @@ export const superNavbar: NavbarItem[] = [
                 icon: "TrendingUp",
             },
             {
+                title: "Load V2",
+                href: "/loadv2",
+                icon: "TrendingUp",
+            },
+            {
                 title: "Winner",
                 href: "/winner",
                 icon: "Award",
             },
-          
+
         ],
     },
     {
@@ -168,6 +173,7 @@ export const adminNavbar: NavbarItem[] = [
         href: "/markets",
         icon: "Home",
     },
+
     {
         title: "Bid Management",
         icon: "TrendingUp",
@@ -459,8 +465,8 @@ export const singlePannaNumbers = [
     367, 458, 459, 469, 479,
     457, 467, 468, 478, 569,
     790, 890, 567, 568, 578
-  ];
-  export const doublePannaNumbers = [
+];
+export const doublePannaNumbers = [
     100, 110, 166, 112, 113,
     119, 200, 229, 220, 122,
     155, 228, 300, 266, 177,
@@ -479,6 +485,5 @@ export const singlePannaNumbers = [
     600, 557, 558, 577, 550,
     880, 566, 800, 667, 668,
     899, 700, 990, 900, 677
-  ];
-  export const triplePannaNumbers = [111 ,222,333,444,555,666,777,888,999]
-  
+];
+export const triplePannaNumbers = [111, 222, 333, 444, 555, 666, 777, 888, 999]

@@ -72,7 +72,7 @@ export class MarketsController {
 
     async createMarket(req: Request, res: Response): Promise<void> {
         try {
-            const { marketName, openTime, closeTime } = req.body;
+            const { marketName, openTime, closeTime, weekDays } = req.body;
 
             // Check if market already exists
             const existingMarket = await Market.findOne({ marketName });
@@ -84,10 +84,20 @@ export class MarketsController {
                 return;
             }
 
+            // Validate weekDays if provided
+            if (weekDays && (typeof weekDays !== 'number' || weekDays < 1 || weekDays > 7)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'WeekDays must be a number between 1 and 7'
+                });
+                return;
+            }
+
             const newMarket = new Market({
                 marketName,
                 openTime,
                 closeTime,
+                weekDays: weekDays || 7, // Default to 7 days if not provided
                 isActive: true
             });
 
@@ -464,8 +474,6 @@ export class MarketsController {
             const currentRank = currentRankDoc ? currentRankDoc.rank : null;
             const newRank = rank;
 
-
-
             // If rank is not changing, just update and return
             if (currentRank === newRank) {
                 const updatedRank = await MarketRank.findOneAndUpdate(
@@ -490,13 +498,6 @@ export class MarketsController {
                 });
                 return;
             }
-
-            // Get all existing ranks for this user, sorted by current rank
-            const allRanks = await MarketRank.find({
-                userId: userId
-            }).sort({ rank: 1 });
-
-
 
             try {
                 // Step 1: Temporarily set the target market to a very high rank to avoid conflicts
@@ -560,8 +561,6 @@ export class MarketsController {
                         marketId: marketId
                     }
                 );
-
-
 
                 // Fetch the updated rank
                 const updatedRank = await MarketRank.findOne({

@@ -8,6 +8,7 @@ import playerRoutes from './player.routes';
 import betRoutes from './bet.routes';
 import adminBetRoutes from './adminBet.routes';
 import loadRoutes from './load.routes';
+import resultRoutes from './resultRoutes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use(`/player`, playerRoutes);
 router.use(`/bets`, betRoutes);
 router.use(`/admin/bets`, adminBetRoutes);
 router.use(`/load`, loadRoutes);
+router.use(`/result`, resultRoutes);
 
 export default router; 

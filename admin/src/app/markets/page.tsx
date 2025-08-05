@@ -60,7 +60,7 @@ export default function MarketPage() {
             if (editMarket) {
                 await marketsAPI.updateMarket(editMarket._id, data);
             } else {
-                await marketsAPI.createMarket(data as { marketName: string; openTime: string; closeTime: string });
+                await marketsAPI.createMarket(data as { marketName: string; openTime: string; closeTime: string; weekDays: number });
             }
             setModalOpen(false);
             setEditMarket(null);
@@ -128,6 +128,11 @@ export default function MarketPage() {
         } catch {
             return 'Invalid time';
         }
+    };
+
+    const formatWeekDays = (weekDays: number) => {
+        const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return dayNames.slice(0, weekDays).join(', ');
     };
 
     // Client-side filtering for search and status
@@ -254,6 +259,7 @@ export default function MarketPage() {
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Market Name</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Open Time</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Close Time</th>
+                                            <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden lg:table-cell">Week Days</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden md:table-cell">Created By</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
@@ -276,6 +282,11 @@ export default function MarketPage() {
                                                     <div className="flex items-center gap-1 sm:gap-2 text-secondary text-sm">
                                                         <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                                                         {formatTime(market.closeTime)}
+                                                    </div>
+                                                </td>
+                                                <td className="py-3 sm:py-4 px-2 sm:px-4 hidden lg:table-cell">
+                                                    <div className="text-secondary text-sm">
+                                                        {formatWeekDays(market.weekDays || 7)}
                                                     </div>
                                                 </td>
                                                 <td className="py-3 sm:py-4 px-2 sm:px-4 hidden md:table-cell">

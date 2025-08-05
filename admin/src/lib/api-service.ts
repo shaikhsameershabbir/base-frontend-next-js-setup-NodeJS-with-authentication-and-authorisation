@@ -25,6 +25,7 @@ export interface Market {
     closeTime: string;
     isActive: boolean;
     isGolden: boolean;
+    weekDays: number;
     createdBy?: string;
     createdAt: string;
     updatedAt?: string;
@@ -319,7 +320,7 @@ export const marketsAPI = {
         return response.data;
     },
 
-    createMarket: async (data: { marketName: string; openTime: string; closeTime: string }): Promise<ApiResponse<{ market: Market }>> => {
+    createMarket: async (data: { marketName: string; openTime: string; closeTime: string; weekDays: number }): Promise<ApiResponse<{ market: Market }>> => {
         const response = await apiClient.post('/markets', data);
         return response.data;
     },
@@ -452,4 +453,65 @@ export const apiUtils = {
     handleError: (error: any, defaultMessage = 'An error occurred'): string => {
         return apiUtils.formatError(error) || defaultMessage;
     }
+};
+
+// ============================================================================
+// RESULT INTERFACES
+// ============================================================================
+
+export interface Result {
+    _id: string;
+    marketId: {
+        _id: string;
+        marketName: string;
+    };
+    declaredBy: {
+        _id: string;
+        username: string;
+    };
+    totalWin: number;
+    open: number | null;
+    main: number | null;
+    close: number | null;
+    openDeclationTime: Date | null;
+    closeDeclationTime: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface DeclareResultRequest {
+    marketId: string;
+    resultType: 'open' | 'close';
+    resultNumber: number;
+}
+
+export interface DeclareResultResponse {
+    success: boolean;
+    message: string;
+    data: {
+        marketId: string;
+        resultType: 'open' | 'close';
+        resultNumber: number;
+        declaredBy: string;
+        declarationTime: Date;
+    };
+}
+
+// ============================================================================
+// RESULT API FUNCTIONS
+// ============================================================================
+
+export const declareResult = async (data: DeclareResultRequest): Promise<DeclareResultResponse> => {
+    const response = await apiClient.post('/result/declare', data);
+    return response.data;
+};
+
+export const getMarketResults = async (marketId: string): Promise<{ success: boolean; message: string; data: Result | null }> => {
+    const response = await apiClient.get(`/result/market/${marketId}`);
+    return response.data;
+};
+
+export const getAllResults = async (): Promise<{ success: boolean; message: string; data: Result[] }> => {
+    const response = await apiClient.get('/result/all');
+    return response.data;
 }; 

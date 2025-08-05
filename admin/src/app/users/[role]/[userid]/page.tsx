@@ -276,7 +276,7 @@ export default function UsersPage() {
                     <p className="text-lg font-medium text-secondary">
                         Manage {getRoleDisplayName(role).toLowerCase()} accounts and permissions
                         {userId !== "all" && (
-                            <span className="text-muted"> under selected user</span>
+                            <span className="text-white"> under selected user</span>
                         )}
                     </p>
                 </div>

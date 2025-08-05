@@ -8,6 +8,7 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
     const [marketName, setMarketName] = useState('');
     const [openTime, setOpenTime] = useState('');
     const [closeTime, setCloseTime] = useState('');
+    const [weekDays, setWeekDays] = useState<number>(7);
 
     useEffect(() => {
         if (market) {
@@ -17,16 +18,23 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
             const closeDate = new Date(market.closeTime);
             setOpenTime(openDate.toTimeString().slice(0, 5));
             setCloseTime(closeDate.toTimeString().slice(0, 5));
+            setWeekDays(market.weekDays || 7);
         } else {
             setMarketName('');
             setOpenTime('');
             setCloseTime('');
+            setWeekDays(7);
         }
     }, [market]);
 
     const handleSubmit = () => {
         if (!marketName || !openTime || !closeTime) {
             alert('Please fill in all fields');
+            return;
+        }
+
+        if (weekDays < 1 || weekDays > 7) {
+            alert('WeekDays must be between 1 and 7');
             return;
         }
 
@@ -44,7 +52,8 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
         onSubmit({
             marketName,
             openTime: openDateTime.toISOString(),
-            closeTime: closeDateTime.toISOString()
+            closeTime: closeDateTime.toISOString(),
+            weekDays
         });
     };
 
@@ -93,12 +102,30 @@ export function MarketModal({ open, onClose, onSubmit, loading, market }: { open
                             className="w-full"
                         />
                     </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="weekDays" className="text-sm font-medium text-primary">
+                            Week Days (1-7)
+                        </Label>
+                        <Input
+                            id="weekDays"
+                            type="number"
+                            min="1"
+                            max="7"
+                            value={weekDays}
+                            onChange={e => setWeekDays(Number(e.target.value))}
+                            className="w-full"
+                            placeholder="Enter number of days (1-7)"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            1 = Monday, 2 = Tuesday, ..., 7 = Sunday
+                        </p>
+                    </div>
                 </div>
                 <div className="flex gap-3 justify-end pt-4">
                     <Button onClick={onClose} variant="outline" disabled={loading}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSubmit} disabled={loading || !marketName || !openTime || !closeTime}>
+                    <Button onClick={handleSubmit} disabled={loading || !marketName || !openTime || !closeTime || weekDays < 1 || weekDays > 7}>
                         {loading ? 'Saving...' : (market ? 'Update' : 'Create')}
                     </Button>
                 </div>
