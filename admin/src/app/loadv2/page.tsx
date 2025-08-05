@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, doubleNumbers } from '@/components/winner/constants';
+import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, doubleNumbers, WINNING_RATES } from '@/components/winner/constants';
 import { declareResult, getMarketResults, getAllResults, type Result, type DeclareResultRequest } from '@/lib/api-service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -93,6 +93,16 @@ export default function LoadV2Page() {
     const [marketResults, setMarketResults] = useState<Result | null>(null);
     const [allResults, setAllResults] = useState<Result[]>([]);
     const [loadingResults, setLoadingResults] = useState(false);
+
+    // Details modal state
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [selectedBetDetails, setSelectedBetDetails] = useState<{
+        number: string;
+        betAmount: number;
+        gameType: string;
+        winAmount: number;
+        riskStatus: { status: string; color: string; icon: string };
+    } | null>(null);
 
     useEffect(() => {
         fetchLoadData();
@@ -338,6 +348,7 @@ export default function LoadV2Page() {
     };
 
     const handleTodayClick = () => {
+
         setSelectedDate('');
         const userId = selectedUser !== 'all' ? selectedUser : undefined;
         setCurrentDataUser(userId || 'all');
@@ -691,6 +702,48 @@ export default function LoadV2Page() {
         doc.save(fileName);
     };
 
+    const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
+
+
+        switch (betType) {
+            case 'singleNumbers':
+                return betAmount * WINNING_RATES.single;
+            case 'doubleNumbers':
+                return betAmount * WINNING_RATES.double;
+            case 'singlePanna':
+                // Main panna win: betAmount * 150
+                const pannaWin = betAmount * WINNING_RATES.singlePanna;
+                // Digit sum win: sum of digits * 9 (if that single number has bets)
+                const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
+                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+                return pannaWin + digitSumWin;
+            case 'doublePanna':
+                // Main panna win: betAmount * 300
+                const doublePannaWin = betAmount * WINNING_RATES.doublePanna;
+                // Digit sum win: sum of digits * 9 (if that single number has bets)
+                const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
+                const digitSumWin2 = singleNumberAmount2 * WINNING_RATES.single;
+                return doublePannaWin + digitSumWin2;
+            case 'triplePanna':
+                // Main panna win: betAmount * 1000
+                const triplePannaWin = betAmount * WINNING_RATES.triplePanna;
+                // Digit sum win: sum of digits * 9 (if that single number has bets)
+                const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
+                const digitSumWin3 = singleNumberAmount3 * WINNING_RATES.single;
+                return triplePannaWin + digitSumWin3;
+            case 'halfSangamOpen':
+            case 'halfSangamClose':
+                return betAmount * WINNING_RATES.halfSangam;
+            case 'fullSangam':
+                return betAmount * WINNING_RATES.fullSangam;
+            default:
+                return betAmount * 9; // default to single rate
+        }
+    };
+
     const clearFilters = () => {
         setSelectedUser('all');
         setSelectedMarket('all');
@@ -958,11 +1011,45 @@ export default function LoadV2Page() {
                                     Enter a valid 3-digit panna number from the game list
                                 </div>
                                 {resultNumber && resultNumber.length === 3 && (
-                                    <div className="text-xs text-blue-400">
-                                        Main will be: {(() => {
-                                            const digits = resultNumber.split('').map(d => parseInt(d));
-                                            const sum = digits.reduce((a, b) => a + b, 0);
-                                            return sum > 9 ? sum % 10 : sum;
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-blue-400">
+                                            Main will be: {(() => {
+                                                const digits = resultNumber.split('').map(d => parseInt(d));
+                                                const sum = digits.reduce((a, b) => a + b, 0);
+                                                return sum > 9 ? sum % 10 : sum;
+                                            })()}
+                                        </div>
+                                        {/* Winning Amount Calculation */}
+                                        {(() => {
+                                            const num = parseInt(resultNumber);
+                                            let winningAmount = 0;
+                                            let gameType = '';
+
+                                            if (singlePannaNumbers.includes(num)) {
+                                                winningAmount = 150; // 150x for single panna
+                                                gameType = 'Single Panna';
+                                            } else if (doublePannaNumbers.includes(num)) {
+                                                winningAmount = 300; // 300x for double panna
+                                                gameType = 'Double Panna';
+                                            } else if (triplePannaNumbers.includes(num.toString().padStart(3, '0'))) {
+                                                winningAmount = 1000; // 1000x for triple panna
+                                                gameType = 'Triple Panna';
+                                            }
+
+                                            if (winningAmount > 0) {
+                                                return (
+                                                    <div className="text-xs text-green-400">
+                                                        <div>Game Type: <span className="font-bold">{gameType}</span></div>
+                                                        <div>Winning Rate: <span className="font-bold">{winningAmount}x</span></div>
+                                                        <div className="space-y-1 mt-1">
+                                                            <div>₹1 bet → <span className="font-bold text-yellow-400">₹{winningAmount}</span></div>
+                                                            <div>₹10 bet → <span className="font-bold text-yellow-400">₹{winningAmount * 10}</span></div>
+                                                            <div>₹100 bet → <span className="font-bold text-yellow-400">₹{winningAmount * 100}</span></div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
                                         })()}
                                     </div>
                                 )}
@@ -1220,54 +1307,7 @@ export default function LoadV2Page() {
             }));
         };
 
-        const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
-            const rates = {
-                single: 9,
-                double: 90,
-                singlePanna: 150,
-                doublePanna: 300,
-                triplePanna: 1000,
-                halfSangam: 1000,
-                fullSangam: 10000
-            };
 
-            let baseWin = 0;
-
-            switch (betType) {
-                case 'singleNumbers':
-                    return betAmount * rates.single;
-                case 'doubleNumbers':
-                    return betAmount * rates.double;
-                case 'singlePanna':
-                    baseWin = betAmount * rates.singlePanna;
-                    // Add single number win based on digit sum
-                    const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                    const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
-                    const singleWin = singleNumberAmount * rates.single;
-                    return baseWin + singleWin;
-                case 'doublePanna':
-                    baseWin = betAmount * rates.doublePanna;
-                    // Add single number win based on digit sum
-                    const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                    const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
-                    const singleWin2 = singleNumberAmount2 * rates.single;
-                    return baseWin + singleWin2;
-                case 'triplePanna':
-                    baseWin = betAmount * rates.triplePanna;
-                    // Add single number win based on digit sum
-                    const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                    const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
-                    const singleWin3 = singleNumberAmount3 * rates.single;
-                    return baseWin + singleWin3;
-                case 'halfSangamOpen':
-                case 'halfSangamClose':
-                    return betAmount * rates.halfSangam;
-                case 'fullSangam':
-                    return betAmount * rates.fullSangam;
-                default:
-                    return betAmount * 9; // default to single rate
-            }
-        };
 
         const getColumnForNumber = (betType: string, number: string): number => {
             switch (betType) {
@@ -1413,6 +1453,19 @@ export default function LoadV2Page() {
 
                                                             {/* Click to see details */}
                                                             <button
+                                                                onClick={() => {
+                                                                    const winAmount = calculateWinAmount(sectionKey, entry[1], entry[0]);
+                                                                    const riskStatus = getRiskStatus(entry[1], winAmount);
+
+                                                                    setSelectedBetDetails({
+                                                                        number: entry[0],
+                                                                        betAmount: entry[1],
+                                                                        gameType: sectionKey,
+                                                                        winAmount,
+                                                                        riskStatus
+                                                                    });
+                                                                    setShowDetailsModal(true);
+                                                                }}
                                                                 className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer"
                                                             >
                                                                 📊 View Details
@@ -1509,6 +1562,167 @@ export default function LoadV2Page() {
 
                 {/* Detailed Bet Data Display */}
                 {processedData && renderDetailedBetData()}
+
+                {/* Bet Details Modal */}
+                {showDetailsModal && selectedBetDetails && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                            <div className="p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-white">Bet Details Analysis</h2>
+                                    <button
+                                        onClick={() => setShowDetailsModal(false)}
+                                        className="text-gray-400 hover:text-white"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Basic Info */}
+                                    <div className="grid ">
+                                        <div className="bg-gray-800 p-4 rounded-lg">
+                                            <h3 className="text-lg font-bold text-white mb-2">Bet Information</h3>
+                                            <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-400">Number:</span>
+                                                    <span className="text-white font-bold">{selectedBetDetails.number}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-400">Bet Amount:</span>
+                                                    <span className="text-green-400 font-bold">₹{selectedBetDetails.betAmount.toLocaleString()}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-400">Game Type:</span>
+                                                    <span className="text-blue-400 font-bold">{selectedBetDetails.gameType}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+
+                                    </div>
+
+
+                                    {/* Winning Rate Breakdown */}
+                                    <div className="bg-gray-800 p-4 rounded-lg">
+                                        <h3 className="text-lg font-bold text-white mb-2">Winning Rate Breakdown</h3>
+                                        <div className="space-y-3 text-sm">
+                                            {(() => {
+                                                const rates = {
+                                                    singleNumbers: 9,
+                                                    doubleNumbers: 90,
+                                                    singlePanna: 150,
+                                                    doublePanna: 300,
+                                                    triplePanna: 1000,
+                                                    halfSangamOpen: 1000,
+                                                    halfSangamClose: 1000,
+                                                    fullSangam: 10000
+                                                };
+                                                const rate = rates[selectedBetDetails.gameType as keyof typeof rates] || 9;
+
+                                                // Calculate detailed breakdown for panna games
+                                                if (['singlePanna', 'doublePanna', 'triplePanna'].includes(selectedBetDetails.gameType)) {
+                                                    const digitSum = selectedBetDetails.number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                    const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
+                                                    const pannaWin = selectedBetDetails.betAmount * rate;
+                                                    const digitSumWin = singleNumberAmount * 9;
+
+                                                    return (
+                                                        <div className="space-y-3">
+                                                            <div className="bg-gray-700 p-3 rounded">
+                                                                <div className="font-bold text-blue-400 mb-2">Main Panna Win:</div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Bet Amount:</span>
+                                                                    <span className="text-white">₹{selectedBetDetails.betAmount.toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Rate:</span>
+                                                                    <span className="text-yellow-400">{rate}x</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Panna Win:</span>
+                                                                    <span className="text-green-400 font-bold">₹{pannaWin.toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="bg-gray-700 p-3 rounded">
+                                                                <div className="font-bold text-purple-400 mb-2">Digit Sum Win:</div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Digit Sum ({selectedBetDetails.number}):</span>
+                                                                    <span className="text-white">{digitSum}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Single Number Bet:</span>
+                                                                    <span className="text-white">₹{singleNumberAmount.toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Single Rate:</span>
+                                                                    <span className="text-yellow-400">9x</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Calculation:</span>
+                                                                    <span className="text-white">₹{singleNumberAmount.toLocaleString()} × 9</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-400">Digit Sum Win:</span>
+                                                                    <span className="text-green-400 font-bold">₹{digitSumWin.toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="bg-green-900 p-3 rounded">
+                                                                <div className="font-bold text-white mb-2">Total Win:</div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-300">Panna Win:</span>
+                                                                    <span className="text-green-400">₹{pannaWin.toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="text-gray-300">+ Digit Sum Win:</span>
+                                                                    <span className="text-green-400">₹{digitSumWin.toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between border-t border-green-600 pt-2 mt-2">
+                                                                    <span className="text-white font-bold">Total:</span>
+                                                                    <span className="text-yellow-400 font-bold text-lg">₹{selectedBetDetails.winAmount.toLocaleString()}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    // Simple calculation for non-panna games
+                                                    return (
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Winning Rate:</span>
+                                                                <span className="text-yellow-400 font-bold">{rate}x</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="text-gray-400">Calculation:</span>
+                                                                <span className="text-white">₹{selectedBetDetails.betAmount} × {rate} = ₹{selectedBetDetails.winAmount}</span>
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 mt-2">
+                                                                *Winning rates may vary based on game type and market rules
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                            })()}
+                                        </div>
+                                    </div>
+
+
+                                </div>
+
+                                <div className="mt-6 flex justify-end">
+                                    <button
+                                        onClick={() => setShowDetailsModal(false)}
+                                        className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Results History */}
                 <Card className="bg-gray-900 border-gray-700">
