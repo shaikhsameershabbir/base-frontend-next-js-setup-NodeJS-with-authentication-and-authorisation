@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Lock, User, Shield, Sparkles } from "lucide-react"
+import { Eye, EyeOff, Lock, User, Shield, Sparkles, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,8 @@ export function LoginForm() {
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
+    const [loginError, setLoginError] = useState<string>("")
+    const [isLoading, setIsLoading] = useState(false)
     const { login } = useAuth()
     const router = useRouter()
 
@@ -40,6 +42,9 @@ export function LoginForm() {
         e.preventDefault()
         if (!validateForm()) return
 
+        setIsLoading(true)
+        setLoginError("")
+
         try {
             const success = await login(username, password)
             if (success) {
@@ -48,7 +53,10 @@ export function LoginForm() {
             }
         } catch (err: any) {
             console.error("Login error:", err)
-            // Error handling is now managed by the useAuth hook
+            // Display error message to user
+            setLoginError(err.message || "Login failed. Please check your credentials and try again.")
+        } finally {
+            setIsLoading(false)
         }
     }
 
@@ -76,6 +84,14 @@ export function LoginForm() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Login Error Display */}
+                        {loginError && (
+                            <div className="flex items-center space-x-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg animate-fade-in">
+                                <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+                                <p className="text-sm text-destructive font-medium">{loginError}</p>
+                            </div>
+                        )}
+
                         <div className="space-y-3">
                             <Label htmlFor="username" className="text-sm font-medium text-primary">Username</Label>
                             <div className="relative group">
@@ -85,8 +101,12 @@ export function LoginForm() {
                                     type="text"
                                     placeholder="Enter your username"
                                     value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    onChange={(e) => {
+                                        setUsername(e.target.value)
+                                        setLoginError("") // Clear error when user starts typing
+                                    }}
                                     className={`pl-12 pr-4 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.username ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
+                                    disabled={isLoading}
                                 />
                             </div>
                             {errors.username && (
@@ -103,8 +123,12 @@ export function LoginForm() {
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Enter your password"
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value)
+                                        setLoginError("") // Clear error when user starts typing
+                                    }}
                                     className={`pl-12 pr-12 h-12 text-base border-2 transition-all duration-200 focus:border-primary focus:ring-2 focus:ring-primary/20 ${errors.password ? "border-destructive focus:border-destructive" : "border-border hover:border-primary/50"}`}
+                                    disabled={isLoading}
                                 />
                                 <Button
                                     type="button"
@@ -112,6 +136,7 @@ export function LoginForm() {
                                     size="icon"
                                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    disabled={isLoading}
                                 >
                                     {showPassword ? (
                                         <EyeOff className="h-4 w-4" />
@@ -131,21 +156,23 @@ export function LoginForm() {
                                     type="checkbox"
                                     id="remember"
                                     className="rounded border-border focus:ring-primary focus:ring-2 dark:bg-background dark:border-border"
+                                    disabled={isLoading}
                                 />
                                 <Label htmlFor="remember" className="text-sm font-medium text-primary">
                                     Remember me
                                 </Label>
                             </div>
-                            <Button variant="link" className="text-sm px-0 font-medium hover:text-primary">
+                            <Button variant="link" className="text-sm px-0 font-medium hover:text-primary" disabled={isLoading}>
                                 Forgot password?
                             </Button>
                         </div>
 
                         <Button
                             type="submit"
-                            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+                            className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-tertiary hover:from-primary/90 hover:to-tertiary/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                            disabled={isLoading}
                         >
-                            Sign in
+                            {isLoading ? "Signing in..." : "Sign in"}
                         </Button>
                     </form>
 

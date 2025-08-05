@@ -4,14 +4,14 @@ import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
 import Header from "@/app/components/Header";
 import Message from "@/app/components/Message";
-import { useMarkets } from "@/contexts/MarketsContext";
+import { useGameData } from "@/contexts/GameDataContext";
+import { GameDataProvider } from "@/contexts/GameDataContext";
 import React from "react";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-
-export default function Home() {
-    const { state, getMarketStatus, getMarketStatusColor, fetchMarkets } = useMarkets();
+function HomeContent() {
+    const { state, getMarketStatus, getMarketStatusColor, fetchMarkets } = useGameData();
     return (
         <main className="min-h-screen bg-gray-100">
             <div className="pt-16">
@@ -25,7 +25,6 @@ export default function Home() {
                         </Button>
                     </div>
                 </div>
-
 
                 {state.loading ? (
                     <div className="flex justify-center items-center py-8">
@@ -50,14 +49,14 @@ export default function Home() {
                                 return a.rank - b.rank;
                             })
                             .map((market, index: number) => {
-                                const status = getMarketStatus(market);
+                                const status = getMarketStatus(market._id);
                                 const statusColor = getMarketStatusColor(market);
 
                                 return (
                                     <MarketCard
                                         key={market._id}
                                         market={market}
-                                        status={status}
+                                        status={status?.status || 'Unknown'}
                                         statusColor={statusColor}
                                     />
                                 );
@@ -67,5 +66,13 @@ export default function Home() {
             </div>
             <BottomNav />
         </main>
+    );
+}
+
+export default function Home() {
+    return (
+        <GameDataProvider>
+            <HomeContent />
+        </GameDataProvider>
     );
 }

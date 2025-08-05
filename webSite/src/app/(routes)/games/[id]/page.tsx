@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/app/components/BottomNav";
 import Header from "@/app/components/Header";
+import { GameDataProvider } from "@/contexts/GameDataContext";
 
 const gameTypes = [
   { id: "single", name: "Single", icon: "/Game/single_panna.png" },
@@ -19,11 +20,9 @@ const gameTypes = [
   { id: "cycle-panna", name: "Cycle Panna", icon: "/Game/cycly_panna.png" },
   { id: "family-panel", name: "Family", icon: "/Game/family_panel.png" },
   { id: "sangam", name: "Sangam Half - Open / Close, Full", icon: "/Game/half_sangam.png" },
-
-
 ];
 
-const GamePage = () => {
+const GamePageContent = () => {
   const params = useParams();
   const router = useRouter();
   const gameName = (params.id as string)
@@ -37,10 +36,7 @@ const GamePage = () => {
 
   return (
     <>
-
-      <div className="flex flex-col h-screen pt-16 bg-gray-100"
-
-      >
+      <div className="flex flex-col h-screen pt-16 bg-gray-100">
         <div className="flex-1 overflow-y-auto p-4">
           {/* Game Types Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
@@ -71,6 +67,14 @@ const GamePage = () => {
         </div>
       </div>
     </>
+  );
+};
+
+const GamePage = () => {
+  return (
+    <GameDataProvider>
+      <GamePageContent />
+    </GameDataProvider>
   );
 };
 

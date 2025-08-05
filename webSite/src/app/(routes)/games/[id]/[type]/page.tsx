@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import BottomNav from '@/app/components/BottomNav';
 import { useGameData } from '@/contexts/GameDataContext';
+import { GameDataProvider } from '@/contexts/GameDataContext';
 // Import game type components
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';
@@ -20,7 +21,7 @@ import CommonSpDp from './components/CommonSpDp'
 import HalfSangamA from './components/HalfSangamA';
 import HalfSangamB from './components/HalfSangamB';
 
-const GameTypePage = () => {
+const GameTypePageContent = () => {
   const params = useParams();
   const gameId = params.id as string;
   const gameType = params.type as string;
@@ -64,7 +65,6 @@ const GameTypePage = () => {
       case 'sangam':
         return <SangamGame marketId={gameId} marketName={marketName} />;
 
-
       default:
         return <div>Game type not found</div>;
     }
@@ -79,6 +79,14 @@ const GameTypePage = () => {
       </div>
       <BottomNav />
     </main>
+  );
+};
+
+const GameTypePage = () => {
+  return (
+    <GameDataProvider>
+      <GameTypePageContent />
+    </GameDataProvider>
   );
 };
 

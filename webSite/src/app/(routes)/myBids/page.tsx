@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { format } from "date-fns";
 import { Eye, Calendar, Filter, RefreshCw } from "lucide-react";
 import { betAPI, BetHistoryResponse } from "@/lib/api/bet";
@@ -45,48 +45,92 @@ function Page() {
   const [showFilters, setShowFilters] = useState(false);
 
   const itemsPerPage = 10;
+  const isMountedRef = useRef(false);
+  const pendingRequestRef = useRef<Promise<void> | null>(null);
 
-  const fetchBets = async (page: number = 1) => {
-    try {
-      setLoading(true);
-      const response: BetHistoryResponse = await betAPI.getBetHistory(
-        page,
-        itemsPerPage,
-        startDate || undefined,
-        endDate || undefined
-      );
-
-      if (response.success && response.data) {
-        setBets(response.data.bets);
-        setTotalItems(response.data.total);
-        setTotalPages(Math.ceil(response.data.total / itemsPerPage));
-      }
-    } catch (error) {
-      console.error("Failed to fetch bets:", error);
-    } finally {
-      setLoading(false);
+  const fetchBets = useCallback(async (page: number = 1) => {
+    // Prevent multiple simultaneous requests
+    if (pendingRequestRef.current !== null) {
+      return;
     }
-  };
+
+    // Prevent API calls if component is unmounted
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    // Create a new request promise
+    const requestPromise = (async () => {
+      try {
+        setLoading(true);
+        const response: BetHistoryResponse = await betAPI.getBetHistory(
+          page,
+          itemsPerPage,
+          startDate || undefined,
+          endDate || undefined
+        );
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        if (response.success && response.data) {
+          setBets(response.data.bets);
+          setTotalItems(response.data.total);
+          setTotalPages(Math.ceil(response.data.total / itemsPerPage));
+        }
+      } catch (error) {
+        console.error("Failed to fetch bets:", error);
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+        // Clean up the pending request
+        pendingRequestRef.current = null;
+      }
+    })();
+
+    // Store the request promise
+    pendingRequestRef.current = requestPromise;
+
+    // Wait for the request to complete
+    await requestPromise;
+  }, [startDate, endDate, itemsPerPage]);
+
+  // Set mounted ref after first render
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
-    fetchBets(currentPage);
-  }, [currentPage, startDate, endDate]);
+    // Debounce the initial fetch to prevent rapid successive calls
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current) {
+        fetchBets(currentPage);
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [fetchBets, currentPage]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
-  const handleFilter = () => {
+  const handleFilter = useCallback(() => {
     setCurrentPage(1);
-    fetchBets(1);
-  };
+  }, []);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setStartDate("");
     setEndDate("");
     setCurrentPage(1);
-    fetchBets(1);
-  };
+  }, []);
 
   const handleViewDetails = (bet: BetData) => {
     setSelectedBet(bet);

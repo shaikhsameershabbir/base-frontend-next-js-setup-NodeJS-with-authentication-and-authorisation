@@ -4,8 +4,6 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { MarketsProvider } from '@/contexts/MarketsContext';
-import { GameDataProvider } from '@/contexts/GameDataContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { NotificationRenderer } from '@/components/ui/notification-renderer';
 
@@ -23,14 +21,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <AuthProvider>
-          <MarketsProvider>
-            <GameDataProvider>
-              <NotificationProvider>
-                {children}
-                <NotificationRenderer />
-              </NotificationProvider>
-            </GameDataProvider>
-          </MarketsProvider>
+          <NotificationProvider>
+            {children}
+            <NotificationRenderer />
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>
