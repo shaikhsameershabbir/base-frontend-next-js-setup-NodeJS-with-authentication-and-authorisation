@@ -492,8 +492,13 @@ export function FiltersSection({
                                                 const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
                                                 const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
 
-                                                // 7. Calculate total
-                                                totalWinAmount = baseWinAmount + doubleNumberWin + halfSangamOpenWin + halfSangamCloseWin;
+                                                // 7. Check for full sangam (openPanna X openMain X closePanna)
+                                                const fullSangamPattern = `${openResult}X${openMain}X${resultNumber}`;
+                                                const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
+                                                const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
+
+                                                // 8. Calculate total
+                                                totalWinAmount = baseWinAmount + doubleNumberWin + halfSangamOpenWin + halfSangamCloseWin + fullSangamWin;
                                             } else {
                                                 // If no open result, use standard calculation
                                                 totalWinAmount = baseWinAmount;
@@ -610,6 +615,10 @@ export function FiltersSection({
                                                         const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
                                                         const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
 
+                                                        const fullSangamPattern = `${openResult}X${openMain}X${resultNumber}`;
+                                                        const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
+                                                        const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
+
                                                         return (
                                                             <div className="mt-3 space-y-2 text-xs">
                                                                 <div className="border-t border-yellow-600/30 pt-2">
@@ -650,6 +659,15 @@ export function FiltersSection({
                                                                         <div className="text-green-400 font-bold">Half Sangam Close Win: ₹{halfSangamCloseWin.toLocaleString()}</div>
                                                                     </div>
 
+                                                                    {/* Full Sangam */}
+                                                                    <div className="bg-indigo-900/20 p-2 rounded mb-2">
+                                                                        <div className="text-indigo-400 font-bold">Full Sangam:</div>
+                                                                        <div className="text-gray-300">Pattern: {openResult}X{openMain}X{resultNumber}</div>
+                                                                        <div className="text-gray-300">Bet Amount: ₹{fullSangamAmount.toLocaleString()}</div>
+                                                                        <div className="text-gray-300">Rate: {WINNING_RATES.fullSangam}x</div>
+                                                                        <div className="text-green-400 font-bold">Full Sangam Win: ₹{fullSangamWin.toLocaleString()}</div>
+                                                                    </div>
+
                                                                     {/* Total */}
                                                                     <div className="bg-green-900/20 p-2 rounded">
                                                                         <div className="text-green-400 font-bold">Total Close Win:</div>
@@ -657,6 +675,7 @@ export function FiltersSection({
                                                                         <div className="text-gray-300">+ Combined Main: ₹{doubleNumberWin.toLocaleString()}</div>
                                                                         <div className="text-gray-300">+ Half Sangam Open: ₹{halfSangamOpenWin.toLocaleString()}</div>
                                                                         <div className="text-gray-300">+ Half Sangam Close: ₹{halfSangamCloseWin.toLocaleString()}</div>
+                                                                        <div className="text-gray-300">+ Full Sangam: ₹{fullSangamWin.toLocaleString()}</div>
                                                                         <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
                                                                     </div>
                                                                 </div>

@@ -909,68 +909,7 @@ export default function LoadV2Page() {
                 />
 
                 {/* Results History */}
-                <Card className="bg-gray-900 border-gray-700">
-                    <CardHeader>
-                        <CardTitle className="text-white">All Results History</CardTitle>
-                        <div className="text-sm text-gray-400">
-                            Recent result declarations across all markets
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingResults ? (
-                            <div className="flex items-center justify-center h-32">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                            </div>
-                        ) : allResults.length > 0 ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse border border-gray-600">
-                                    <thead>
-                                        <tr className="bg-gray-800">
-                                            <th className="border border-gray-600 p-3 text-left text-white">Market</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Open</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Close</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Main</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Total Win</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Declared By</th>
-                                            <th className="border border-gray-600 p-3 text-center text-white">Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {allResults.map((result) => (
-                                            <tr key={result._id} className="border border-gray-600 hover:bg-gray-800">
-                                                <td className="border border-gray-600 p-3 text-white">
-                                                    {result.marketId.marketName}
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center">
-                                                    <span className="text-gray-500">Weekly Results</span>
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center">
-                                                    <span className="text-gray-500">Weekly Results</span>
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center">
-                                                    <span className="text-gray-500">Weekly Results</span>
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center text-yellow-400 font-bold">
-                                                    -
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center text-gray-300">
-                                                    {result.declaredBy.username}
-                                                </td>
-                                                <td className="border border-gray-600 p-3 text-center text-gray-300">
-                                                    {new Date(result.createdAt).toLocaleDateString('en-IN')}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : (
-                            <div className="text-center text-gray-500 py-8">
-                                No results declared yet
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+   
 
                 {/* JSON Data Display */}
                 {data && (
