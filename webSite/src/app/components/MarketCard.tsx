@@ -30,7 +30,19 @@ const MarketCard: React.FC<MarketCardProps> = ({
 }) => {
   const router = useRouter();
 
+  // Check if market is open for betting
+  const isMarketOpen = status === "Open" || status === "open_betting";
+
+  // Debug logging
+  console.log(`MarketCard - ${market.marketName}: Status=${status}, IsOpen=${isMarketOpen}`);
+
   const handlePlayClick = () => {
+    // Only allow navigation if market is open
+    if (!isMarketOpen) {
+      console.log(`Market ${market.marketName} is closed, navigation blocked`);
+      return;
+    }
+
     // Convert market name to URL-friendly format and navigate
     const gameId = market._id.toLowerCase().replace(/\s+/g, '-');
     router.push(`/games/${gameId}`);
@@ -91,16 +103,23 @@ const MarketCard: React.FC<MarketCardProps> = ({
           <div className="flex flex-col items-center">
             <button
               onClick={handlePlayClick}
-              className="border-2 border-black bg-white rounded-full w-12 h-12 flex items-center justify-center"
+              disabled={!isMarketOpen}
+              className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${isMarketOpen
+                ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
+                : 'border-gray-300 bg-gray-100 cursor-not-allowed'
+                }`}
             >
               <PlayCircle
-                className={`w-8 h-8 rounded-full ${status === "Market close for today"
-                  ? "text-white bg-black"
-                  : " bg-primary text-white"
+                className={`w-8 h-8 rounded-full ${isMarketOpen
+                  ? 'bg-primary text-white'
+                  : 'text-gray-400 bg-gray-200'
                   }`}
               />
             </button>
-            <span className="text-sm font-medium mt-1 text-black">Play Now</span>
+            <span className={`text-sm font-medium mt-1 ${isMarketOpen ? 'text-black' : 'text-gray-400'
+              }`}>
+              Play Now
+            </span>
           </div>
         </div>
       </div>

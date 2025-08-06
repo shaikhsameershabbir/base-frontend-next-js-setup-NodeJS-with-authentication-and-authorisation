@@ -68,50 +68,42 @@ export const isBettingAllowed = (
     const now = getCurrentIndianTime();
 
     // Parse the times using the improved function that handles date updates
-    const openMoment = parseTimeToIndianMoment(openTime);
     const closeMoment = parseTimeToIndianMoment(closeTime);
 
-    // Calculate the no-betting windows
-    const openNoBettingStart = openMoment.clone().subtract(bufferMinutes, 'minutes');
-    const closeNoBettingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
+    // Calculate the no-betting window
+    const noBettingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
 
-    if (betType === 'open') {
-        // Open betting: 12:00 AM to 12:15 PM
-        if (now.isBefore(openNoBettingStart)) {
-            return {
-                allowed: true
-            };
-        } else {
-            return {
-                allowed: false,
-                message: `Open betting has ended at ${openNoBettingStart.format('HH:mm')}. Close betting is available from ${openMoment.format('HH:mm')} to ${closeNoBettingStart.format('HH:mm')}`
-            };
-        }
-    } else if (betType === 'close') {
-        // Close betting: Allowed during both open betting period AND close betting period
-        if (now.isBefore(closeNoBettingStart)) {
-            return {
-                allowed: true
-            };
-        } else {
-            return {
-                allowed: false,
-                message: `Close betting has ended at ${closeNoBettingStart.format('HH:mm')}. Market will be closed at ${closeMoment.format('HH:mm')}`
-            };
-        }
-    } else {
-        // Both betting: Only allowed during open betting period (for Jodi games)
-        if (now.isBefore(openNoBettingStart)) {
-            return {
-                allowed: true
-            };
-        } else {
-            return {
-                allowed: false,
-                message: `Jodi betting has ended at ${openNoBettingStart.format('HH:mm')}. Jodi games are only available during open betting period`
-            };
-        }
+    // Market is open from midnight (00:00) to close time
+    const midnight = now.clone().startOf('day'); // 00:00 AM
+
+    // Before midnight: No betting allowed
+    if (now.isBefore(midnight)) {
+        return {
+            allowed: false,
+            message: `Market opens at midnight (00:00). Betting will be available until ${noBettingStart.format('HH:mm')}`
+        };
     }
+
+    // During open betting period: All bet types allowed
+    if (now.isBetween(midnight, noBettingStart)) {
+        return {
+            allowed: true
+        };
+    }
+
+    // During no-betting period: No betting allowed
+    if (now.isBetween(noBettingStart, closeMoment)) {
+        return {
+            allowed: false,
+            message: `No betting allowed. Market closes at ${closeMoment.format('HH:mm')}`
+        };
+    }
+
+    // After close time: No betting allowed until next midnight
+    return {
+        allowed: false,
+        message: 'Market is closed for today. Next market opens at midnight (00:00)'
+    };
 };
 
 /**
@@ -127,64 +119,54 @@ export const getMarketStatus = (openTime: string, closeTime: string): {
     const now = getCurrentIndianTime();
 
     // Parse the times - handle both UTC ISO strings and HH:mm format
-    let openMoment: moment.Moment;
     let closeMoment: moment.Moment;
 
     // Check if times are in ISO format (UTC)
-    if (openTime.includes('T') && openTime.includes('Z')) {
+    if (closeTime.includes('T') && closeTime.includes('Z')) {
         // Convert UTC to Indian timezone and update to today if needed
-        openMoment = parseTimeToIndianMoment(openTime);
         closeMoment = parseTimeToIndianMoment(closeTime);
     } else {
         // Parse as HH:mm format in Indian timezone
-        openMoment = parseTimeToIndianMoment(openTime);
         closeMoment = parseTimeToIndianMoment(closeTime);
     }
 
-    // Calculate the no-betting windows
-    const openNoBettingStart = openMoment.clone().subtract(15, 'minutes');
-    const closeNoBettingStart = closeMoment.clone().subtract(15, 'minutes');
+    // Calculate the no-betting window (15 minutes before close time)
+    const noBettingStart = closeMoment.clone().subtract(15, 'minutes');
 
-    // Open betting: 12:00 AM to 12:15 PM
-    if (now.isBefore(openNoBettingStart)) {
+    // Market is open from midnight (00:00) to close time
+    const midnight = now.clone().startOf('day'); // 00:00 AM
+
+    // Before midnight: Market closed
+    if (now.isBefore(midnight)) {
+        return {
+            status: 'closed',
+            message: `Market opens at midnight (00:00). Open betting will be available until ${noBettingStart.format('HH:mm')}`,
+            nextEvent: { type: 'market_open', time: midnight.toDate() }
+        };
+    }
+
+    // Open betting: From midnight to 15 minutes before close time
+    if (now.isBetween(midnight, noBettingStart)) {
         return {
             status: 'open_betting',
-            message: `Open betting is active until ${openNoBettingStart.format('HH:mm')}`,
-            nextEvent: { type: 'open_end', time: openNoBettingStart.toDate() }
+            message: `Open betting is active until ${noBettingStart.format('HH:mm')}`,
+            nextEvent: { type: 'open_end', time: noBettingStart.toDate() }
         };
     }
 
-    // No betting: 12:15 PM to 12:30 PM
-    if (now.isBetween(openNoBettingStart, openMoment)) {
+    // No betting: 15 minutes before close time to close time
+    if (now.isBetween(noBettingStart, closeMoment)) {
         return {
             status: 'no_betting',
-            message: `No betting allowed. Close betting starts at ${openMoment.format('HH:mm')}`,
-            nextEvent: { type: 'close_start', time: openMoment.toDate() }
-        };
-    }
-
-    // Close betting: 12:30 PM to 3:45 PM
-    if (now.isBetween(openMoment, closeNoBettingStart)) {
-        return {
-            status: 'close_betting',
-            message: `Close betting is active until ${closeNoBettingStart.format('HH:mm')}`,
-            nextEvent: { type: 'close_end', time: closeNoBettingStart.toDate() }
-        };
-    }
-
-    // Closing soon: 3:45 PM to 4:00 PM
-    if (now.isBetween(closeNoBettingStart, closeMoment)) {
-        return {
-            status: 'closing_soon',
-            message: `Market closing soon. No betting allowed until ${closeMoment.format('HH:mm')}`,
+            message: `No betting allowed. Market closes at ${closeMoment.format('HH:mm')}`,
             nextEvent: { type: 'market_close', time: closeMoment.toDate() }
         };
     }
 
-    // After close time: Market closed
+    // After close time: Market closed until next midnight
     return {
         status: 'closed',
-        message: 'Market is closed for today'
+        message: 'Market is closed for today. Next market opens at midnight (00:00)'
     };
 };
 
