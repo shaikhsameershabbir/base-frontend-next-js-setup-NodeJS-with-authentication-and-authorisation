@@ -31,6 +31,7 @@ export interface Market {
     rank?: number;
     isAssigned: boolean;
     assignmentId?: string;
+    weekDays?: number;
 }
 
 export interface MarketAssignment {

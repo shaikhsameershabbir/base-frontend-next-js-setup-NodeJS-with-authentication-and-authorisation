@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { CalendarDays, PlayCircle, Star, Hash } from "lucide-react";
 import { useRouter } from "next/navigation";
+import WinningNumbers from "./WinningNumbers";
 
 interface MarketCardProps {
   market: {
@@ -14,6 +15,7 @@ interface MarketCardProps {
     isActive: boolean;
     isGolden?: boolean;
     rank?: number;
+    weekDays?: number;
   };
   status?: string;
   statusColor?: string;
@@ -35,7 +37,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
   return (
     <div className={`rounded-xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
       <div className="flex justify-between items-start">
-        <div>
+        <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
             {market.isGolden && (
@@ -49,6 +51,16 @@ const MarketCard: React.FC<MarketCardProps> = ({
             )}
           </div>
           <p className={`${statusColor} text-sm mt-1 font-bold`}>{status}</p>
+
+          {/* Winning Numbers Section */}
+          <WinningNumbers
+            marketId={market._id}
+            marketName={market.marketName}
+            openTime={market.openTime}
+            closeTime={market.closeTime}
+            weekDays={market.weekDays || 7}
+          />
+
           <div className="flex gap-4 mt-2">
             <div>
               <p className="text-sm text-gray-600 font-bold">Time Open:</p>
@@ -72,7 +84,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 ml-4">
           <div className="flex flex-col items-center">
             <button
               onClick={handlePlayClick}

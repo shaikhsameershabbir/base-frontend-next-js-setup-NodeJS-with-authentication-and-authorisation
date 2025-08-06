@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthenticatedRequest } from '../../../middlewares/auth';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { Result } from '../../../models/result';
 import { Market } from '../../../models/Market';
 

@@ -143,5 +143,17 @@ export const betAPI = {
         } catch (error: any) {
             throw new Error(error.response?.data?.message || 'Failed to get market status');
         }
+    },
+
+    /**
+     * Get market results
+     */
+    getMarketResults: async (marketId: string): Promise<any> => {
+        try {
+            const response = await apiClient.get(`/result/player/market/${marketId}`);
+            return response.data;
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || 'Failed to get market results');
+        }
     }
 };

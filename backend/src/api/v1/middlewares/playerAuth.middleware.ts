@@ -7,7 +7,11 @@ import { AuthenticatedRequest } from './auth.middleware';
 
 export class PlayerAuthMiddleware {
 
-    async authenticatePlayer(req: Request, res: Response, next: NextFunction): Promise<void> {
+    authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        return this.authenticatePlayer(req, res, next);
+    }
+
+    authenticatePlayer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             const authHeader = req.headers.authorization;
             const token = authHeader && authHeader.split(' ')[1];
@@ -18,7 +22,7 @@ export class PlayerAuthMiddleware {
             }
 
             // Check if token is blacklisted
-            const isBlacklisted = await TokenBlacklist.findOne({ token });
+            const isBlacklisted = await TokenBlacklist.findOne({ tokenId: token });
             if (isBlacklisted) {
                 res.status(401).json({ success: false, message: 'Token has been invalidated' });
                 return;
