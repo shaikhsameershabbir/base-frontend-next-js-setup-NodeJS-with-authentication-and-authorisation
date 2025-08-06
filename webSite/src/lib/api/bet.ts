@@ -155,5 +155,17 @@ export const betAPI = {
         } catch (error: any) {
             throw new Error(error.response?.data?.message || 'Failed to get market results');
         }
+    },
+
+    /**
+     * Get all market results for multiple markets
+     */
+    getAllMarketResults: async (marketIds: string[]): Promise<any> => {
+        try {
+            const response = await apiClient.post('/result/player/markets', { marketIds });
+            return response.data;
+        } catch (error: any) {
+            throw new Error(error.response?.data?.message || 'Failed to get all market results');
+        }
     }
 };

@@ -57,6 +57,7 @@ interface GameDataState {
     marketStatuses: Record<string, MarketStatus>;
     markets: Market[];
     assignments: MarketAssignment[];
+    marketResults: Record<string, any>; // Store results for each market
     loading: boolean;
     error: string | null;
     lastFetched: number | null;
@@ -69,6 +70,7 @@ type GameDataAction =
     | { type: 'FETCH_CURRENT_TIME_SUCCESS'; payload: CurrentTime }
     | { type: 'FETCH_MARKET_STATUS_SUCCESS'; payload: { marketId: string; status: MarketStatus } }
     | { type: 'FETCH_MARKETS_SUCCESS'; payload: { assignments: MarketAssignment[] } }
+    | { type: 'FETCH_MARKET_RESULTS_SUCCESS'; payload: { marketId: string; results: any } }
     | { type: 'FETCH_DATA_ERROR'; payload: string | null }
     | { type: 'CLEAR_ERROR' }
     | { type: 'RESET_DATA' }
@@ -80,6 +82,7 @@ const initialState: GameDataState = {
     marketStatuses: {},
     markets: [],
     assignments: [],
+    marketResults: {},
     loading: false,
     error: null,
     lastFetched: null,
@@ -137,6 +140,17 @@ function gameDataReducer(state: GameDataState, action: GameDataAction): GameData
                 }),
                 lastFetched: Date.now(),
             };
+        case 'FETCH_MARKET_RESULTS_SUCCESS':
+            return {
+                ...state,
+                loading: false,
+                error: null,
+                marketResults: {
+                    ...state.marketResults,
+                    [action.payload.marketId]: action.payload.results
+                },
+                lastFetched: Date.now(),
+            };
         case 'FETCH_DATA_ERROR':
             return {
                 ...state,
@@ -166,8 +180,11 @@ interface GameDataContextType {
     fetchCurrentTime: () => Promise<void>;
     fetchMarketStatus: (marketId: string) => Promise<void>;
     fetchMarkets: () => Promise<void>;
+    fetchMarketResults: (marketId: string) => Promise<void>;
     getCurrentTime: () => CurrentTime | null;
     getMarketStatus: (marketId: string) => MarketStatus | null;
+    getMarketResults: (marketId: string) => any;
+    isMarketResultsLoading: (marketId: string) => boolean;
     getMarketStatusColor: (market: Market) => string;
     clearError: () => void;
     refreshMarkets: () => void;
@@ -346,6 +363,27 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
                         type: 'FETCH_MARKETS_SUCCESS',
                         payload: { assignments: response.data.assignments }
                     });
+                    
+                    // Fetch results for all markets after markets are loaded
+                    const markets = response.data.assignments.map(assignment => {
+                        if (assignment.marketData) {
+                            return {
+                                ...assignment.marketData,
+                                isAssigned: true,
+                                assignmentId: assignment._id
+                            };
+                        }
+                        return {
+                            ...assignment.marketId,
+                            isAssigned: true,
+                            assignmentId: assignment._id
+                        };
+                    });
+                    
+                    // Fetch results for all markets in parallel
+                    markets.forEach(market => {
+                        fetchMarketResults(market._id);
+                    });
                 } else {
                     dispatch({
                         type: 'FETCH_DATA_ERROR',
@@ -384,6 +422,69 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
         await requestPromise;
     }, []);
 
+    // Fetch market results
+    const fetchMarketResults = useCallback(async (marketId: string) => {
+        // Check if we already fetched this market's results recently (less than 5 minutes old)
+        const now = Date.now();
+        const lastFetch = lastFetchRef.current[`results_${marketId}`];
+        if (lastFetch && (now - lastFetch) < 300000) { // 5 minutes cache
+            return;
+        }
+
+        // Check if there's already a pending request for this market's results
+        if (pendingRequestsRef.current[`results_${marketId}`] !== undefined) {
+            try {
+                await pendingRequestsRef.current[`results_${marketId}`];
+                return;
+            } catch (error) {
+                // If the pending request failed, we'll continue with a new request
+            }
+        }
+
+        // Create a new request promise
+        const requestPromise = (async () => {
+            try {
+                dispatch({ type: 'FETCH_DATA_START' });
+
+                const response = await betAPI.getMarketResults(marketId);
+
+                // Only check if component is mounted after we get the response
+                if (!isMountedRef.current) {
+                    return;
+                }
+
+                if (response.success) {
+                    // Update the last fetch time
+                    lastFetchRef.current[`results_${marketId}`] = now;
+                    dispatch({
+                        type: 'FETCH_MARKET_RESULTS_SUCCESS',
+                        payload: { marketId, results: response.data }
+                    });
+                } else {
+                    throw new Error(response.message || 'Failed to fetch market results');
+                }
+            } catch (error: any) {
+                // Only dispatch error if component is still mounted
+                if (isMountedRef.current) {
+                    dispatch({
+                        type: 'FETCH_DATA_ERROR',
+                        payload: error.message || 'Failed to fetch market results'
+                    });
+                }
+                throw error; // Re-throw so other waiting requests know it failed
+            } finally {
+                // Clean up the pending request
+                delete pendingRequestsRef.current[`results_${marketId}`];
+            }
+        })();
+
+        // Store the request promise
+        pendingRequestsRef.current[`results_${marketId}`] = requestPromise;
+
+        // Wait for the request to complete
+        await requestPromise;
+    }, []);
+
     // Get current time from state
     const getCurrentTime = useCallback((): CurrentTime | null => {
         return state.currentTime;
@@ -393,6 +494,16 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
     const getMarketStatus = useCallback((marketId: string): MarketStatus | null => {
         return state.marketStatuses[marketId] || null;
     }, [state.marketStatuses]);
+
+    // Get market results from state
+    const getMarketResults = useCallback((marketId: string): any => {
+        return state.marketResults[marketId] || null;
+    }, [state.marketResults]);
+
+    // Check if market results are loading
+    const isMarketResultsLoading = useCallback((marketId: string): boolean => {
+        return pendingRequestsRef.current[`results_${marketId}`] !== undefined;
+    }, []);
 
     // Refresh markets
     const refreshMarkets = () => {
@@ -500,8 +611,11 @@ export const GameDataProvider: React.FC<GameDataProviderProps> = ({ children }) 
         fetchCurrentTime,
         fetchMarketStatus,
         fetchMarkets,
+        fetchMarketResults,
         getCurrentTime,
         getMarketStatus,
+        getMarketResults,
+        isMarketResultsLoading,
         getMarketStatusColor,
         clearError,
         refreshMarkets,

@@ -19,12 +19,14 @@ interface MarketCardProps {
   };
   status?: string;
   statusColor?: string;
+  marketResult?: any;
 }
 
 const MarketCard: React.FC<MarketCardProps> = ({
   market,
   status,
   statusColor = "text-green-500",
+  marketResult,
 }) => {
   const router = useRouter();
 
@@ -59,6 +61,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
             openTime={market.openTime}
             closeTime={market.closeTime}
             weekDays={market.weekDays || 7}
+            marketResult={marketResult}
           />
 
           <div className="flex gap-4 mt-2">

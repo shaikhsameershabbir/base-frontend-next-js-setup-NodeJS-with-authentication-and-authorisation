@@ -291,3 +291,81 @@ export const getAllResults = async (req: Request, res: Response): Promise<void> 
     }
 };
 
+// Get all market results for multiple markets
+export const getAllMarketResults = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { marketIds } = req.body;
+        const currentUser = (req as AuthenticatedRequest).user;
+
+        // Validate marketIds
+        if (!marketIds || !Array.isArray(marketIds) || marketIds.length === 0) {
+            res.status(400).json({ success: false, message: 'Market IDs array is required' });
+            return;
+        }
+
+        const results: any[] = [];
+
+        // Process each market
+        for (const marketId of marketIds) {
+            try {
+                // Check if market exists
+                const market = await Market.findById(marketId);
+                if (!market) {
+                    results.push({
+                        marketId: marketId,
+                        success: false,
+                        message: 'Market not found'
+                    });
+                    continue;
+                }
+
+                // Get current week dates based on market's weekDays
+                const { startDate, endDate } = getWeekDates(market.weekDays || 7);
+
+                // Find result for the current week
+                const result = await Result.findOne({
+                    marketId: marketId,
+                    weekStartDate: startDate,
+                    weekEndDate: endDate
+                });
+
+                if (result) {
+                    results.push({
+                        marketId: marketId,
+                        success: true,
+                        data: result
+                    });
+                } else {
+                    results.push({
+                        marketId: marketId,
+                        success: true,
+                        data: {
+                            _id: null,
+                            marketId: marketId,
+                            weekStartDate: startDate,
+                            weekEndDate: endDate,
+                            weekDays: market.weekDays || 7,
+                            results: {}
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error(`Error fetching results for market ${marketId}:`, error);
+                results.push({
+                    marketId: marketId,
+                    success: false,
+                    message: 'Internal server error'
+                });
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: results
+        });
+    } catch (error) {
+        console.error('Error fetching all market results:', error);
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Trophy, Clock, Calendar, AlertCircle } from 'lucide-react';
-import { betAPI } from '@/lib/api/bet';
 
 interface WinningNumbersProps {
     marketId: string;
@@ -10,6 +9,7 @@ interface WinningNumbersProps {
     openTime: string;
     closeTime: string;
     weekDays: number;
+    marketResult?: any;
 }
 
 interface MarketResult {
@@ -34,11 +34,9 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
     marketName,
     openTime,
     closeTime,
-    weekDays
+    weekDays,
+    marketResult
 }) => {
-    const [result, setResult] = useState<MarketResult | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
     const [currentTime, setCurrentTime] = useState<Date>(new Date());
 
     // Update current time every minute
@@ -50,28 +48,8 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
         return () => clearInterval(interval);
     }, []);
 
-    // Fetch market results
-    const fetchResults = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const response = await betAPI.getMarketResults(marketId);
-            if (response.success && response.data) {
-                setResult(response.data);
-            } else {
-                setError('Failed to fetch results');
-            }
-        } catch (error: any) {
-            setError(error.message || 'Failed to fetch results');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Fetch results on mount
-    useEffect(() => {
-        fetchResults();
-    }, [marketId]);
+    // Use passed result or null
+    const result = marketResult || null;
 
     // Helper functions
     const getDayName = (date: Date): string => {
@@ -215,22 +193,23 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
     const display = getDisplayContent();
 
     return (
-        <div >
+        <div className="bg-green-100 rounded-lg p-3 mb-3">
+            <div className="flex items-center gap-2 mb-2">
+                <span className="text-green-700 font-bold text-sm">Winning Numbers</span>
+                {display.icon}
+            </div>
 
-
-            {loading ? (
+            {!result ? (
                 <div className="flex items-center gap-2">
-    
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
                     <span className="text-green-700 text-sm">Loading results...</span>
                 </div>
-            ) : error ? (
-                <div className="text-red-600 text-sm">{error}</div>
             ) : (
-      
+                <div className="flex items-center gap-2">
                     <span className="text-green-700 font-bold text-lg">
                         {display.content}
                     </span>
-         
+                </div>
             )}
 
             {display.type === 'closed' && (
