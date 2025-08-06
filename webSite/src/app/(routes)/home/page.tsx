@@ -56,7 +56,7 @@ function HomeContent() {
                                     <MarketCard
                                         key={market._id}
                                         market={market}
-                                        status={status?.status || 'Unknown'}
+                                        status={status?.status }
                                         statusColor={statusColor}
                                     />
                                 );

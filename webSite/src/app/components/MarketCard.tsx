@@ -50,7 +50,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
               </div>
             )}
           </div>
-          <p className={`${statusColor} text-sm mt-1 font-bold`}>{status}</p>
+
 
           {/* Winning Numbers Section */}
           <WinningNumbers
