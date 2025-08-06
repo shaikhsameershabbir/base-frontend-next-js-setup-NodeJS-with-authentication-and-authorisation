@@ -4,11 +4,10 @@ import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
 import Header from "@/app/components/Header";
 import Message from "@/app/components/Message";
-import { marketsAPI } from "@/lib/api/auth";
-import { betAPI } from "@/lib/api/bet";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMarketData } from "@/contexts/MarketDataContext";
 
 interface Market {
     _id: string;
@@ -48,73 +47,16 @@ interface MarketStatus {
 }
 
 function HomeContent() {
-    const [markets, setMarkets] = useState<Market[]>([]);
-    const [marketResults, setMarketResults] = useState<Record<string, MarketResult>>({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [currentTime, setCurrentTime] = useState<Date>(new Date());
+    const { markets, marketResults, loading, error, fetchData } = useMarketData();
+    const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
 
     // Update current time every minute
-    useEffect(() => {
+    React.useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(new Date());
         }, 60000);
 
         return () => clearInterval(interval);
-    }, []);
-
-    // Fetch all data
-    const fetchData = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            // Fetch markets
-            const marketsResponse = await marketsAPI.getAssignedMarkets();
-            if (!marketsResponse.success || !marketsResponse.data) {
-                throw new Error(marketsResponse.message || 'Failed to fetch markets');
-            }
-
-            const marketsData = marketsResponse.data.assignments.map((assignment: any) => {
-                if (assignment.marketData) {
-                    return {
-                        ...assignment.marketData,
-                        isAssigned: true,
-                        assignmentId: assignment._id
-                    };
-                }
-                return {
-                    ...assignment.marketId,
-                    isAssigned: true,
-                    assignmentId: assignment._id
-                };
-            });
-
-            setMarkets(marketsData);
-
-            // Fetch all market results in a single API call
-            const marketIds = marketsData.map(market => market._id);
-            const resultsResponse = await betAPI.getAllMarketResults(marketIds);
-
-            if (resultsResponse.success && resultsResponse.data) {
-                const resultsMap: Record<string, MarketResult> = {};
-                resultsResponse.data.forEach((item: any) => {
-                    if (item.success && item.data) {
-                        resultsMap[item.marketId] = item.data;
-                    }
-                });
-                setMarketResults(resultsMap);
-            }
-        } catch (error: any) {
-            setError(error.message || 'Failed to fetch data');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Fetch data on mount
-    useEffect(() => {
-        fetchData();
     }, []);
 
     // Get market status

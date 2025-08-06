@@ -35,6 +35,10 @@
 - **Time-based Betting Restrictions** with IST timezone support
 - **Real-time Balance Management** with instant updates
 - **Comprehensive Game Validation** (frontend & backend)
+- **Result Declaration System** with weekly storage and panna number validation
+- **Smart Winning Number Display** with market status awareness
+- **Centralized Market Data Management** with optimized API calls
+- **Detailed Win Amount Breakdown** with Full Sangam calculations
 
 ---
 
@@ -75,6 +79,36 @@ Superadmin
                                 ▼
                        ┌─────────────────┐
                        │   Bet Model     │
+                       │   (MongoDB)     │
+                       └─────────────────┘
+```
+
+### Win Calculation System
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Admin Panel   │    │   Win Calculation│    │   Game Types    │
+│   LoadV2 Page   │◄──►│   Logic         │◄──►│   (Panna/Single)│
+│   (React)       │    │   (TypeScript)  │    │   (Constants)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Full Sangam   │
+                       │   Calculation   │
+                       └─────────────────┘
+```
+
+### Data Management Architecture
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   MarketData    │    │   Batch API     │    │   Result        │
+│   Context       │◄──►│   Endpoints     │◄──►│   Declaration   │
+│   (React)       │    │   (Express)     │    │   (Weekly)      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Result Model  │
                        │   (MongoDB)     │
                        └─────────────────┘
 ```
@@ -130,12 +164,16 @@ backend/
 │   │   │   ├── auth.controller.ts     # Authentication
 │   │   │   ├── markets.controller.ts  # Market management
 │   │   │   ├── users.controller.ts    # User management
-│   │   │   └── transfers.controller.ts # Transfer operations
+│   │   │   ├── transfers.controller.ts # Transfer operations
+│   │   │   └── result.controller.ts   # Result declaration logic
 │   │   ├── middlewares/     # Custom middleware
+│   │   │   ├── auth.middleware.ts     # Authentication middleware
+│   │   │   └── playerAuth.middleware.ts # Player authentication
 │   │   ├── routes/          # API route definitions
 │   │   │   ├── bet.routes.ts          # Bet placement routes
 │   │   │   ├── player.routes.ts       # Player routes
 │   │   │   ├── auth.routes.ts         # Auth routes
+│   │   │   ├── result.routes.ts       # Result declaration routes
 │   │   │   └── index.ts               # Route aggregation
 │   │   ├── types/           # TypeScript interfaces
 │   │   └── validators/      # Request validation
@@ -147,7 +185,8 @@ backend/
 │   │   ├── Bet.ts           # Bet schema with betType & selectedNumbers
 │   │   ├── User.ts          # User schema
 │   │   ├── Market.ts        # Market schema
-│   │   └── Transfer.ts      # Transfer schema
+│   │   ├── Transfer.ts      # Transfer schema
+│   │   └── Result.ts        # Weekly result schema
 │   ├── services/            # Business logic services
 │   ├── utils/               # Utility functions
 │   │   └── timeUtils.ts     # IST timezone utilities
@@ -174,7 +213,8 @@ admin/
 │   │   ├── points/          # Points management
 │   │   │   └── transfer/    # Transfer operations
 │   │   ├── settings/        # Settings pages
-│   │   └── profile/         # Profile management
+│   │   ├── profile/         # Profile management
+│   │   └── loadv2/          # Bet data management with result declaration
 │   ├── components/          # Reusable components
 │   │   ├── auth/            # Authentication components
 │   │   ├── dashboard/       # Dashboard components
@@ -182,6 +222,15 @@ admin/
 │   │   ├── modals/          # Modal components
 │   │   ├── theme/           # Theme components
 │   │   ├── transfer/        # Transfer components
+│   │   ├── loadv2/          # Bet data components
+│   │   │   ├── FiltersSection.tsx    # Filter controls and result declaration
+│   │   │   ├── TodayResults.tsx      # Today's declared results
+│   │   │   ├── BetTotals.tsx         # Bet totals summary
+│   │   │   ├── DetailedBetData.tsx   # Detailed bet data display
+│   │   │   ├── BetDetailsModal.tsx   # Detailed winning calculation modal
+│   │   │   └── index.ts              # Component exports
+│   │   ├── winner/          # Winning calculation components
+│   │   │   └── constants.ts # Winning rates and game constants
 │   │   └── ui/              # UI components (shadcn/ui)
 │   ├── hooks/               # Custom React hooks
 │   │   ├── useAuth.ts       # Authentication hook
@@ -193,7 +242,7 @@ admin/
 │       │   └── transfer.ts  # Transfer API
 │       ├── api-client.ts    # Base API client
 │       ├── api-market.ts    # Market API
-│       ├── api-service.ts   # Service API
+│       ├── api-service.ts   # Service API with result interfaces
 │       └── utils.ts         # Utility functions
 ```
 
@@ -223,9 +272,13 @@ webSite/
 │   │   │   │           │   ├── RedBracket.tsx
 │   │   │   │           │   ├── FamilyPanel.tsx
 │   │   │   │           │   ├── CyclePanna.tsx
+│   │   │   │           │   ├── HalfSangamA.tsx
+│   │   │   │           │   ├── HalfSangamB.tsx
+│   │   │   │           │   ├── SpMotor.tsx
+│   │   │   │           │   ├── DpMoter.tsx
 │   │   │   │           │   └── SangamGame.tsx
 │   │   │   │           └── page.tsx
-│   │   │   ├── home/        # Home page
+│   │   │   ├── home/        # Home page with smart winning numbers
 │   │   │   ├── myBids/      # Bet history
 │   │   │   └── passbook/    # Transaction history
 │   │   ├── components/      # Shared components
@@ -233,7 +286,8 @@ webSite/
 │   │   │   ├── BidsCard.tsx # Bet display
 │   │   │   ├── BottomNav.tsx # Mobile navigation
 │   │   │   ├── Header.tsx   # Page header
-│   │   │   ├── MarketCard.tsx # Market display
+│   │   │   ├── MarketCard.tsx # Market display with winning numbers
+│   │   │   ├── WinningNumbers.tsx # Smart winning number display
 │   │   │   ├── Message.tsx  # Message component
 │   │   │   ├── Sidebar.tsx  # Sidebar navigation
 │   │   │   ├── SplashScreen.tsx # Loading screen
@@ -243,12 +297,13 @@ webSite/
 │   │   │   └── pagination.tsx # Pagination component
 │   │   ├── contexts/        # React contexts
 │   │   │   ├── AuthContext.tsx # Authentication context
-│   │   │   └── MarketsContext.tsx # Market context
+│   │   │   ├── NotificationContext.tsx # Notification context
+│   │   │   └── MarketDataContext.tsx # Centralized market data management
 │   │   ├── hooks/           # Custom hooks
 │   │   └── lib/             # API clients
 │   │       ├── api/         # API modules
 │   │       │   ├── auth.ts  # Authentication API
-│   │       │   └── bet.ts   # Betting API
+│   │       │   └── bet.ts   # Betting API with market results
 │   │       ├── api-client.ts # Base API client
 │   │       └── utils.ts     # Utility functions
 ├── public/                  # Static assets
@@ -316,6 +371,46 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
 
 ---
 
+## 🎯 Result Declaration System
+
+### Weekly Result Storage
+The system now uses a weekly result structure for better organization and performance:
+
+```typescript
+interface WeeklyResult {
+  weekStartDate: Date;
+  weekEndDate: Date;
+  weekDays: number;
+  results: {
+    [dayName: string]: DayResult;
+  };
+}
+
+interface DayResult {
+  open?: number;      // 3-digit panna number
+  main?: number;      // Calculated main value
+  close?: number;     // 3-digit panna number
+  openDeclationTime?: Date;
+  closeDeclationTime?: Date;
+}
+```
+
+### Result Declaration Logic
+- **Panna Validation**: Only accepts 3-digit numbers from `singlePannaNumbers`, `doublePannaNumbers`, `triplePannaNumbers`
+- **Main Calculation**: Sum of digits, taking last digit if > 9
+- **Close Result**: Requires open result for the same day, main = openMain + closeMain
+- **Full Sangam**: Pattern `openPanna X openMain X closePanna` (e.g., `123X6X123`)
+
+### Smart Winning Number Display
+The home page displays winning numbers based on market status:
+1. **Loading State**: 15-minute window before/after market times
+2. **Open Result**: Shows "open-main" format
+3. **Both Results**: Shows "open-main-close" format
+4. **Previous Day**: Falls back to last available result
+5. **Market Closed**: Shows "Market is closed today" with last open day result
+
+---
+
 ## 🗄️ Database Schema
 
 ### User Model
@@ -361,6 +456,30 @@ interface IBet {
     payout?: number;            // Payout amount
     createdAt: Date;
     updatedAt: Date;
+}
+```
+
+### Result Model (NEW)
+```typescript
+interface IResult {
+    marketId: ObjectId;         // Market reference
+    declaredBy: ObjectId;       // User who declared the result
+    weekStartDate: Date;        // Week start date
+    weekEndDate: Date;          // Week end date
+    weekDays: number;           // Number of days in week
+    results: {
+        [dayName: string]: DayResult;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+interface DayResult {
+    open?: number;              // 3-digit panna number
+    main?: number;              // Calculated main value
+    close?: number;             // 3-digit panna number
+    openDeclationTime?: Date;
+    closeDeclationTime?: Date;
 }
 ```
 
@@ -473,6 +592,33 @@ Get current IST time
 
 #### GET /api/v1/player/market/:marketId/status
 Get market betting status
+
+### Result Declaration Endpoints (NEW)
+
+#### POST /api/v1/result/declare
+Declare result for a market
+```json
+{
+    "marketId": "market_id_here",
+    "resultType": "open" | "close",
+    "resultNumber": "123",
+    "targetDate": "2024-01-01"
+}
+```
+
+#### GET /api/v1/result/market/:marketId
+Get market results for current week
+
+#### GET /api/v1/result/player/market/:marketId
+Get market results for player access
+
+#### POST /api/v1/result/player/markets
+Get results for multiple markets in batch
+```json
+{
+    "marketIds": ["market_id_1", "market_id_2"]
+}
+```
 
 ### User Management Endpoints
 
@@ -602,6 +748,24 @@ Confirm player bid
 - **API Type**: `sangam`
 - **UI Component**: `SangamGame.tsx`
 - **Features**: Complex calculations, real-time filtering
+
+### Win Amount Breakdown System (NEW)
+The admin panel provides detailed win amount breakdowns:
+
+#### For Panna Games
+- **Main Panna Win**: Direct panna number wins
+- **Digit Sum Win**: Sum of digits wins
+- **Total Win**: Combined panna and digit sum wins
+- **Full Sangam Win**: Special calculation for close results
+
+#### For Single/Double Numbers
+- **Simple Win**: Direct number wins with 10x rate
+- **Total Win**: Sum of all winning amounts
+
+#### Real-time Preview
+- **Live Calculation**: Updates as admin enters result numbers
+- **Validation**: Only allows valid panna numbers
+- **Suggestions**: Shows panna number suggestions while typing
 
 ### Time-Based Betting System
 
@@ -761,7 +925,12 @@ enum UserRole {
 
 #### Website
 - **AuthContext**: Player authentication and balance
-- **MarketsContext**: Market assignments and data
+- **NotificationContext**: Toast notifications and user feedback
+- **MarketDataContext**: Centralized market data, results, and status management
+  - **Optimized API Calls**: Batch fetching with debouncing
+  - **Caching**: Market status and result caching
+  - **Duplicate Prevention**: `isInitialized`, `isFetchingRef`, `statusFetchingRef`
+  - **Centralized Status Management**: `fetchMarketStatus` function
 
 ### API Integration
 ```typescript
@@ -784,6 +953,13 @@ const response = await betAPI.placeBet({
 - **Frontend**: Context-based error states
 - **Validation**: Client and server-side validation
 - **Toast Notifications**: User-friendly error messages
+
+### Performance Optimizations (NEW)
+- **Batch API Calls**: Single request for multiple market results
+- **Debounced Status Fetching**: Prevents duplicate market status calls
+- **Context Caching**: Market data cached in React context
+- **Component Optimization**: Removed GameDataContext, simplified architecture
+- **Smart Re-rendering**: Prevents unnecessary component updates
 
 ### Time Management
 ```typescript
@@ -863,6 +1039,13 @@ docker run -p 3000:3000 matka-website
 4. **Sangam Games**: Check complex calculation logic
 5. **Input Validation**: Verify real-time and on-blur validation
 
+#### Performance Issues
+1. **Duplicate API Calls**: Check MarketDataContext implementation
+2. **Excessive Re-renders**: Verify component optimization
+3. **Memory Leaks**: Check useEffect cleanup functions
+4. **Slow Loading**: Monitor batch API call performance
+5. **Status Fetching**: Verify debouncing implementation
+
 ### Debug Commands
 ```bash
 # Backend debugging
@@ -915,6 +1098,9 @@ npm run lint         # Code linting
 - **Performance**: Code splitting and optimization
 - **Time Management**: Consistent IST timezone usage
 - **Validation**: Dual frontend and backend validation
+- **API Optimization**: Batch calls and centralized data management
+- **Component Architecture**: Simplified context usage and prop drilling
+- **State Management**: Efficient caching and duplicate prevention
 
 ---
 

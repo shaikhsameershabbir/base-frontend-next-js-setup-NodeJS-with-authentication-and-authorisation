@@ -5,25 +5,50 @@ import React, { useState, useEffect } from 'react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers } from '@/app/constant/constant';
-import { useGameData } from '@/contexts/GameDataContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface SangamGameProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
 type SangamType = 'half_open' | 'half_close' | 'full';
 
-const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market' }) => {
+const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [selectedBetType, setSelectedBetType] = useState<'both'>('both');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
-
 
   // SangamGame specific state
   const [selectedSangamType, setSelectedSangamType] = useState<SangamType>('half_open');
@@ -41,19 +66,13 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
-
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // SangamGame only allows 'both' betting type
       setSelectedBetType('both');
     }
-  }, [marketId, getMarketStatus]);
+  }, [marketStatus]);
 
   // Filter panna numbers based on input
   useEffect(() => {
@@ -218,12 +237,12 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   // Check if betting is allowed (only during open betting for Sangam)
   const isBettingAllowed = (): boolean => {
     if (!marketStatus) return false;
-    return marketStatusData.status === 'open_betting';
+    return marketStatus.status === 'open_betting';
   };
 
   // Check if sangam game is allowed (only before open time closes)
   const isSangamAllowed = (): boolean => {
-    return getMarketStatus(marketId)?.status === 'open_betting';
+    return marketStatus?.status === 'open_betting';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

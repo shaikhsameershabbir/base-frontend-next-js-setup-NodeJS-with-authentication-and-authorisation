@@ -1,18 +1,21 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface JodiGameProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) => {
+const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
@@ -22,6 +25,32 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
   const [selectedBetType, setSelectedBetType] = useState<'both' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        // Use the centralized fetch function
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
+
   // Calculate total whenever amounts change
   useEffect(() => {
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
@@ -30,21 +59,14 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
 
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'both'): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
+    if (!marketStatus) return false;
     // For JodiGame, 'both' is allowed during open or close betting
-    return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+    return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
   };
-
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
         if (isBetTypeAllowed('both')) {
@@ -59,7 +81,7 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
         }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
 
   // Reset amounts and selectedAmount when selectedBetType changes
   useEffect(() => {
@@ -69,10 +91,9 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
 
   // Automatically determine the current bet type based on market status
   const getCurrentBetType = (): 'both' | null => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return null;
+    if (!marketStatus) return null;
 
-    if (marketStatusData.status === 'open_betting') {
+    if (marketStatus.status === 'open_betting') {
       return 'both'; // Jodi game only allows 'both' betting type during open betting
     }
 
@@ -81,9 +102,8 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
 
   // Check if betting is allowed (only during open betting for Jodi)
   const isBettingAllowed = (): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
-    return marketStatusData.status === 'open_betting';
+    if (!marketStatus) return false;
+    return marketStatus.status === 'open_betting';
   };
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
@@ -170,7 +190,7 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market' }) 
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }

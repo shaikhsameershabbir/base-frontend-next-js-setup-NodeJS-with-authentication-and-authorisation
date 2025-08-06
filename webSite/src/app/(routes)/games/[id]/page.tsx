@@ -5,7 +5,6 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import BottomNav from "@/app/components/BottomNav";
 import Header from "@/app/components/Header";
-import { GameDataProvider } from "@/contexts/GameDataContext";
 
 const gameTypes = [
   { id: "single", name: "Single", icon: "/Game/single_panna.png" },
@@ -71,11 +70,7 @@ const GamePageContent = () => {
 };
 
 const GamePage = () => {
-  return (
-    <GameDataProvider>
-      <GamePageContent />
-    </GameDataProvider>
-  );
+  return <GamePageContent />;
 };
 
 export default GamePage;

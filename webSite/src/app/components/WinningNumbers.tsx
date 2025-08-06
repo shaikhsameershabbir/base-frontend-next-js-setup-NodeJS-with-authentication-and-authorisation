@@ -193,12 +193,8 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
     const display = getDisplayContent();
 
     return (
-        <div className="bg-green-100 rounded-lg p-3 mb-3">
-            <div className="flex items-center gap-2 mb-2">
-                <span className="text-green-700 font-bold text-sm">Winning Numbers</span>
-                {display.icon}
-            </div>
-
+        <div >
+    
             {!result ? (
                 <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>

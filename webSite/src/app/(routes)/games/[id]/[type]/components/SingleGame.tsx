@@ -1,18 +1,21 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface SingleGameProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market' }) => {
+const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({
@@ -23,20 +26,44 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   const [selectedBetType, setSelectedBetType] = useState<'open' | 'close'>('open');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        // Use the centralized fetch function
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
+
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-
-    if (!marketStatusData) {
+    if (!marketStatus) {
       return false;
     }
 
     if (betType === 'open') {
       // Open betting is only allowed during open_betting period
-      return marketStatusData.status === 'open_betting';
+      return marketStatus.status === 'open_betting';
     } else {
       // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
     }
   };
 
@@ -45,11 +72,6 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
     setTotal(sum);
   }, [amounts]);
-
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
 
   // Update selectedBetType when it changes
   useEffect(() => {
@@ -64,8 +86,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
         if (isBetTypeAllowed('open')) {
@@ -84,7 +105,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
         }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
@@ -177,13 +198,12 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
   // Automatically determine the current bet type based on market status
   const getCurrentBetType = (): 'open' | 'close' | null => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return null;
+    if (!marketStatus) return null;
 
-    if (marketStatusData.status === 'open_betting') {
+    if (marketStatus.status === 'open_betting') {
       return 'open'; // During open betting, default to open
     }
-    if (marketStatusData.status === 'close_betting') {
+    if (marketStatus.status === 'close_betting') {
       return 'close';
     }
     return null;
@@ -216,7 +236,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }

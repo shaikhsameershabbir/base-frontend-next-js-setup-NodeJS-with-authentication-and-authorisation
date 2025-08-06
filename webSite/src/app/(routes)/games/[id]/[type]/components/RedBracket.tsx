@@ -2,18 +2,45 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface RedBracketProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market' }) => {
+const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
 
   // Core state from SingleGame
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -33,22 +60,15 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
-
   // Check if betting is allowed (only during open betting for RedBracket)
   const isBettingAllowed = (): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
-    return marketStatusData.status === 'open_betting';
+    if (!marketStatus) return false;
+    return marketStatus.status === 'open_betting';
   };
 
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
         // RedBracket game only allows 'both' betting type
@@ -61,7 +81,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
         }
       }
     }
-  }, [marketId, getMarketStatus, selectedBetType]);
+  }, [marketStatus, selectedBetType]);
 
   // Reset amounts and selectedAmount when selectedBetType changes
   useEffect(() => {
@@ -152,7 +172,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
     }
 
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }

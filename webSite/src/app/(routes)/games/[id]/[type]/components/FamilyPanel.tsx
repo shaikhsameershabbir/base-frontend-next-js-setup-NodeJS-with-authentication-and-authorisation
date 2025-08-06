@@ -2,23 +2,25 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { family } from '@/app/constant/constant';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface FamilyPanelProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Market' }) => {
+const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
 
-  // Core state from SinglePanna
+  // Core state
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
-  const [selectedBetType, setSelectedBetType] = useState<'both' | null>(null);
+  const [selectedBetType, setSelectedBetType] = useState<'open' | 'close' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // FamilyPanel specific state
@@ -27,117 +29,148 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
   const [total, setTotal] = useState<number>(0);
 
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
+
+  // Family Panel data
+  const familyPanelData: { [key: string]: number[] } = {
+    "0": [0, 100, 200, 300, 400, 500, 600, 700, 800, 900],
+    "1": [111, 211, 311, 411, 511, 611, 711, 811, 911],
+    "2": [222, 322, 422, 522, 622, 722, 822, 922],
+    "3": [333, 433, 533, 633, 733, 833, 933],
+    "4": [444, 544, 644, 744, 844, 944],
+    "5": [555, 655, 755, 855, 955],
+    "6": [666, 766, 866, 966],
+    "7": [777, 877, 977],
+    "8": [888, 988],
+    "9": [999],
+  };
+
+  // Check if a specific bet type is allowed
+  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    if (!marketStatus) return false;
+
+    if (betType === 'open') {
+      // Open betting is only allowed during open_betting period
+      return marketStatus.status === 'open_betting';
+    } else {
+      // Close betting is allowed during both open_betting and close_betting periods
+      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
+    }
+  };
+
   // Calculate total whenever amounts change
   useEffect(() => {
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
     setTotal(sum);
   }, [amounts]);
 
-  // Fetch market status when component mounts
+  // Update selectedBetType when it changes
   useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
+    if (selectedBetType) {
+      // Reset digit inputs when bet type changes
+      setAmounts({});
+      setSelectedAmount(null);
+      setInputNumber('');
+      setFamilyNumbers([]);
+    }
+  }, [selectedBetType]);
 
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
-        // FamilyPanel game only allows 'both' betting type
-        setSelectedBetType('both');
+        if (isBetTypeAllowed('open')) {
+          setSelectedBetType('open');
+        } else if (isBetTypeAllowed('close')) {
+          setSelectedBetType('close');
+        }
       } else {
         // If current bet type is no longer allowed, switch to an allowed one
-        if (!isBettingAllowed()) {
-          // FamilyPanel game only allows 'both' betting type
-          setSelectedBetType('both');
+        if (!isBetTypeAllowed(selectedBetType)) {
+          if (isBetTypeAllowed('open')) {
+            setSelectedBetType('open');
+          } else if (isBetTypeAllowed('close')) {
+            setSelectedBetType('close');
+          }
         }
       }
     }
-  }, [marketId, getMarketStatus, selectedBetType]);
+  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
 
-  // Reset amounts and selectedAmount when selectedBetType changes
-  useEffect(() => {
-    setAmounts({});
-    setSelectedAmount(null);
-  }, [selectedBetType]);
-
-  // Find family numbers when input changes
-  useEffect(() => {
-    if (inputNumber && inputNumber.trim() !== '') {
-      const num = parseInt(inputNumber);
-      if (!isNaN(num) && num >= 0 && num <= 99) {
-        // Find the family that contains this number
-        const foundFamily = family.find(familyGroup =>
-          familyGroup.includes(num)
-        );
-
-        if (foundFamily) {
-          setFamilyNumbers(foundFamily);
-        } else {
-          setFamilyNumbers([]);
-        }
-      } else {
-        setFamilyNumbers([]);
-      }
-    } else {
-      setFamilyNumbers([]);
-    }
-  }, [inputNumber]);
-
-  // Auto-place amount on all family numbers when amount is selected
-  useEffect(() => {
-    if (selectedAmount !== null && familyNumbers.length > 0) {
-      const newAmounts: { [key: number]: number } = {};
-      familyNumbers.forEach(num => {
-        newAmounts[num] = selectedAmount;
-      });
-      setAmounts(newAmounts);
-    } else if (selectedAmount === null) {
-      setAmounts({});
-    }
-  }, [selectedAmount, familyNumbers]);
-
-  // When an amount is selected
+  // When an amount is selected, just set selectedAmount (do not clear inputs)
   const handleAmountSelect = (amt: number) => {
     setSelectedAmount(amt);
   };
 
-  // Handle input number change
   const handleInputNumberChange = (value: string) => {
-    const num = parseInt(value);
-    if (value === '' || (!isNaN(num) && num >= 0 && num <= 99)) {
-      // Ensure the input is formatted as two digits
-      if (value !== '' && num >= 0 && num <= 99) {
-        setInputNumber(num.toString().padStart(2, '0'));
+    setInputNumber(value);
+    if (value && familyPanelData[value]) {
+      setFamilyNumbers(familyPanelData[value]);
+      // Auto-place selected amount on all family numbers
+      if (selectedAmount !== null) {
+        const newAmounts: { [key: number]: number } = {};
+        familyPanelData[value].forEach(num => {
+          newAmounts[num] = selectedAmount;
+        });
+        setAmounts(newAmounts);
       } else {
-        setInputNumber(value);
+        // Reset amounts for new family numbers if no amount is selected
+        const newAmounts: { [key: number]: number } = {};
+        familyPanelData[value].forEach(num => {
+          newAmounts[num] = 0;
+        });
+        setAmounts(newAmounts);
       }
+    } else {
+      setFamilyNumbers([]);
+      setAmounts({});
     }
   };
 
-  // Check if betting is allowed (only during open betting for FamilyPanel)
+  const handleInputBlur = () => {
+    // Validate input number
+    if (inputNumber && !familyPanelData[inputNumber]) {
+      showError('Invalid Input', 'Please enter a valid family number (0-9)');
+      setInputNumber('');
+      setFamilyNumbers([]);
+      setAmounts({});
+    }
+  };
+
+  // Check if betting is currently allowed
   const isBettingAllowed = (): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
-    return marketStatusData.status === 'open_betting';
+    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check if user has sufficient balance
     if (!user) {
       showError('Authentication Error', 'User not authenticated. Please login again.');
-      return;
-    }
-
-    if (!inputNumber || inputNumber.trim() === '') {
-      showError('Input Required', 'Please enter a number.');
-      return;
-    }
-
-    if (familyNumbers.length === 0) {
-      showError('No Family Found', 'No family found for the entered number.');
       return;
     }
 
@@ -147,51 +180,51 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     }
 
     if (total === 0) {
-      showError('No Selection', 'Please select an amount to bet.');
+      showError('No Selection', 'Please select at least one family number to bet on.');
       return;
     }
 
+    if (!inputNumber || !familyPanelData[inputNumber]) {
+      showError('Invalid Input', 'Please enter a valid family number.');
+      return;
+    }
+
+    // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }
 
-    // FamilyPanel game only allows betting during open betting period
-    if (!isBettingAllowed()) {
-      showError('Betting Not Available', 'FamilyPanel betting is only available during open betting period');
+    // Use the user's selected bet type
+    if (!isBetTypeAllowed(selectedBetType!)) {
+      showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Format amounts object to use two-digit keys
-      const formattedAmounts: { [key: string]: number } = {};
-      Object.keys(amounts).forEach(key => {
-        const num = parseInt(key);
-        const formattedKey = num.toString().padStart(2, '0');
-        formattedAmounts[formattedKey] = amounts[num];
-      });
-
-      // Call the bet API - FamilyPanel game always sends 'both' as bet type
+      // Call the bet API
       const response = await betAPI.placeBet({
         marketId,
         gameType: 'family_panel',
-        betType: 'both',
-        numbers: formattedAmounts,
+        betType: selectedBetType!,
+        numbers: amounts,
         amount: total
       });
 
       if (response.success && response.data) {
+        // Update user balance with the new balance from the response
         updateBalance(response.data.userAfterAmount);
+
         showSuccess('Bet Placed Successfully', `Amount: ₹${total.toLocaleString()}`);
 
         // Reset the form
-        setInputNumber('');
-        setFamilyNumbers([]);
         setAmounts({});
         setSelectedAmount(null);
+        setInputNumber('');
+        setFamilyNumbers([]);
       } else {
         showError('Bet Failed', response.message || 'Failed to place bet');
       }
@@ -204,15 +237,19 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
   };
 
   const handleReset = () => {
-    setInputNumber('');
-    setFamilyNumbers([]);
     setAmounts({});
     setSelectedAmount(null);
-    // FamilyPanel game always uses 'both' bet type
-    setSelectedBetType('both');
+    setInputNumber('');
+    setFamilyNumbers([]);
+    // Reset to default bet type based on current availability
+    if (isBetTypeAllowed('open')) {
+      setSelectedBetType('open');
+    } else if (isBetTypeAllowed('close')) {
+      setSelectedBetType('close');
+    }
   };
 
-  // Amount options
+  // Amount options for mapping
   const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
   return (
@@ -226,9 +263,42 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-600 text-white shadow-md">
-                  BOTH
-                </span>
+                {(() => {
+                  const openAllowed = isBetTypeAllowed('open');
+                  const closeAllowed = isBetTypeAllowed('close');
+                  return (
+                    <>
+                      {openAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('open');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                            ? 'text-white bg-green-600 shadow-md scale-105'
+                            : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
+                            }`}
+                        >
+                          OPEN
+                        </button>
+                      )}
+                      {closeAllowed && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBetType('close');
+                          }}
+                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                            ? 'text-white bg-blue-600 shadow-md scale-105'
+                            : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
+                            }`}
+                        >
+                          CLOSE
+                        </button>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -276,54 +346,63 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
             </div>
           </div>
 
-          {/* Number Input Section */}
+          {/* Input Number Section */}
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Enter Number</h2>
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              <h2 className="text-base font-bold text-gray-800">Enter Family Number (0-9)</h2>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Enter Number (0-99)
-              </label>
+            <div className="flex gap-3">
               <input
-                type="number"
+                type="text"
                 value={inputNumber}
-                onChange={(e) => handleInputNumberChange(e.target.value)}
-                min="0"
-                max="99"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
-                placeholder="Enter number 0-99"
+                onChange={(e) => handleInputNumberChange(e.target.value.replace(/\D/g, ''))}
+                onBlur={handleInputBlur}
+                placeholder="Enter family number (e.g., 5)"
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black"
+                maxLength={1}
               />
-              {inputNumber && familyNumbers.length > 0 && (
-                <div className="mt-2 text-sm text-gray-600">
-                  Family members for {inputNumber}: {familyNumbers.map(num => num.toString().padStart(2, '0')).join(', ')}
-                </div>
-              )}
+              <div className="flex items-center">
+                <span className="text-sm text-gray-600">
+                  {familyNumbers.length > 0 ? `${familyNumbers.length} numbers found` : 'Enter 0-9'}
+                </span>
+              </div>
             </div>
+          </div>
 
-            {/* Family Numbers Display */}
-            {familyNumbers.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Family Numbers ({familyNumbers.length} numbers)
-                </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
-                  {familyNumbers.map((num, index) => (
-                    <div key={index} className="group">
-                      <div className="text-center mb-1">
-                        <span className="text-xs font-bold text-gray-600">{num.toString().padStart(2, '0')}</span>
-                      </div>
-                      <div className="w-full aspect-square rounded-md border bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md flex items-center justify-center">
-                        <span className="text-xs font-bold">{selectedAmount || 0}</span>
+          {/* Family Numbers Display */}
+          {familyNumbers.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <h2 className="text-base font-bold text-gray-800">Family Numbers (Auto-placed)</h2>
+              </div>
+
+              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                {familyNumbers.map((num) => (
+                  <div key={num} className="group">
+                    <div className="text-center mb-1">
+                      <span className="text-xs font-bold text-gray-600">{num}</span>
+                    </div>
+                    <div className={`w-full aspect-square rounded-md border transition-all duration-200 ${amounts[num] && amounts[num] > 0
+                      ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md'
+                      : 'bg-gray-100 border-gray-200 text-gray-400'
+                      }`}
+                    >
+                      <div className="flex flex-col items-center justify-center h-full">
+                        {amounts[num] > 0 ? (
+                          <span className="text-xs font-bold">{amounts[num]}</span>
+                        ) : (
+                          <span className="text-xs text-gray-400">₹0</span>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Compact Action Buttons */}
           <div className="flex gap-3">
@@ -343,7 +422,7 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
 
             <button
               type="submit"
-              disabled={total === 0 || isSubmitting || !inputNumber || familyNumbers.length === 0}
+              disabled={total === 0 || isSubmitting || familyNumbers.length === 0}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               <div className="flex items-center justify-center gap-2">

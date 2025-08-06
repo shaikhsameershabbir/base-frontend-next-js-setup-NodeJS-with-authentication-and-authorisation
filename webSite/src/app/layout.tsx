@@ -5,6 +5,7 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { MarketDataProvider } from '@/contexts/MarketDataContext';
 import { NotificationRenderer } from '@/components/ui/notification-renderer';
 
 export const metadata: Metadata = {
@@ -22,8 +23,10 @@ export default function RootLayout({
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <AuthProvider>
           <NotificationProvider>
-            {children}
-            <NotificationRenderer />
+            <MarketDataProvider>
+              {children}
+              <NotificationRenderer />
+            </MarketDataProvider>
           </NotificationProvider>
         </AuthProvider>
       </body>

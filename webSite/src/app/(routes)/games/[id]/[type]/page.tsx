@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import BottomNav from '@/app/components/BottomNav';
-import { useGameData } from '@/contexts/GameDataContext';
-import { GameDataProvider } from '@/contexts/GameDataContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 // Import game type components
 import SingleGame from './components/SingleGame';
 import JodiGame from './components/JodiGame';
@@ -11,8 +10,7 @@ import SangamGame from './components/SangamGame';
 import BaseMotorGame from './components/BaseMotorGame';
 import RedBracket from './components/RedBracket';
 import FamilyPanel from './components/FamilyPanel';
-import OddEven from './components/OddEven';
-import AllInOneGame from './components/AllInOneGame';
+
 import SinglePanna from './components/SinglePanna';
 import DoublePanna from './components/Doublepanna';
 import TriplePanna from './components/Triplepanna';
@@ -25,45 +23,56 @@ const GameTypePageContent = () => {
   const params = useParams();
   const gameId = params.id as string;
   const gameType = params.type as string;
-  const { getMarketStatus } = useGameData();
+  const { markets, getMarketResult } = useMarketData();
   const [marketName, setMarketName] = useState<string>('Market');
+  const [loading, setLoading] = useState(true);
 
-  // Get market details from centralized context
+  // Get market details from context
   useEffect(() => {
-    const marketStatusData = getMarketStatus(gameId);
-    if (marketStatusData) {
-      setMarketName(marketStatusData.marketName || 'Market');
+    const market = markets.find(m => m._id === gameId);
+    if (market) {
+      setMarketName(market.marketName || 'Market');
     }
-  }, [gameId, getMarketStatus]);
+    setLoading(false);
+  }, [markets, gameId]);
+
+  const marketResult = getMarketResult(gameId);
 
   const renderGameComponent = () => {
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center py-8">
+          <div className="text-lg text-primary">Loading game...</div>
+        </div>
+      );
+    }
+
     switch (gameType) {
-      case 'all-in-one':
-        return <AllInOneGame gameId={gameId} />;
+
       case 'single':
-        return <SingleGame marketId={gameId} marketName={marketName} />;
+        return <SingleGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'jodi-digits':
-        return <JodiGame marketId={gameId} marketName={marketName} />;
+        return <JodiGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'single-panna':
-        return <SinglePanna marketId={gameId} marketName={marketName} />;
+        return <SinglePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'double-panna':
-        return <DoublePanna marketId={gameId} marketName={marketName} />;
+        return <DoublePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'triple-panna':
-        return <TriplePanna marketId={gameId} marketName={marketName} />;
+        return <TriplePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'sp-motor':
-        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="SP" />;
+        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="SP" marketResult={marketResult} />;
       case 'dp-motor':
-        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="DP" />;
+        return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="DP" marketResult={marketResult} />;
       case 'SP_DP':
-        return <CommonSpDp marketId={gameId} marketName={marketName} />
+        return <CommonSpDp marketId={gameId} marketName={marketName} marketResult={marketResult} />
       case 'red-bracket':
-        return <RedBracket marketId={gameId} marketName={marketName} />;
+        return <RedBracket marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'cycle-panna':
-        return <CyclePanna marketId={gameId} marketName={marketName} />;
+        return <CyclePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'family-panel':
-        return <FamilyPanel marketId={gameId} marketName={marketName} />;
+        return <FamilyPanel marketId={gameId} marketName={marketName} marketResult={marketResult} />;
       case 'sangam':
-        return <SangamGame marketId={gameId} marketName={marketName} />;
+        return <SangamGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
 
       default:
         return <div>Game type not found</div>;
@@ -83,11 +92,7 @@ const GameTypePageContent = () => {
 };
 
 const GameTypePage = () => {
-  return (
-    <GameDataProvider>
-      <GameTypePageContent />
-    </GameDataProvider>
-  );
+  return <GameTypePageContent />;
 };
 
 export default GameTypePage; 

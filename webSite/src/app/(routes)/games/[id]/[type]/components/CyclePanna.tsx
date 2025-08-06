@@ -2,18 +2,21 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface CyclePannaProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market' }) => {
+const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
 
   // Core state from SinglePanna
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -83,17 +86,40 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
     "99": [199, 299, 399, 499, 599, 699, 799, 899, 990, 999]
   };
 
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
+
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
+    if (!marketStatus) return false;
 
     if (betType === 'open') {
       // Open betting is only allowed during open_betting period
-      return marketStatusData.status === 'open_betting';
+      return marketStatus.status === 'open_betting';
     } else {
       // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
     }
   };
 
@@ -102,11 +128,6 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
     const sum = Object.values(amounts).reduce((acc, val) => acc + val, 0);
     setTotal(sum);
   }, [amounts]);
-
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
 
   // Update selectedBetType when it changes
   useEffect(() => {
@@ -121,8 +142,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
 
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
         if (isBetTypeAllowed('open')) {
@@ -141,7 +161,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
         }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
 
   // When an amount is selected, just set selectedAmount (do not clear inputs)
   const handleAmountSelect = (amt: number) => {
@@ -214,8 +234,7 @@ const CyclePanna: React.FC<CyclePannaProps> = ({ marketId, marketName = 'Market'
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const marketStatusData = getMarketStatus(marketId);
-      const statusMessage = marketStatusData?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }

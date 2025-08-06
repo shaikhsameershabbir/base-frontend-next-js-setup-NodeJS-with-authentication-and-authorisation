@@ -2,8 +2,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
-import { useGameData } from '@/contexts/GameDataContext';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 
 interface SubRangeType {
   [key: string]: number[];
@@ -12,12 +12,41 @@ interface SubRangeType {
 interface SinglePannaProps {
   marketId: string;
   marketName?: string;
+  marketResult?: any;
 }
 
-const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Market' }) => {
+const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Market', marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
-  const { getCurrentTime, getMarketStatus, fetchMarketStatus } = useGameData();
   const { showError, showSuccess, showInfo } = useNotification();
+  const { getMarketStatus, fetchMarketStatus } = useMarketData();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [marketStatus, setMarketStatus] = useState<any>(null);
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Get market status from context or fetch if not available
+  useEffect(() => {
+    const getStatus = async () => {
+      try {
+        // Use the centralized fetch function
+        const status = await fetchMarketStatus(marketId);
+        if (status) {
+          setMarketStatus(status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch market status:', error);
+      }
+    };
+
+    getStatus();
+  }, [marketId, fetchMarketStatus]);
 
   // Store each panna's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({});
@@ -44,27 +73,20 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
 
   // Check if a specific bet type is allowed
   const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (!marketStatusData) return false;
+    if (!marketStatus) return false;
 
     if (betType === 'open') {
       // Open betting is only allowed during open_betting period
-      return marketStatusData.status === 'open_betting';
+      return marketStatus.status === 'open_betting';
     } else {
       // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatusData.status === 'open_betting' || marketStatusData.status === 'close_betting';
+      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
     }
   };
 
-  // Fetch market status when component mounts
-  useEffect(() => {
-    fetchMarketStatus(marketId);
-  }, [marketId, fetchMarketStatus]);
-
   // Set default bet type when market status changes
   useEffect(() => {
-    const marketStatusData = getMarketStatus(marketId);
-    if (marketStatusData) {
+    if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
         if (isBetTypeAllowed('open')) {
@@ -83,7 +105,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
         }
       }
     }
-  }, [marketId, getMarketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
 
   // Reset amounts and selectedAmount when selectedBetType changes
   useEffect(() => {
@@ -180,7 +202,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
 
     // Frontend time validation
     if (!isBettingAllowed()) {
-      const statusMessage = getMarketStatus(marketId)?.message || 'Betting is not allowed at this time';
+      const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }
