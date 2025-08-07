@@ -31,7 +31,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
   const router = useRouter();
 
   // Check if market is open for betting
-  const isMarketOpen = status === "Open" || status === "open_betting";
+  const isMarketOpen = status === "Open" || status === "open_betting" || status === "Close Only" || status === "close_betting";
 
   // Debug logging
   console.log(`MarketCard - ${market.marketName}: Status=${status}, IsOpen=${isMarketOpen}`);

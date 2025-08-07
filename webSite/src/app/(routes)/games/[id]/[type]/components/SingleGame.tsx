@@ -3,6 +3,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
+import { isBetTypeAllowed, isBettingAllowed } from '@/lib/utils/marketUtils';
 
 interface SingleGameProps {
   marketId: string;
@@ -52,19 +53,9 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     getStatus();
   }, [marketId, fetchMarketStatus]);
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) {
-      return false;
-    }
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
+  // Check if a specific bet type is allowed using utility function
+  const checkBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    return isBetTypeAllowed(betType, marketStatus);
   };
 
   // Calculate total whenever amounts change
@@ -89,23 +80,23 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
-        if (isBetTypeAllowed('open')) {
+        if (checkBetTypeAllowed('open')) {
           setSelectedBetType('open');
-        } else if (isBetTypeAllowed('close')) {
+        } else if (checkBetTypeAllowed('close')) {
           setSelectedBetType('close');
         }
       } else {
         // If current bet type is no longer allowed, switch to an allowed one
-        if (!isBetTypeAllowed(selectedBetType)) {
-          if (isBetTypeAllowed('open')) {
+        if (!checkBetTypeAllowed(selectedBetType)) {
+          if (checkBetTypeAllowed('open')) {
             setSelectedBetType('open');
-          } else if (isBetTypeAllowed('close')) {
+          } else if (checkBetTypeAllowed('close')) {
             setSelectedBetType('close');
           }
         }
       }
     }
-  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, checkBetTypeAllowed, selectedBetType]);
 
   // When an amount is selected, just set selectedAmount (do not clear digit inputs)
   const handleAmountSelect = (amt: number) => {
@@ -209,10 +200,9 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     return null;
   };
 
-  // Check if betting is currently allowed
-  const isBettingAllowed = (): boolean => {
-    const currentBetType = getCurrentBetType();
-    return currentBetType !== null;
+  // Check if betting is currently allowed using utility function
+  const checkBettingAllowed = (): boolean => {
+    return isBettingAllowed(marketStatus);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,7 +225,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     }
 
     // Frontend time validation
-    if (!isBettingAllowed()) {
+    if (!checkBettingAllowed()) {
       const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
@@ -245,8 +235,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
     try {
       // Determine which bet types are available
-      const canBetOpen = isBetTypeAllowed('open');
-      const canBetClose = isBetTypeAllowed('close');
+      const canBetOpen = checkBetTypeAllowed('open');
+      const canBetClose = checkBetTypeAllowed('close');
 
       if (!canBetOpen && !canBetClose) {
         showError('No Betting Available', 'No betting available at this time');
@@ -254,7 +244,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
       }
 
       // Use the user's selected bet type
-      if (!isBetTypeAllowed(selectedBetType)) {
+      if (!checkBetTypeAllowed(selectedBetType)) {
         showError('Betting Not Available', `${selectedBetType.toUpperCase()} betting is not available at this time`);
         return;
       }
@@ -296,9 +286,9 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     });
     setSelectedAmount(null);
     // Reset to default bet type based on current availability
-    if (isBetTypeAllowed('open')) {
+    if (checkBetTypeAllowed('open')) {
       setSelectedBetType('open');
-    } else if (isBetTypeAllowed('close')) {
+    } else if (checkBetTypeAllowed('close')) {
       setSelectedBetType('close');
     }
   };
@@ -318,8 +308,8 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
               <div className="flex gap-2">
                 {(() => {
-                  const openAllowed = isBetTypeAllowed('open');
-                  const closeAllowed = isBetTypeAllowed('close');
+                  const openAllowed = checkBetTypeAllowed('open');
+                  const closeAllowed = checkBetTypeAllowed('close');
                   return (
                     <>
                       {openAllowed && (

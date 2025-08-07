@@ -5,6 +5,7 @@ import { singlePannaNumbers, doublePannaNumbers } from '@/app/constant/constant'
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
+import { isBetTypeAllowed, isBettingAllowed } from '@/lib/utils/marketUtils';
 
 interface CommonSpDpProps {
   marketId: string;
@@ -53,17 +54,9 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     getStatus();
   }, [marketId, fetchMarketStatus]);
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
+  // Check if a specific bet type is allowed using utility function
+  const checkBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    return isBetTypeAllowed(betType, marketStatus);
   };
 
   // Calculate total whenever amounts change
@@ -85,17 +78,17 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
-        if (isBetTypeAllowed('open')) {
+        if (checkBetTypeAllowed('open')) {
           setSelectedBetType('open');
-        } else if (isBetTypeAllowed('close')) {
+        } else if (checkBetTypeAllowed('close')) {
           setSelectedBetType('close');
         }
       } else {
         // If current bet type is no longer allowed, switch to an allowed one
-        if (!isBetTypeAllowed(selectedBetType)) {
-          if (isBetTypeAllowed('open')) {
+        if (!checkBetTypeAllowed(selectedBetType)) {
+          if (checkBetTypeAllowed('open')) {
             setSelectedBetType('open');
-          } else if (isBetTypeAllowed('close')) {
+          } else if (checkBetTypeAllowed('close')) {
             setSelectedBetType('close');
           }
         }
@@ -172,9 +165,9 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     }
   }, [inputDigits, selectedGameMode, selectedAmount]);
 
-  // Check if betting is currently allowed
-  const isBettingAllowed = (): boolean => {
-    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
+  // Check if betting is currently allowed using utility function
+  const checkBettingAllowed = (): boolean => {
+    return isBettingAllowed(marketStatus);
   };
 
   // When an amount is selected, just set selectedAmount (do not clear inputs)
@@ -207,14 +200,14 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     }
 
     // Frontend time validation
-    if (!isBettingAllowed()) {
+    if (!checkBettingAllowed()) {
       const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;
     }
 
     // Use the user's selected bet type
-    if (!isBetTypeAllowed(selectedBetType!)) {
+    if (!checkBetTypeAllowed(selectedBetType!)) {
       showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
@@ -269,9 +262,9 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
     setInputDigits('');
     setValidPannas([]);
     // Reset to default bet type based on current availability
-    if (isBetTypeAllowed('open')) {
+    if (checkBetTypeAllowed('open')) {
       setSelectedBetType('open');
-    } else if (isBetTypeAllowed('close')) {
+    } else if (checkBetTypeAllowed('close')) {
       setSelectedBetType('close');
     }
   };
@@ -291,8 +284,8 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
 
               <div className="flex gap-2">
                 {(() => {
-                  const openAllowed = isBetTypeAllowed('open');
-                  const closeAllowed = isBetTypeAllowed('close');
+                  const openAllowed = checkBetTypeAllowed('open');
+                  const closeAllowed = checkBetTypeAllowed('close');
                   return (
                     <>
                       {openAllowed && (

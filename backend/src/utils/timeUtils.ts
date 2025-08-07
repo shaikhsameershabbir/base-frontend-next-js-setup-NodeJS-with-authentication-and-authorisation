@@ -67,35 +67,59 @@ export const isBettingAllowed = (
 ): { allowed: boolean; message?: string; nextBetTime?: Date } => {
     const now = getCurrentIndianTime();
 
-    // Parse the times using the improved function that handles date updates
+    // Parse the times
+    const openMoment = parseTimeToIndianMoment(openTime);
     const closeMoment = parseTimeToIndianMoment(closeTime);
 
-    // Calculate the no-betting window
-    const noBettingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
+    // Calculate loading periods
+    const openLoadingStart = openMoment.clone().subtract(bufferMinutes, 'minutes');
+    const closeLoadingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
 
-    // Market is open from midnight (00:00) to close time
+    // Market day starts at midnight
     const midnight = now.clone().startOf('day'); // 00:00 AM
 
     // Before midnight: No betting allowed
     if (now.isBefore(midnight)) {
         return {
             allowed: false,
-            message: `Market opens at midnight (00:00). Betting will be available until ${noBettingStart.format('HH:mm')}`
+            message: `Market opens at midnight (00:00). Betting will be available until ${closeLoadingStart.format('HH:mm')}`
         };
     }
 
-    // During open betting period: All bet types allowed
-    if (now.isBetween(midnight, noBettingStart)) {
+    // During open betting period: All bet types allowed (midnight to open loading start)
+    if (now.isBetween(midnight, openLoadingStart)) {
         return {
             allowed: true
         };
     }
 
-    // During no-betting period: No betting allowed
-    if (now.isBetween(noBettingStart, closeMoment)) {
+    // During open loading period: No betting allowed
+    if (now.isBetween(openLoadingStart, openMoment)) {
         return {
             allowed: false,
-            message: `No betting allowed. Market closes at ${closeMoment.format('HH:mm')}`
+            message: `Loading period. Market opens at ${openMoment.format('HH:mm')}`
+        };
+    }
+
+    // During close betting period: Only close betting allowed (open time to close loading start)
+    if (now.isBetween(openMoment, closeLoadingStart)) {
+        if (betType === 'close' || betType === 'both') {
+            return {
+                allowed: true
+            };
+        } else {
+            return {
+                allowed: false,
+                message: `Only close betting is allowed. Market closes at ${closeMoment.format('HH:mm')}`
+            };
+        }
+    }
+
+    // During close loading period: No betting allowed
+    if (now.isBetween(closeLoadingStart, closeMoment)) {
+        return {
+            allowed: false,
+            message: `Loading period. Market closes at ${closeMoment.format('HH:mm')}`
         };
     }
 
@@ -112,53 +136,64 @@ export const isBettingAllowed = (
  * @param closeTime - Market close time string (HH:mm or ISO format)
  */
 export const getMarketStatus = (openTime: string, closeTime: string): {
-    status: 'open_betting' | 'no_betting' | 'close_betting' | 'closing_soon' | 'closed';
+    status: 'open_betting' | 'close_betting' | 'open_loading' | 'close_loading' | 'closed';
     message: string;
     nextEvent?: { type: string; time: Date };
 } => {
     const now = getCurrentIndianTime();
 
-    // Parse the times - handle both UTC ISO strings and HH:mm format
-    let closeMoment: moment.Moment;
+    // Parse the times
+    const openMoment = parseTimeToIndianMoment(openTime);
+    const closeMoment = parseTimeToIndianMoment(closeTime);
 
-    // Check if times are in ISO format (UTC)
-    if (closeTime.includes('T') && closeTime.includes('Z')) {
-        // Convert UTC to Indian timezone and update to today if needed
-        closeMoment = parseTimeToIndianMoment(closeTime);
-    } else {
-        // Parse as HH:mm format in Indian timezone
-        closeMoment = parseTimeToIndianMoment(closeTime);
-    }
+    // Calculate loading periods
+    const openLoadingStart = openMoment.clone().subtract(15, 'minutes');
+    const closeLoadingStart = closeMoment.clone().subtract(15, 'minutes');
 
-    // Calculate the no-betting window (15 minutes before close time)
-    const noBettingStart = closeMoment.clone().subtract(15, 'minutes');
-
-    // Market is open from midnight (00:00) to close time
+    // Market day starts at midnight
     const midnight = now.clone().startOf('day'); // 00:00 AM
 
     // Before midnight: Market closed
     if (now.isBefore(midnight)) {
         return {
             status: 'closed',
-            message: `Market opens at midnight (00:00). Open betting will be available until ${noBettingStart.format('HH:mm')}`,
+            message: `Market opens at midnight (00:00). Open betting will be available until ${openLoadingStart.format('HH:mm')}`,
             nextEvent: { type: 'market_open', time: midnight.toDate() }
         };
     }
 
-    // Open betting: From midnight to 15 minutes before close time
-    if (now.isBetween(midnight, noBettingStart)) {
+    // Open betting: From midnight to open loading start
+    if (now.isBetween(midnight, openLoadingStart)) {
         return {
             status: 'open_betting',
-            message: `Open betting is active until ${noBettingStart.format('HH:mm')}`,
-            nextEvent: { type: 'open_end', time: noBettingStart.toDate() }
+            message: `Open betting is active until ${openLoadingStart.format('HH:mm')}`,
+            nextEvent: { type: 'open_loading', time: openLoadingStart.toDate() }
         };
     }
 
-    // No betting: 15 minutes before close time to close time
-    if (now.isBetween(noBettingStart, closeMoment)) {
+    // Open loading: 15 minutes before open time to open time
+    if (now.isBetween(openLoadingStart, openMoment)) {
         return {
-            status: 'no_betting',
-            message: `No betting allowed. Market closes at ${closeMoment.format('HH:mm')}`,
+            status: 'open_loading',
+            message: `Loading period. Market opens at ${openMoment.format('HH:mm')}`,
+            nextEvent: { type: 'market_open', time: openMoment.toDate() }
+        };
+    }
+
+    // Close betting: From open time to close loading start
+    if (now.isBetween(openMoment, closeLoadingStart)) {
+        return {
+            status: 'close_betting',
+            message: `Close betting is active until ${closeLoadingStart.format('HH:mm')}`,
+            nextEvent: { type: 'close_loading', time: closeLoadingStart.toDate() }
+        };
+    }
+
+    // Close loading: 15 minutes before close time to close time
+    if (now.isBetween(closeLoadingStart, closeMoment)) {
+        return {
+            status: 'close_loading',
+            message: `Loading period. Market closes at ${closeMoment.format('HH:mm')}`,
             nextEvent: { type: 'market_close', time: closeMoment.toDate() }
         };
     }
@@ -191,21 +226,26 @@ export const getTimeUntilNextBetting = (
 ): { hours: number; minutes: number; seconds: number } | null => {
     const now = getCurrentIndianTime();
 
-    // Parse the times using the improved function that handles date updates
+    // Parse the times
     const openMoment = parseTimeToIndianMoment(openTime);
     const closeMoment = parseTimeToIndianMoment(closeTime);
 
+    // Calculate loading periods
+    const openLoadingStart = openMoment.clone().subtract(15, 'minutes');
+    const closeLoadingStart = closeMoment.clone().subtract(15, 'minutes');
+
     let targetTime: moment.Moment;
-    if (betType === 'open') {
-        targetTime = openMoment;
+
+    if (betType === 'open' || betType === 'both') {
+        // For open betting, target is open loading start
+        targetTime = openLoadingStart;
     } else {
-        targetTime = closeMoment;
+        // For close betting, target is close loading start
+        targetTime = closeLoadingStart;
     }
 
-    const bettingStart = targetTime.clone().subtract(15, 'minutes');
-
-    if (now.isBefore(bettingStart)) {
-        const diff = bettingStart.diff(now);
+    if (now.isBefore(targetTime)) {
+        const diff = targetTime.diff(now);
         const duration = moment.duration(diff);
 
         return {

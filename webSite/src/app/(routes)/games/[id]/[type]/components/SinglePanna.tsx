@@ -4,6 +4,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
+import { isBetTypeAllowed, isBettingAllowed } from '@/lib/utils/marketUtils';
 
 interface SubRangeType {
   [key: string]: number[];
@@ -71,17 +72,9 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
   // Calculate total whenever amounts change
   const total = Object.values(amounts).reduce((sum, val) => sum + val, 0);
 
-  // Check if a specific bet type is allowed
-  const isBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
-    if (!marketStatus) return false;
-
-    if (betType === 'open') {
-      // Open betting is only allowed during open_betting period
-      return marketStatus.status === 'open_betting';
-    } else {
-      // Close betting is allowed during both open_betting and close_betting periods
-      return marketStatus.status === 'open_betting' || marketStatus.status === 'close_betting';
-    }
+  // Check if a specific bet type is allowed using utility function
+  const checkBetTypeAllowed = (betType: 'open' | 'close'): boolean => {
+    return isBetTypeAllowed(betType, marketStatus);
   };
 
   // Set default bet type when market status changes
@@ -89,23 +82,23 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     if (marketStatus) {
       // Only set default if no bet type is currently selected
       if (selectedBetType === null) {
-        if (isBetTypeAllowed('open')) {
+        if (checkBetTypeAllowed('open')) {
           setSelectedBetType('open');
-        } else if (isBetTypeAllowed('close')) {
+        } else if (checkBetTypeAllowed('close')) {
           setSelectedBetType('close');
         }
       } else {
         // If current bet type is no longer allowed, switch to an allowed one
-        if (!isBetTypeAllowed(selectedBetType)) {
-          if (isBetTypeAllowed('open')) {
+        if (!checkBetTypeAllowed(selectedBetType)) {
+          if (checkBetTypeAllowed('open')) {
             setSelectedBetType('open');
-          } else if (isBetTypeAllowed('close')) {
+          } else if (checkBetTypeAllowed('close')) {
             setSelectedBetType('close');
           }
         }
       }
     }
-  }, [marketStatus, isBetTypeAllowed, selectedBetType]);
+  }, [marketStatus, checkBetTypeAllowed, selectedBetType]);
 
   // Reset amounts and selectedAmount when selectedBetType changes
   useEffect(() => {
@@ -113,9 +106,9 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     setSelectedAmount(null);
   }, [selectedBetType]);
 
-  // Check if betting is currently allowed
-  const isBettingAllowed = (): boolean => {
-    return isBetTypeAllowed('open') || isBetTypeAllowed('close');
+  // Check if betting is currently allowed using utility function
+  const checkBettingAllowed = (): boolean => {
+    return isBettingAllowed(marketStatus);
   };
 
   // When an amount is selected, just set selectedAmount (do not clear inputs)
@@ -208,7 +201,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     }
 
     // Use the user's selected bet type
-    if (!isBetTypeAllowed(selectedBetType!)) {
+    if (!checkBetTypeAllowed(selectedBetType!)) {
       showError('Betting Not Available', `${selectedBetType!.toUpperCase()} betting is not available at this time`);
       return;
     }
@@ -249,9 +242,9 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     setAmounts({});
     setSelectedAmount(null);
     // Reset to default bet type based on current availability
-    if (isBetTypeAllowed('open')) {
+    if (checkBetTypeAllowed('open')) {
       setSelectedBetType('open');
-    } else if (isBetTypeAllowed('close')) {
+    } else if (checkBetTypeAllowed('close')) {
       setSelectedBetType('close');
     }
   };
@@ -270,7 +263,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
               <span className="text-lg font-bold text-gray-800">{marketName}</span>
 
               <div className="flex gap-2">
-                {isBetTypeAllowed('open') && (
+                {checkBetTypeAllowed('open') && (
                   <button
                     type="button"
                     onClick={() => setSelectedBetType('open')}
@@ -282,7 +275,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
                     OPEN
                   </button>
                 )}
-                {isBetTypeAllowed('close') && (
+                {checkBetTypeAllowed('close') && (
                   <button
                     type="button"
                     onClick={() => setSelectedBetType('close')}

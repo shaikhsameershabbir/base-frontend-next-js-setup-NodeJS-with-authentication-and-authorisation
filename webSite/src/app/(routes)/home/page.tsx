@@ -2,7 +2,6 @@
 
 import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
-import Header from "@/app/components/Header";
 import Message from "@/app/components/Message";
 import React from "react";
 import { RefreshCcw } from "lucide-react";
@@ -63,41 +62,58 @@ function HomeContent() {
     const getMarketStatus = (market: Market): MarketStatus => {
         const now = currentTime;
 
-        // Parse market times using the same method as MarketCard
+        // Parse market times
+        const openTime = new Date(market.openTime);
         const closeTime = new Date(market.closeTime);
 
         // Create Date objects for today with the market times
         const today = new Date();
+        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTime.getHours(), openTime.getMinutes());
         const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTime.getHours(), closeTime.getMinutes());
 
-        // Check if market is currently open based on backend logic
-        // Market is open from midnight (00:00) to 15 minutes before closeTime
-        const noBettingStart = new Date(todayCloseTime.getTime() - (15 * 60 * 1000)); // 15 minutes before close
-        const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0); // 00:00 AM
+        // Calculate loading periods (15 minutes before each time)
+        const openLoadingStart = new Date(todayOpenTime.getTime() - (15 * 60 * 1000));
+        const closeLoadingStart = new Date(todayCloseTime.getTime() - (15 * 60 * 1000));
 
-        // Debug logging
-        console.log(`Market: ${market.marketName}`);
-        console.log(`Current Time: ${now.toLocaleTimeString()}`);
-        console.log(`Close Time: ${todayCloseTime.toLocaleTimeString()}`);
-        console.log(`No Betting Start: ${noBettingStart.toLocaleTimeString()}`);
-        console.log(`Midnight: ${midnight.toLocaleTimeString()}`);
-
-        const isOpen = now >= midnight && now < noBettingStart;
-        const timeUntilOpen = midnight.getTime() - now.getTime();
-        const timeUntilClose = todayCloseTime.getTime() - now.getTime();
+        // Market day starts at midnight
+        const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
 
         let status = 'Closed';
+        let isOpen = false;
+
+        // Before midnight: Market closed
         if (now < midnight) {
             status = 'Opening Soon';
-        } else if (isOpen) {
+            isOpen = false;
+        }
+        // Open betting: From midnight to open loading start
+        else if (now >= midnight && now < openLoadingStart) {
             status = 'Open';
-        } else if (now >= noBettingStart && now < todayCloseTime) {
-            status = 'Closing Soon';
-        } else {
+            isOpen = true;
+        }
+        // Open loading: 15 minutes before open time to open time
+        else if (now >= openLoadingStart && now < todayOpenTime) {
+            status = 'Loading';
+            isOpen = false;
+        }
+        // Close betting: From open time to close loading start
+        else if (now >= todayOpenTime && now < closeLoadingStart) {
+            status = 'Close Only';
+            isOpen = true;
+        }
+        // Close loading: 15 minutes before close time to close time
+        else if (now >= closeLoadingStart && now < todayCloseTime) {
+            status = 'Loading';
+            isOpen = false;
+        }
+        // After close time: Market closed
+        else {
             status = 'Closed';
+            isOpen = false;
         }
 
-        console.log(`Status: ${status}, IsOpen: ${isOpen}`);
+        const timeUntilOpen = midnight.getTime() - now.getTime();
+        const timeUntilClose = todayCloseTime.getTime() - now.getTime();
 
         return {
             status,
@@ -110,9 +126,10 @@ function HomeContent() {
     // Get market status color
     const getMarketStatusColor = (market: Market): string => {
         const status = getMarketStatus(market);
-        if (status.isOpen) return 'text-green-600';
+        if (status.status === 'Open') return 'text-green-600';
+        if (status.status === 'Close Only') return 'text-blue-600';
+        if (status.status === 'Loading') return 'text-orange-600';
         if (status.status === 'Opening Soon') return 'text-yellow-600';
-        if (status.status === 'Closing Soon') return 'text-orange-600';
         return 'text-red-600';
     };
 
