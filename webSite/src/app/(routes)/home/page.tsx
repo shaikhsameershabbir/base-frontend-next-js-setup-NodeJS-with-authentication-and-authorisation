@@ -62,14 +62,30 @@ function HomeContent() {
     const getMarketStatus = (market: Market): MarketStatus => {
         const now = currentTime;
 
-        // Parse market times
-        const openTime = new Date(market.openTime);
-        const closeTime = new Date(market.closeTime);
+        // Parse market times (they are stored as strings like "13:14")
+        const parseTimeString = (timeStr: string) => {
+            // Handle ISO date string format
+            if (timeStr.includes('T')) {
+                const date = new Date(timeStr);
+                if (isNaN(date.getTime())) {
+                    console.error('Invalid ISO date:', timeStr);
+                    return { hours: 0, minutes: 0 };
+                }
+                return { hours: date.getHours(), minutes: date.getMinutes() };
+            }
+
+            // Handle simple time format (HH:MM)
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return { hours, minutes };
+        };
+
+        const openTime = parseTimeString(market.openTime);
+        const closeTime = parseTimeString(market.closeTime);
 
         // Create Date objects for today with the market times
         const today = new Date();
-        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTime.getHours(), openTime.getMinutes());
-        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTime.getHours(), closeTime.getMinutes());
+        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTime.hours, openTime.minutes);
+        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTime.hours, closeTime.minutes);
 
         // Calculate loading periods (15 minutes before each time)
         const openLoadingStart = new Date(todayOpenTime.getTime() - (15 * 60 * 1000));
@@ -77,6 +93,8 @@ function HomeContent() {
 
         // Market day starts at midnight
         const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+
+
 
         let status = 'Closed';
         let isOpen = false;

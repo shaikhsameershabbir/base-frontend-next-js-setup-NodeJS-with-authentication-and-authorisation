@@ -194,7 +194,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     }
 
     // Frontend time validation
-    if (!isBettingAllowed()) {
+    if (!checkBettingAllowed()) {
       const statusMessage = marketStatus?.message || 'Betting is not allowed at this time';
       showError('Betting Not Allowed', statusMessage);
       return;

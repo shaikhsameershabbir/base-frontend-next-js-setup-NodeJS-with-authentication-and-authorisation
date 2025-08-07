@@ -80,21 +80,89 @@ const MarketCard: React.FC<MarketCardProps> = ({
             <div>
               <p className="text-sm text-gray-600 font-bold">Time Open:</p>
               <p className="text-orange-500 font-semibold">
-                {new Date(market.openTime).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
+                {(() => {
+                  try {
+                    if (!market.openTime || typeof market.openTime !== 'string') {
+                      console.error('Invalid open time format:', market.openTime);
+                      return 'Invalid Time';
+                    }
+
+                    // Handle ISO date string format
+                    if (market.openTime.includes('T')) {
+                      const date = new Date(market.openTime);
+                      if (isNaN(date.getTime())) {
+                        console.error('Invalid ISO date:', market.openTime);
+                        return 'Invalid Time';
+                      }
+                      return date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                    }
+
+                    // Handle simple time format (HH:MM)
+                    const [hours, minutes] = market.openTime.split(':').map(Number);
+                    if (isNaN(hours) || isNaN(minutes)) {
+                      console.error('Invalid hours or minutes:', hours, minutes);
+                      return 'Invalid Time';
+                    }
+                    const date = new Date();
+                    date.setHours(hours, minutes);
+                    return date.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    });
+                  } catch (error) {
+                    console.error('Error parsing open time:', market.openTime, error);
+                    return market.openTime || 'Invalid Time';
+                  }
+                })()}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 font-bold">Time Close:</p>
               <p className="text-orange-500 font-semibold">
-                {new Date(market.closeTime).toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}
+                {(() => {
+                  try {
+                    if (!market.closeTime || typeof market.closeTime !== 'string') {
+                      console.error('Invalid close time format:', market.closeTime);
+                      return 'Invalid Time';
+                    }
+
+                    // Handle ISO date string format
+                    if (market.closeTime.includes('T')) {
+                      const date = new Date(market.closeTime);
+                      if (isNaN(date.getTime())) {
+                        console.error('Invalid ISO date:', market.closeTime);
+                        return 'Invalid Time';
+                      }
+                      return date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      });
+                    }
+
+                    // Handle simple time format (HH:MM)
+                    const [hours, minutes] = market.closeTime.split(':').map(Number);
+                    if (isNaN(hours) || isNaN(minutes)) {
+                      console.error('Invalid hours or minutes:', hours, minutes);
+                      return 'Invalid Time';
+                    }
+                    const date = new Date();
+                    date.setHours(hours, minutes);
+                    return date.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    });
+                  } catch (error) {
+                    console.error('Error parsing close time:', market.closeTime, error);
+                    return market.closeTime || 'Invalid Time';
+                  }
+                })()}
               </p>
             </div>
           </div>

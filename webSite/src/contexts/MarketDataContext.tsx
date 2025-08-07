@@ -122,6 +122,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       });
 
       console.log('MarketDataContext: Setting markets data', marketsData.length);
+      console.log('MarketDataContext: Sample market data:', marketsData[0]);
       setMarkets(marketsData);
 
       // Fetch all market results in a single API call
