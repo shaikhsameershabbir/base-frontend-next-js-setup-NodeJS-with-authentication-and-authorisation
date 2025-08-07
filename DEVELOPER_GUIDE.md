@@ -1,5 +1,17 @@
 # MK Matka Booking - Developer Guide
 
+> **📚 This documentation has been reorganized for better maintainability.**
+> 
+> **For the latest documentation, please refer to the `docs/` directory:**
+> 
+> - **[📖 README.md](docs/README.md)** - Project overview and quick start
+> - **[⚙️ SETUP.md](docs/SETUP.md)** - Installation and environment setup
+> - **[🏗️ ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture and design patterns
+> - **[🔌 API.md](docs/API.md)** - Complete API documentation *(Coming Soon)*
+> - **[🎮 GAMES.md](docs/GAMES.md)** - Game system and betting logic
+> - **[🚀 DEPLOYMENT.md](docs/DEPLOYMENT.md)** - Production deployment guide *(Coming Soon)*
+> - **[🐛 TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues and debugging *(Coming Soon)*
+
 ## 📋 Table of Contents
 1. [Project Overview](#project-overview)
 2. [Architecture](#architecture)
