@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { AuthMiddleware } from '../middlewares/auth.middleware';
 import { PlayerAuthMiddleware } from '../middlewares/playerAuth.middleware';
-import { declareResult, getMarketResults, getAllResults, getAllMarketResults } from '../controllers/result.controller';
+import { getMarketResults, getAllResults, getAllMarketResults } from '../controllers/result.controller';
+import { declareResult } from '../controllers/declareResult.controller';
 
 const router = Router();
 const authMiddleware = new AuthMiddleware();
