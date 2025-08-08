@@ -60,7 +60,9 @@ export function BetDetailModal({ betId, isOpen, onClose }: BetDetailModalProps) 
     };
 
     const getBetTypeColor = (betType: string) => {
-        return betType === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        if (betType === 'open') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        if (betType === 'close') return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'; // for 'both'
     };
 
     const getGameTypeColor = (gameType: string) => {
@@ -229,10 +231,18 @@ export function BetDetailModal({ betId, isOpen, onClose }: BetDetailModalProps) 
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-2">
                                     <p className="text-sm text-secondary">Bet Amount</p>
                                     <p className="text-primary font-medium text-lg">{formatCurrency(bet.amount)}</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-secondary">Win Amount</p>
+                                    {bet.winAmount !== null && bet.winAmount !== undefined ? (
+                                        <p className="text-green-600 font-medium text-lg">{formatCurrency(bet.winAmount)}</p>
+                                    ) : (
+                                        <p className="text-secondary">Not declared</p>
+                                    )}
                                 </div>
                                 <div className="space-y-2">
                                     <p className="text-sm text-secondary">Balance Before</p>
@@ -269,19 +279,42 @@ export function BetDetailModal({ betId, isOpen, onClose }: BetDetailModalProps) 
                             <CardTitle className="text-primary">Status Information</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="space-y-2">
                                     <p className="text-sm text-secondary">Status</p>
                                     <Badge className={bet.status ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
                                         {bet.status ? 'Active' : 'Inactive'}
                                     </Badge>
                                 </div>
-                                {bet.result && (
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-secondary">Result</p>
-                                        <p className="text-primary font-medium">{bet.result}</p>
-                                    </div>
-                                )}
+                                <div className="space-y-2">
+                                    <p className="text-sm text-secondary">Result</p>
+                                    {bet.winAmount && bet.winAmount > 0 ? (
+                                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                            WIN
+                                        </Badge>
+                                    ) : bet.result ? (
+                                        <Badge className={bet.result === 'win' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                            {bet.result === 'win' ? 'WIN' : 'LOSS'}
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                            NOT DECLARED
+                                        </Badge>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-secondary">Claim Status</p>
+                                    <Badge className={bet.claimStatus ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                        {bet.claimStatus ? 'CLAIMED' : 'NOT CLAIMED'}
+                                    </Badge>
+                                </div>
+                                <div className="space-y-2">
+                                    <p className="text-sm text-secondary">Updated At</p>
+                                    <p className="text-primary flex items-center gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        {formatDate(bet.updatedAt)}
+                                    </p>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

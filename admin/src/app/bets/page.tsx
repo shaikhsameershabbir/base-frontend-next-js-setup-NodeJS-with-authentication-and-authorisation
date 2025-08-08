@@ -196,7 +196,9 @@ export default function BetsPage() {
     };
 
     const getBetTypeColor = (betType: string) => {
-        return betType === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        if (betType === 'open') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        if (betType === 'close') return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'; // for 'both'
     };
 
     const getGameTypeColor = (gameType: string) => {
@@ -567,6 +569,9 @@ export default function BetsPage() {
                                             <th className="text-left p-3 text-primary font-medium">Game Type</th>
                                             <th className="text-left p-3 text-primary font-medium">Bet Type</th>
                                             <th className="text-left p-3 text-primary font-medium">Amount</th>
+                                            <th className="text-left p-3 text-primary font-medium">Win Amount</th>
+                                            <th className="text-left p-3 text-primary font-medium">Result</th>
+                                            <th className="text-left p-3 text-primary font-medium">Claim Status</th>
                                             <th className="text-left p-3 text-primary font-medium">Date</th>
                                             <th className="text-left p-3 text-primary font-medium">Actions</th>
                                         </tr>
@@ -577,7 +582,7 @@ export default function BetsPage() {
                                                 <td className="p-3">
                                                     <div>
                                                         <p className="font-medium text-primary">{bet.userId.username}</p>
-                                                        <p className="text-sm text-secondary">{bet.userId.role}</p>
+                                                      
                                                     </div>
                                                 </td>
                                                 <td className="p-3">
@@ -595,6 +600,33 @@ export default function BetsPage() {
                                                 </td>
                                                 <td className="p-3">
                                                     <p className="font-medium text-primary">{formatCurrency(bet.amount)}</p>
+                                                </td>
+                                                <td className="p-3">
+                                                    {bet.winAmount !== null && bet.winAmount !== undefined ? (
+                                                        <p className="font-medium text-green-600">{formatCurrency(bet.winAmount)}</p>
+                                                    ) : (
+                                                        <p className="text-secondary">-</p>
+                                                    )}
+                                                </td>
+                                                <td className="p-3">
+                                                    {bet.winAmount && bet.winAmount > 0 ? (
+                                                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                                            WIN
+                                                        </Badge>
+                                                    ) : bet.result ? (
+                                                        <Badge className={bet.result === 'win' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                                            {bet.result === 'win' ? 'WIN' : 'LOSS'}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                                            NOT DECLARED
+                                                        </Badge>
+                                                    )}
+                                                </td>
+                                                <td className="p-3">
+                                                    <Badge className={bet.claimStatus ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                                        {bet.claimStatus ? 'CLAIMED' : 'NOT CLAIMED'}
+                                                    </Badge>
                                                 </td>
                                                 <td className="p-3">
                                                     <p className="text-secondary">{formatDate(bet.createdAt)}</p>

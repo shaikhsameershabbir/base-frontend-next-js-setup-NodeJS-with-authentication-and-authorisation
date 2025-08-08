@@ -20,6 +20,8 @@ export interface Bet {
     userBeforeAmount: number;
     userAfterAmount: number;
     status: boolean;
+    winAmount?: number | null;
+    claimStatus?: boolean;
     result?: string;
     selectedNumbers: { [key: number]: number };
     createdAt: Date;
