@@ -14,43 +14,80 @@ interface PopulatedUser {
     isActive: boolean;
 }
 
+// Interface for child user data
+interface ChildUser {
+    id: string;
+    username: string;
+    balance: number;
+    role: string;
+    isActive: boolean;
+    downlineCount: number;
+}
+
 export class TransfersController {
     async getChildUsers(req: Request, res: Response): Promise<void> {
         const authReq = req as AuthenticatedRequest;
         try {
             const userId = authReq.user?.userId;
+            const userRole = authReq.user?.role;
+
             if (!userId) {
                 res.status(401).json({ message: 'User not authenticated' });
                 return;
             }
 
-            // Get user's hierarchy to find direct children
-            const userHierarchy = await UserHierarchy.findOne({ userId });
-            if (!userHierarchy) {
-                res.status(404).json({ message: 'User hierarchy not found' });
-                return;
-            }
+            let childUsers: ChildUser[] = [];
 
-            // Find direct children (users with this user as parent)
-            const childUsers = await UserHierarchy.find({ parentId: userId })
-                .populate({
-                    path: 'userId',
-                    select: 'username balance role isActive'
-                });
-            const formattedChildren = childUsers
-                .filter(child => child.userId !== null) // Filter out null userId records
-                .map(child => ({
-                    id: (child.userId as unknown as PopulatedUser)._id,
-                    username: (child.userId as unknown as PopulatedUser).username,
-                    balance: (child.userId as unknown as PopulatedUser).balance,
-                    role: (child.userId as unknown as PopulatedUser).role,
-                    isActive: (child.userId as unknown as PopulatedUser).isActive,
-                    downlineCount: child.downlineCount
+            // Handle different user roles
+            console.log('User role:', userRole, 'User ID:', userId);
+
+            if (userRole === 'superadmin') {
+                // Superadmin can see all admins
+                const admins = await User.find({
+                    role: 'admin',
+                    isActive: true
+                }).select('username balance role isActive');
+
+                console.log('Found admins for superadmin:', admins.length);
+
+                childUsers = admins.map((admin) => ({
+                    id: (admin as unknown as PopulatedUser)._id.toString(),
+                    username: admin.username,
+                    balance: admin.balance,
+                    role: admin.role,
+                    isActive: admin.isActive,
+                    downlineCount: 0 // We'll calculate this if needed
                 }));
+            } else {
+                // For other roles, get direct children from hierarchy
+                const userHierarchy = await UserHierarchy.findOne({ userId });
+                if (!userHierarchy) {
+                    res.status(404).json({ message: 'User hierarchy not found' });
+                    return;
+                }
+
+                // Find direct children (users with this user as parent)
+                const hierarchyChildren = await UserHierarchy.find({ parentId: userId })
+                    .populate({
+                        path: 'userId',
+                        select: 'username balance role isActive'
+                    });
+
+                childUsers = hierarchyChildren
+                    .filter(child => child.userId !== null) // Filter out null userId records
+                    .map(child => ({
+                        id: (child.userId as unknown as PopulatedUser)._id,
+                        username: (child.userId as unknown as PopulatedUser).username,
+                        balance: (child.userId as unknown as PopulatedUser).balance,
+                        role: (child.userId as unknown as PopulatedUser).role,
+                        isActive: (child.userId as unknown as PopulatedUser).isActive,
+                        downlineCount: child.downlineCount
+                    }));
+            }
 
             res.json({
                 success: true,
-                data: formattedChildren
+                data: childUsers
             });
         } catch (error) {
             console.error('Error getting child users:', error);
