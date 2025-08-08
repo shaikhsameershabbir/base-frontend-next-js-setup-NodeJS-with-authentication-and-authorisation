@@ -9,6 +9,7 @@ import betRoutes from './bet.routes';
 import adminBetRoutes from './adminBet.routes';
 import loadRoutes from './load.routes';
 import resultRoutes from './resultRoutes';
+import dashboardRoutes from './dashboard.routes';
 
 const router = Router();
 
@@ -25,5 +26,6 @@ router.use(`/bets`, betRoutes);
 router.use(`/admin/bets`, adminBetRoutes);
 router.use(`/load`, loadRoutes);
 router.use(`/result`, resultRoutes);
+router.use(`/dashboard`, dashboardRoutes);
 
 export default router; 
