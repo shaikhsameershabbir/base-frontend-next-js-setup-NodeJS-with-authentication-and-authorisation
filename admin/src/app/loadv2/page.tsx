@@ -255,8 +255,8 @@ export default function LoadV2Page() {
                     result.halfSangamClose[numKey] = (result.halfSangamClose[numKey] || 0) + numAmount;
                 }
 
-                // Full Sangam (pattern: 3digit-2digit-3digit, no X)
-                if (/^[0-9]{3}-[0-9]{2}-[0-9]{3}$/.test(numKey)) {
+                // Full Sangam (pattern: 3digitX2digitX3digit)
+                if (/^[0-9]{3}X[0-9]{2}X[0-9]{3}$/.test(numKey)) {
                     result.fullSangam[numKey] = (result.fullSangam[numKey] || 0) + numAmount;
                 }
             });
@@ -909,7 +909,7 @@ export default function LoadV2Page() {
                 />
 
                 {/* Results History */}
-   
+
 
                 {/* JSON Data Display */}
                 {data && (

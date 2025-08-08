@@ -204,7 +204,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     const firstLastDigit = getLastDigit(firstSum);
     const secondLastDigit = getLastDigit(secondSum);
 
-    const sangamKey = `${firstPanna}-${firstLastDigit}${secondLastDigit}-${secondPanna}`;
+    const sangamKey = `${firstPanna}X${firstLastDigit}${secondLastDigit}X${secondPanna}`;
 
     setAmounts(prev => ({
       ...prev,
@@ -386,7 +386,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
           <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Select Sangam Type</h2>
+              <h2 className="text-base font-bold text-gray-800">Select Sangam Typeddd</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -639,7 +639,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                       const secondSum = calculateDigitSum(secondPanna);
                       const firstLastDigit = getLastDigit(firstSum);
                       const secondLastDigit = getLastDigit(secondSum);
-                      const sangamKey = `${firstPanna}-${firstLastDigit}${secondLastDigit}-${secondPanna}`;
+                      const sangamKey = `${firstPanna}X${firstLastDigit}${secondLastDigit}X${secondPanna}`;
 
                       return (
                         <button

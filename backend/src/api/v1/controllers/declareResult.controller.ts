@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { Result } from '../../../models/result';
 import { Market } from '../../../models/Market';
+import { WinningCalculationService } from '../../../services/winningCalculation.service';
 
 // Types for the declare result functionality
 interface DeclareResultRequest {
@@ -83,7 +84,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
         }
 
         // Validate result number (should be a 3-digit panna number)
-        if (resultNumber < 100 || resultNumber > 999 || !Number.isInteger(resultNumber)) {
+        if (resultNumber > 999 || !Number.isInteger(resultNumber)) {
             res.status(400).json({
                 success: false,
                 message: 'Result number must be a 3-digit number (100-999)'
@@ -158,6 +159,14 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 dayResult.main = mainValue;
                 dayResult.openDeclationTime = new Date();
                 console.log(`Open Result - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
+
+                // Calculate open winnings
+                await WinningCalculationService.calculateOpenWinnings(
+                    marketId,
+                    targetDateObj,
+                    resultNumber,
+                    mainValue
+                );
             } else {
                 // For close, check if open is already declared
                 if (!dayResult.open || dayResult.open === null) {
@@ -173,10 +182,22 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 const openMain = dayResult.main || 0;
                 const closeMain = mainValue;
                 const combinedMain = parseInt(openMain.toString() + closeMain.toString());
-                dayResult.main = combinedMain;
+                // Ensure main is never more than 2 digits
+                const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
+                dayResult.main = finalMain;
                 dayResult.closeDeclationTime = new Date();
 
-                console.log(`Close Result - Day: ${dayName}, Open Main: ${openMain}, Close Main: ${closeMain}, Combined Main: ${combinedMain}`);
+                console.log(`Close Result - Day: ${dayName}, Open Main: ${openMain}, Close Main: ${closeMain}, Combined Main: ${combinedMain}, Final Main: ${finalMain}`);
+
+                // Calculate close winnings
+                await WinningCalculationService.calculateCloseWinnings(
+                    marketId,
+                    targetDateObj,
+                    dayResult.open,
+                    openMain,
+                    resultNumber,
+                    closeMain
+                );
             }
 
             await existingResult.save();
@@ -212,6 +233,14 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             existingResult = new Result(resultData);
             await existingResult.save();
             console.log(`New Weekly Result Created - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
+
+            // Calculate open winnings for new result
+            await WinningCalculationService.calculateOpenWinnings(
+                marketId,
+                targetDateObj,
+                resultNumber,
+                mainValue
+            );
         }
 
         res.json({

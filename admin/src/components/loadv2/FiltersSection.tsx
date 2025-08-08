@@ -81,6 +81,72 @@ interface FiltersSectionProps {
     calculateWinAmount: (betType: string, betAmount: number, number: string) => number;
 }
 
+// Helper function to calculate digit sum (same as backend)
+const calculateDigitSum = (number: number): number => {
+    return number.toString().split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+};
+
+// Helper function to get last digit (same as backend)
+const getLastDigit = (number: number): number => {
+    return number % 10;
+};
+
+// Helper function to calculate main value (same as backend)
+const calculateMainValue = (number: number): number => {
+    const digitSum = calculateDigitSum(number);
+    return digitSum > 9 ? digitSum % 10 : digitSum;
+};
+
+const debugCalculation = (processedData: ProcessedBetData | null, resultNumber: string, resultType: 'open' | 'close', marketResults: any) => {
+    if (!processedData) return null;
+
+    console.log('=== FRONTEND CALCULATION DEBUG ===');
+    console.log('Result Number:', resultNumber);
+    console.log('Result Type:', resultType);
+
+    if (resultType === 'close' && marketResults) {
+        const today = new Date();
+        const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][today.getDay()];
+        const dayResult = marketResults?.results?.[dayName];
+
+        if (dayResult?.open) {
+            const openResult = dayResult.open.toString();
+            const openMain = dayResult.main;
+            const closeMain = calculateMainValue(parseInt(resultNumber));
+            const combinedMain = parseInt(openMain.toString() + closeMain.toString());
+            const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
+
+            console.log('Open Result:', openResult);
+            console.log('Open Main:', openMain);
+            console.log('Close Main:', closeMain);
+            console.log('Combined Main:', combinedMain);
+            console.log('Final Main:', finalMain);
+
+            // Check for double number bet
+            const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
+            console.log('Double Number Amount for', finalMain, ':', doubleNumberAmount);
+
+            // Check for sangam bets
+            const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
+            const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
+            console.log('Half Sangam Open Pattern:', halfSangamOpenPattern, 'Amount:', halfSangamOpenAmount);
+
+            const halfSangamClosePattern = `${openResult}X${closeMain}`;
+            const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
+            console.log('Half Sangam Close Pattern:', halfSangamClosePattern, 'Amount:', halfSangamCloseAmount);
+
+            const openDigitSum = calculateDigitSum(parseInt(openResult));
+            const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
+            const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
+            const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
+            const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
+            console.log('Full Sangam Pattern:', fullSangamPattern, 'Amount:', fullSangamAmount);
+        }
+    }
+
+    console.log('=== END FRONTEND DEBUG ===');
+};
+
 export function FiltersSection({
     selectedDate,
     selectedBetType,
@@ -378,11 +444,7 @@ export function FiltersSection({
                                 <div className="space-y-2">
                                     {resultNumber.length === 3 && (
                                         <div className="text-xs text-blue-400">
-                                            Main will be: {(() => {
-                                                const digits = resultNumber.split('').map(d => parseInt(d));
-                                                const sum = digits.reduce((a, b) => a + b, 0);
-                                                return sum > 9 ? sum % 10 : sum;
-                                            })()}
+                                            Main will be: {calculateMainValue(parseInt(resultNumber))}
                                         </div>
                                     )}
 
@@ -402,6 +464,8 @@ export function FiltersSection({
 
                             {/* Total Win Amount Preview */}
                             {resultNumber && resultNumber.length > 0 && processedData && (() => {
+                                // Debug calculation
+                                debugCalculation(processedData, resultNumber, resultType, marketResults);
                                 let totalWinAmount = 0;
                                 let gameType = '';
                                 let gameTypeName = '';
@@ -442,7 +506,7 @@ export function FiltersSection({
                                             if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
                                                 // For panna games, calculate both panna win and digit sum win
                                                 const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                const digitSum = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                const digitSum = calculateMainValue(parseInt(resultNumber));
                                                 const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
                                                 const digitSumWin = singleNumberAmount * WINNING_RATES.single;
                                                 totalWinAmount = pannaWin + digitSumWin;
@@ -457,7 +521,7 @@ export function FiltersSection({
                                             // 1. Standard panna and digit sum calculation
                                             if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
                                                 const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                const digitSum = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                const digitSum = calculateMainValue(parseInt(resultNumber));
                                                 const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
                                                 const digitSumWin = singleNumberAmount * WINNING_RATES.single;
                                                 baseWinAmount = pannaWin + digitSumWin;
@@ -474,12 +538,13 @@ export function FiltersSection({
                                                 const openResult = dayResult.open.toString();
                                                 const openMain = dayResult.main;
 
-                                                // 3. Calculate combined main (openMain + closeMain)
-                                                const closeMain = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                // 3. Calculate combined main (openMain + closeMain) - ensure max 2 digits
+                                                const closeMain = calculateMainValue(parseInt(resultNumber));
                                                 const combinedMain = parseInt(openMain.toString() + closeMain.toString());
+                                                const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
 
                                                 // 4. Check for double number bet on combined main
-                                                const doubleNumberAmount = processedData.doubleNumbers[combinedMain.toString()] || 0;
+                                                const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
                                                 const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
 
                                                 // 5. Check for half sangam open (openMain X closePanna)
@@ -492,8 +557,11 @@ export function FiltersSection({
                                                 const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
                                                 const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
 
-                                                // 7. Check for full sangam (openPanna X openMain X closePanna)
-                                                const fullSangamPattern = `${openResult}X${openMain}X${resultNumber}`;
+                                                // 7. Check for full sangam (openPanna X combinedDigitSums X closePanna)
+                                                const openDigitSum = calculateDigitSum(parseInt(openResult));
+                                                const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
+                                                const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
+                                                const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
                                                 const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
                                                 const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
 
@@ -528,7 +596,7 @@ export function FiltersSection({
                                                         const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
                                                         const pannaAmount = pannaData[resultNumber] || 0;
                                                         const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                        const digitSum = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                        const digitSum = calculateMainValue(parseInt(resultNumber));
                                                         const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
                                                         const digitSumWin = singleNumberAmount * WINNING_RATES.single;
 
@@ -593,18 +661,19 @@ export function FiltersSection({
                                                     if (dayResult?.open) {
                                                         const openResult = dayResult.open.toString();
                                                         const openMain = dayResult.main;
-                                                        const closeMain = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                        const closeMain = calculateMainValue(parseInt(resultNumber));
                                                         const combinedMain = parseInt(openMain.toString() + closeMain.toString());
+                                                        const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
 
                                                         // Calculate all components
                                                         const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
                                                         const pannaAmount = pannaData[resultNumber] || 0;
                                                         const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                        const digitSum = resultNumber.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+                                                        const digitSum = calculateMainValue(parseInt(resultNumber));
                                                         const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
                                                         const digitSumWin = singleNumberAmount * WINNING_RATES.single;
 
-                                                        const doubleNumberAmount = processedData.doubleNumbers[combinedMain.toString()] || 0;
+                                                        const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
                                                         const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
 
                                                         const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
@@ -615,7 +684,10 @@ export function FiltersSection({
                                                         const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
                                                         const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
 
-                                                        const fullSangamPattern = `${openResult}X${openMain}X${resultNumber}`;
+                                                        const openDigitSum = calculateDigitSum(parseInt(openResult));
+                                                        const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
+                                                        const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
+                                                        const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
                                                         const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
                                                         const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
 
@@ -635,7 +707,7 @@ export function FiltersSection({
                                                                     {/* Combined Main Win */}
                                                                     <div className="bg-purple-900/20 p-2 rounded mb-2">
                                                                         <div className="text-purple-400 font-bold">Combined Main Win:</div>
-                                                                        <div className="text-gray-300">Open Main: {openMain} + Close Main: {closeMain} = {combinedMain}</div>
+                                                                        <div className="text-gray-300">Open Main: {openMain} + Close Main: {closeMain} = {combinedMain} → Final: {finalMain}</div>
                                                                         <div className="text-gray-300">Double Number Bet: ₹{doubleNumberAmount.toLocaleString()}</div>
                                                                         <div className="text-gray-300">Rate: {WINNING_RATES.double}x</div>
                                                                         <div className="text-green-400 font-bold">Combined Main Win: ₹{doubleNumberWin.toLocaleString()}</div>
@@ -662,7 +734,7 @@ export function FiltersSection({
                                                                     {/* Full Sangam */}
                                                                     <div className="bg-indigo-900/20 p-2 rounded mb-2">
                                                                         <div className="text-indigo-400 font-bold">Full Sangam:</div>
-                                                                        <div className="text-gray-300">Pattern: {openResult}X{openMain}X{resultNumber}</div>
+                                                                        <div className="text-gray-300">Pattern: {openResult}X{combinedDigitSums}X{resultNumber}</div>
                                                                         <div className="text-gray-300">Bet Amount: ₹{fullSangamAmount.toLocaleString()}</div>
                                                                         <div className="text-gray-300">Rate: {WINNING_RATES.fullSangam}x</div>
                                                                         <div className="text-green-400 font-bold">Full Sangam Win: ₹{fullSangamWin.toLocaleString()}</div>
