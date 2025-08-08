@@ -4,24 +4,80 @@ import { MarketRank } from '../../../models/MarketRank';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { User } from '../../../models/User';
 import { logger } from '../../../config/logger';
+import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class MarketsController {
     async getAllMarkets(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
             const { page = 1, limit = 10, status } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            const query: { status?: string } = {};
+            const userId = authReq.user?.userId;
+            const userRole = authReq.user?.role;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            let query: { status?: string; _id?: { $in: any[] } } = {};
             if (status) {
                 query.status = status as string;
             }
 
-            const markets = await Market.find(query)
-                .skip(skip)
-                .limit(Number(limit))
-                .sort({ createdAt: -1 });
+            let markets;
+            let total;
 
-            const total = await Market.countDocuments(query);
+            // If user is superadmin, show all markets
+            if (userRole === 'superadmin') {
+                markets = await Market.find(query)
+                    .skip(skip)
+                    .limit(Number(limit))
+                    .sort({ createdAt: -1 });
+
+                total = await Market.countDocuments(query);
+            } else {
+                // For other roles, get only assigned markets
+                const userAssignments = await UserMarketAssignment.find({
+                    assignedTo: userId,
+                    isActive: true
+                }).populate('marketId');
+
+                const assignedMarketIds = userAssignments
+                    .map(assignment => assignment.marketId)
+                    .filter(marketId => marketId !== null)
+                    .map(marketId => (marketId as any)._id);
+
+                if (assignedMarketIds.length === 0) {
+                    // No assigned markets
+                    res.json({
+                        success: true,
+                        message: 'No markets assigned to user',
+                        data: [],
+                        pagination: {
+                            page: Number(page),
+                            limit: Number(limit),
+                            total: 0,
+                            totalPages: 0
+                        }
+                    });
+                    return;
+                }
+
+                // Add assigned market filter to query
+                query._id = { $in: assignedMarketIds };
+
+                markets = await Market.find(query)
+                    .skip(skip)
+                    .limit(Number(limit))
+                    .sort({ createdAt: -1 });
+
+                total = await Market.countDocuments(query);
+            }
 
             res.json({
                 success: true,

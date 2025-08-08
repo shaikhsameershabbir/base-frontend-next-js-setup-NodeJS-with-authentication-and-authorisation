@@ -9,8 +9,13 @@ import { Pagination } from '@/components/ui/pagination';
 import { Plus, Edit, Trash2, CheckCircle, XCircle, Loader2, Store, Clock, User, Search, Star } from 'lucide-react';
 import { MarketModal } from '@/components/modals/MarketModal';
 import { AdminLayout } from '@/components/layout/admin-layout';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function MarketPage() {
+    const { user } = useAuth();
+    const currentUserRole = user?.role || 'player';
+    const isSuperadmin = currentUserRole === 'superadmin';
+
     const [markets, setMarkets] = useState<Market[]>([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
     const [loading, setLoading] = useState(false);
@@ -155,7 +160,17 @@ export default function MarketPage() {
                             <Store className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500 dark:text-yellow-300" />
                         </div>
                     </div>
-                    <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Manage market timings and status</p>
+                    <p className="text-sm sm:text-base md:text-lg text-muted-foreground">
+                        {isSuperadmin
+                            ? 'Manage all market timings and status'
+                            : 'View your assigned markets and manage their timings'
+                        }
+                    </p>
+                    {!isSuperadmin && (
+                        <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
+                            📋 Showing only markets assigned to your account
+                        </div>
+                    )}
                 </div>
 
                 {/* Filters and Search */}
@@ -209,17 +224,19 @@ export default function MarketPage() {
                             </Button>
                         </div>
 
-                        {/* Create Button */}
-                        <div className="flex justify-end">
-                            <Button
-                                onClick={() => { setEditMarket(null); setModalOpen(true); }}
-                                variant="outline"
-                                size="sm"
-                                className="border-border hover:bg-card/20 dark:hover:bg-card/30 whitespace-nowrap"
-                            >
-                                <Plus className="h-4 w-4 mr-2" /> Create Market
-                            </Button>
-                        </div>
+                        {/* Create Button - Only show for superadmin */}
+                        {isSuperadmin && (
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={() => { setEditMarket(null); setModalOpen(true); }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-border hover:bg-card/20 dark:hover:bg-card/30 whitespace-nowrap"
+                                >
+                                    <Plus className="h-4 w-4 mr-2" /> Create Market
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -247,8 +264,16 @@ export default function MarketPage() {
                                     <p className="text-muted-foreground font-medium">
                                         {search || statusFilter !== 'all'
                                             ? `No markets found matching your filters`
-                                            : `No markets found`}
+                                            : isSuperadmin
+                                                ? `No markets found`
+                                                : `No markets assigned to your account yet`
+                                        }
                                     </p>
+                                    {!isSuperadmin && !search && statusFilter === 'all' && (
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Contact your administrator to get markets assigned to your account.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -348,26 +373,32 @@ export default function MarketPage() {
                                                     </span>
                                                 </td>
                                                 <td className="py-3 sm:py-4 px-2 sm:px-4">
-                                                    <div className="flex items-center gap-1 sm:gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="hover:bg-muted/40 text-primary h-8 w-8 sm:h-9 sm:w-9"
-                                                            onClick={() => { setEditMarket(market); setModalOpen(true); }}
-                                                            title="Edit Market"
-                                                        >
-                                                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="hover:bg-destructive/10 hover:text-destructive text-primary h-8 w-8 sm:h-9 sm:w-9"
-                                                            onClick={() => setDeleteConfirmId(market._id)}
-                                                            title="Delete Market"
-                                                        >
-                                                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                        </Button>
-                                                    </div>
+                                                    {isSuperadmin ? (
+                                                        <div className="flex items-center gap-1 sm:gap-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="hover:bg-muted/40 text-primary h-8 w-8 sm:h-9 sm:w-9"
+                                                                onClick={() => { setEditMarket(market); setModalOpen(true); }}
+                                                                title="Edit Market"
+                                                            >
+                                                                <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="hover:bg-destructive/10 hover:text-destructive text-primary h-8 w-8 sm:h-9 sm:w-9"
+                                                                onClick={() => setDeleteConfirmId(market._id)}
+                                                                title="Delete Market"
+                                                            >
+                                                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xs text-muted-foreground">
+                                                            View only
+                                                        </div>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))}
