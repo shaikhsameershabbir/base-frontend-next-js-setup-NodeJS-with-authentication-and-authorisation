@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, WINNING_RATES } from '@/components/winner/constants';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HierarchicalUser {
     _id: string;
@@ -185,6 +186,16 @@ export function FiltersSection({
     getDayName,
     calculateWinAmount
 }: FiltersSectionProps) {
+    const { user } = useAuth();
+    const currentUserRole = user?.role || 'player';
+
+    // Check if user can declare results (only superadmin and admin)
+    const canDeclareResults = currentUserRole === 'superadmin' || currentUserRole === 'admin';
+
+    console.log('Current user role:', currentUserRole);
+    console.log('Can declare results:', canDeclareResults);
+    console.log('Current user ID:', user?._id);
+    console.log('Hierarchical users:', hierarchicalUsers);
     return (
         <Card className="mb-6 bg-gray-900 border-gray-700">
             <CardHeader>
@@ -274,26 +285,28 @@ export function FiltersSection({
                         <Label className="text-gray-300 font-medium">User Hierarchy</Label>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-                            {/* Admin Selection */}
-                            <div className="space-y-2">
-                                <Label className="text-xs text-gray-400">Admin</Label>
-                                <Select value={selectedAdmin} onValueChange={onAdminChange}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select admin" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Admins</SelectItem>
-                                        {hierarchicalUsers.admin?.map((admin) => (
-                                            <SelectItem key={admin._id} value={admin._id}>
-                                                {admin.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {/* Admin Selection - Only show for superadmin */}
+                            {currentUserRole === 'superadmin' && (
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-gray-400">Admin</Label>
+                                    <Select value={selectedAdmin} onValueChange={onAdminChange}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select admin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Admins</SelectItem>
+                                            {hierarchicalUsers.admin?.map((admin) => (
+                                                <SelectItem key={admin._id} value={admin._id}>
+                                                    {admin.username}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
-                            {/* Distributor Selection - Only show if admin is selected */}
-                            {selectedAdmin !== 'all' && (
+                            {/* Distributor Selection - Show for superadmin and admin */}
+                            {(currentUserRole === 'superadmin' || currentUserRole === 'admin') && (
                                 <div className="space-y-2">
                                     <Label className="text-xs text-gray-400">Distributor</Label>
                                     <Select value={selectedDistributor} onValueChange={onDistributorChange}>
@@ -302,7 +315,9 @@ export function FiltersSection({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Distributors</SelectItem>
-                                            {hierarchicalUsers.distributor?.filter(dist => dist.parentId === selectedAdmin).map((distributor) => (
+                                            {hierarchicalUsers.distributor?.filter(dist =>
+                                                currentUserRole === 'superadmin' ? true : dist.parentId === user?._id
+                                            ).map((distributor) => (
                                                 <SelectItem key={distributor._id} value={distributor._id}>
                                                     {distributor.username}
                                                 </SelectItem>
@@ -312,8 +327,8 @@ export function FiltersSection({
                                 </div>
                             )}
 
-                            {/* Agent Selection - Only show if distributor is selected */}
-                            {selectedDistributor !== 'all' && (
+                            {/* Agent Selection - Show for superadmin, admin, and distributor */}
+                            {(currentUserRole === 'superadmin' || currentUserRole === 'admin' || currentUserRole === 'distributor') && (
                                 <div className="space-y-2">
                                     <Label className="text-xs text-gray-400">Agent</Label>
                                     <Select value={selectedAgent} onValueChange={onAgentChange}>
@@ -322,7 +337,11 @@ export function FiltersSection({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">All Agents</SelectItem>
-                                            {hierarchicalUsers.agent?.filter(agent => agent.parentId === selectedDistributor).map((agent) => (
+                                            {hierarchicalUsers.agent?.filter(agent => {
+                                                if (currentUserRole === 'superadmin') return true;
+                                                if (currentUserRole === 'admin') return agent.parentId === selectedDistributor || selectedDistributor === 'all';
+                                                return agent.parentId === user?._id; // For distributor
+                                            }).map((agent) => (
                                                 <SelectItem key={agent._id} value={agent._id}>
                                                     {agent.username}
                                                 </SelectItem>
@@ -332,478 +351,483 @@ export function FiltersSection({
                                 </div>
                             )}
 
-                            {/* Player Selection - Only show if agent is selected */}
-                            {selectedAgent !== 'all' && (
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-gray-400">Player</Label>
-                                    <Select value={selectedPlayer} onValueChange={onPlayerChange}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select player" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Players</SelectItem>
-                                            {hierarchicalUsers.player?.filter(player => player.parentId === selectedAgent).map((player) => (
-                                                <SelectItem key={player._id} value={player._id}>
-                                                    {player.username}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+                            {/* Player Selection - Show for all roles */}
+                            <div className="space-y-2">
+                                <Label className="text-xs text-gray-400">Player</Label>
+                                <Select value={selectedPlayer} onValueChange={onPlayerChange}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select player" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Players</SelectItem>
+                                        {hierarchicalUsers.player?.filter(player => {
+                                            if (currentUserRole === 'superadmin') return true;
+                                            if (currentUserRole === 'admin') return player.parentId === selectedAgent || selectedAgent === 'all';
+                                            if (currentUserRole === 'distributor') return player.parentId === selectedAgent || selectedAgent === 'all';
+                                            return player.parentId === user?._id; // For agent
+                                        }).map((player) => (
+                                            <SelectItem key={player._id} value={player._id}>
+                                                {player.username}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Simple Result Declaration */}
-                <div className="mt-6 border-t border-gray-700 pt-6">
-                    <div className="mb-4">
-                        <h3 className="text-lg font-bold text-white mb-2">🎯 Declare Result</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {/* Result Type */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Result Type</Label>
-                            <div className="flex space-x-4">
-                                <label className="flex items-center space-x-2">
-                                    <input
-                                        type="radio"
-                                        name="resultType"
-                                        value="open"
-                                        checked={resultType === 'open'}
-                                        onChange={() => onResultTypeChange('open')}
-                                    />
-                                    <span className="text-gray-300">Open</span>
-                                </label>
-                                <label className={`flex items-center space-x-2 ${canDeclareClose() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
-                                    <input
-                                        type="radio"
-                                        name="resultType"
-                                        value="close"
-                                        checked={resultType === 'close'}
-                                        onChange={() => {
-                                            if (canDeclareClose()) {
-                                                onResultTypeChange('close');
-                                            } else {
-                                                toast.error('Open result must be declared first');
-                                            }
-                                        }}
-                                        disabled={!canDeclareClose()}
-                                    />
-                                    <span className={`${canDeclareClose() ? 'text-gray-300' : 'text-gray-500'}`}>
-                                        Close {canDeclareClose() ? '' : '(Open Required)'}
-                                    </span>
-                                </label>
-                            </div>
+                {/* Simple Result Declaration - Only show for superadmin and admin */}
+                {canDeclareResults && (
+                    <div className="mt-6 border-t border-gray-700 pt-6">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-bold text-white mb-2">🎯 Declare Result</h3>
                         </div>
 
-                        {/* Result Number */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Result Number</Label>
-                            <Input
-                                type="text"
-                                placeholder="Enter number (1-3 digits)"
-                                value={resultNumber}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    // Allow 1-3 digits and numeric characters
-                                    if (value.length <= 3 && /^\d*$/.test(value)) {
-                                        onResultNumberChange(value);
-                                    }
-                                }}
-                                onBlur={(e) => {
-                                    const value = e.target.value;
-                                    if (value.length === 1) {
-                                        // Single number (0-9) - always valid
-                                        if (!/^[0-9]$/.test(value)) {
-                                            onResultNumberChange('');
-                                            toast.error('Please enter a valid single number (0-9)');
-                                        }
-                                    } else if (value.length === 2) {
-                                        // Double number (00-99) - always valid
-                                        if (!/^[0-9]{2}$/.test(value)) {
-                                            onResultNumberChange('');
-                                            toast.error('Please enter a valid double number (00-99)');
-                                        }
-                                    } else if (value.length === 3) {
-                                        const num = parseInt(value);
-                                        const allPannaNumbers = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
-                                        if (!allPannaNumbers.includes(num)) {
-                                            onResultNumberChange('');
-                                            toast.error('Please enter a valid panna number from the game list');
-                                        }
-                                    }
-                                }}
-                                className="text-center text-lg font-bold"
-                            />
-                            <div className="text-xs text-gray-400">
-                                Enter a valid number: Single (0-9), Double (00-99), or Panna (3-digit)
-                            </div>
-                            {resultNumber && resultNumber.length > 0 && (
-                                <div className="space-y-2">
-                                    {resultNumber.length === 3 && (
-                                        <div className="text-xs text-blue-400">
-                                            Main will be: {calculateMainValue(parseInt(resultNumber))}
-                                        </div>
-                                    )}
-
-                                </div>
-                            )}
-                            {/* Panna Number Suggestions */}
-                            {resultNumber && resultNumber.length > 0 && (
-                                <div className="text-xs text-green-400">
-                                    Suggestions: {
-                                        [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers]
-                                            .filter(num => num.toString().includes(resultNumber))
-                                            .slice(0, 5)
-                                            .join(', ')
-                                    }
-                                </div>
-                            )}
-
-                            {/* Total Win Amount Preview */}
-                            {resultNumber && resultNumber.length > 0 && processedData && (() => {
-                                // Debug calculation
-                                debugCalculation(processedData, resultNumber, resultType, marketResults);
-                                let totalWinAmount = 0;
-                                let gameType = '';
-                                let gameTypeName = '';
-
-                                if (resultNumber.length === 1) {
-                                    // Single number (0-9)
-                                    gameType = 'singleNumbers';
-                                    gameTypeName = 'Single Number';
-                                    const amount = processedData.singleNumbers[resultNumber] || 0;
-                                    totalWinAmount = calculateWinAmount(gameType, amount, resultNumber);
-                                } else if (resultNumber.length === 2) {
-                                    // Double number (00-99)
-                                    gameType = 'doubleNumbers';
-                                    gameTypeName = 'Double Number';
-                                    const amount = processedData.doubleNumbers[resultNumber] || 0;
-                                    totalWinAmount = calculateWinAmount(gameType, amount, resultNumber);
-                                } else if (resultNumber.length === 3) {
-                                    const num = parseInt(resultNumber);
-
-                                    if (singlePannaNumbers.includes(num)) {
-                                        gameType = 'singlePanna';
-                                        gameTypeName = 'Single Panna';
-                                    } else if (doublePannaNumbers.includes(num)) {
-                                        gameType = 'doublePanna';
-                                        gameTypeName = 'Double Panna';
-                                    } else if (triplePannaNumbers.includes(num.toString().padStart(3, '0'))) {
-                                        gameType = 'triplePanna';
-                                        gameTypeName = 'Triple Panna';
-                                    }
-
-                                    if (gameType) {
-                                        // Calculate win for the panna number itself
-                                        const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
-                                        const pannaAmount = pannaData[resultNumber] || 0;
-
-                                        if (resultType === 'open') {
-                                            // For open results - standard calculation
-                                            if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
-                                                // For panna games, calculate both panna win and digit sum win
-                                                const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                const digitSum = calculateMainValue(parseInt(resultNumber));
-                                                const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
-                                                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-                                                totalWinAmount = pannaWin + digitSumWin;
-                                            } else {
-                                                // For non-panna games, use the calculateWinAmount function
-                                                totalWinAmount = calculateWinAmount(gameType, pannaAmount, resultNumber);
-                                            }
-                                        } else if (resultType === 'close') {
-                                            // For close results - complex calculation with open result
-                                            let baseWinAmount = 0;
-
-                                            // 1. Standard panna and digit sum calculation
-                                            if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
-                                                const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                const digitSum = calculateMainValue(parseInt(resultNumber));
-                                                const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
-                                                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-                                                baseWinAmount = pannaWin + digitSumWin;
-                                            } else {
-                                                baseWinAmount = calculateWinAmount(gameType, pannaAmount, resultNumber);
-                                            }
-
-                                            // 2. Get open result from market results
-                                            const today = new Date();
-                                            const dayName = getDayName(today);
-                                            const dayResult = marketResults?.results?.[dayName as keyof typeof marketResults.results];
-
-                                            if (dayResult?.open) {
-                                                const openResult = dayResult.open.toString();
-                                                const openMain = dayResult.main;
-
-                                                // 3. Calculate combined main (openMain + closeMain) - ensure max 2 digits
-                                                const closeMain = calculateMainValue(parseInt(resultNumber));
-                                                const combinedMain = parseInt(openMain.toString() + closeMain.toString());
-                                                const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
-
-                                                // 4. Check for double number bet on combined main
-                                                const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
-                                                const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
-
-                                                // 5. Check for half sangam open (openMain X closePanna)
-                                                const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
-                                                const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
-                                                const halfSangamOpenWin = halfSangamOpenAmount * WINNING_RATES.halfSangam;
-
-                                                // 6. Check for half sangam close (openPanna X closeMain)
-                                                const halfSangamClosePattern = `${openResult}X${closeMain}`;
-                                                const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
-                                                const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
-
-                                                // 7. Check for full sangam (openPanna X combinedDigitSums X closePanna)
-                                                const openDigitSum = calculateDigitSum(parseInt(openResult));
-                                                const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
-                                                const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
-                                                const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
-                                                const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
-                                                const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
-
-                                                // 8. Calculate total
-                                                totalWinAmount = baseWinAmount + doubleNumberWin + halfSangamOpenWin + halfSangamCloseWin + fullSangamWin;
-                                            } else {
-                                                // If no open result, use standard calculation
-                                                totalWinAmount = baseWinAmount;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (gameType && totalWinAmount > 0) {
-                                    return (
-                                        <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
-                                            <div className="text-xs text-yellow-400 font-bold mb-1">
-                                                💰 Total Potential Win Amount:
-                                            </div>
-                                            <div className="text-lg font-bold text-yellow-400">
-                                                ₹{totalWinAmount.toLocaleString()}
-                                            </div>
-                                            <div className="text-xs text-gray-400 mt-1">
-                                                {gameTypeName} • Based on current filtered data
-                                            </div>
-
-                                            {/* Win Amount Breakdown */}
-                                            {(() => {
-                                                if (resultType === 'open') {
-                                                    // Open result breakdown
-                                                    if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
-                                                        const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
-                                                        const pannaAmount = pannaData[resultNumber] || 0;
-                                                        const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                        const digitSum = calculateMainValue(parseInt(resultNumber));
-                                                        const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
-                                                        const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-
-                                                        return (
-                                                            <div className="mt-3 space-y-2 text-xs">
-                                                                <div className="border-t border-yellow-600/30 pt-2">
-                                                                    <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
-
-                                                                    {/* Main Panna Win */}
-                                                                    <div className="bg-blue-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-blue-400 font-bold">Main Panna Win:</div>
-                                                                        <div className="text-gray-300">Bet Amount: ₹{pannaAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
-                                                                        <div className="text-green-400 font-bold">Panna Win: ₹{pannaWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Digit Sum Win */}
-                                                                    <div className="bg-purple-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-purple-400 font-bold">Digit Sum Win:</div>
-                                                                        <div className="text-gray-300">Digit Sum ({resultNumber}): {digitSum}</div>
-                                                                        <div className="text-gray-300">Single Number Bet: ₹{singleNumberAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Single Rate: {WINNING_RATES.single}x</div>
-                                                                        <div className="text-green-400 font-bold">Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Total */}
-                                                                    <div className="bg-green-900/20 p-2 rounded">
-                                                                        <div className="text-green-400 font-bold">Total Win:</div>
-                                                                        <div className="text-gray-300">Panna Win: ₹{pannaWin.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">+ Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
-                                                                        <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        // For single and double numbers, show simple breakdown
-                                                        const gameData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
-                                                        const amount = gameData[resultNumber] || 0;
-                                                        const winAmount = amount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-
-                                                        return (
-                                                            <div className="mt-3 space-y-2 text-xs">
-                                                                <div className="border-t border-yellow-600/30 pt-2">
-                                                                    <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
-                                                                    <div className="bg-blue-900/20 p-2 rounded">
-                                                                        <div className="text-blue-400 font-bold">{gameTypeName} Win:</div>
-                                                                        <div className="text-gray-300">Bet Amount: ₹{amount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
-                                                                        <div className="text-green-400 font-bold">Total Win: ₹{winAmount.toLocaleString()}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    }
-                                                } else if (resultType === 'close') {
-                                                    // Close result breakdown
-                                                    const today = new Date();
-                                                    const dayName = getDayName(today);
-                                                    const dayResult = marketResults?.results?.[dayName as keyof typeof marketResults.results];
-
-                                                    if (dayResult?.open) {
-                                                        const openResult = dayResult.open.toString();
-                                                        const openMain = dayResult.main;
-                                                        const closeMain = calculateMainValue(parseInt(resultNumber));
-                                                        const combinedMain = parseInt(openMain.toString() + closeMain.toString());
-                                                        const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
-
-                                                        // Calculate all components
-                                                        const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
-                                                        const pannaAmount = pannaData[resultNumber] || 0;
-                                                        const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
-                                                        const digitSum = calculateMainValue(parseInt(resultNumber));
-                                                        const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
-                                                        const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-
-                                                        const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
-                                                        const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
-
-                                                        const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
-                                                        const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
-                                                        const halfSangamOpenWin = halfSangamOpenAmount * WINNING_RATES.halfSangam;
-
-                                                        const halfSangamClosePattern = `${openResult}X${closeMain}`;
-                                                        const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
-                                                        const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
-
-                                                        const openDigitSum = calculateDigitSum(parseInt(openResult));
-                                                        const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
-                                                        const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
-                                                        const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
-                                                        const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
-                                                        const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
-
-                                                        return (
-                                                            <div className="mt-3 space-y-2 text-xs">
-                                                                <div className="border-t border-yellow-600/30 pt-2">
-                                                                    <div className="text-blue-400 font-bold mb-1">📊 Close Result Breakdown:</div>
-
-                                                                    {/* Base Win */}
-                                                                    <div className="bg-blue-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-blue-400 font-bold">Base Win (Close Panna + Digit Sum):</div>
-                                                                        <div className="text-gray-300">Panna Win: ₹{pannaWin.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
-                                                                        <div className="text-green-400 font-bold">Base Total: ₹{(pannaWin + digitSumWin).toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Combined Main Win */}
-                                                                    <div className="bg-purple-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-purple-400 font-bold">Combined Main Win:</div>
-                                                                        <div className="text-gray-300">Open Main: {openMain} + Close Main: {closeMain} = {combinedMain} → Final: {finalMain}</div>
-                                                                        <div className="text-gray-300">Double Number Bet: ₹{doubleNumberAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES.double}x</div>
-                                                                        <div className="text-green-400 font-bold">Combined Main Win: ₹{doubleNumberWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Half Sangam Open */}
-                                                                    <div className="bg-orange-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-orange-400 font-bold">Half Sangam Open:</div>
-                                                                        <div className="text-gray-300">Pattern: {openMain}X{resultNumber}</div>
-                                                                        <div className="text-gray-300">Bet Amount: ₹{halfSangamOpenAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES.halfSangam}x</div>
-                                                                        <div className="text-green-400 font-bold">Half Sangam Open Win: ₹{halfSangamOpenWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Half Sangam Close */}
-                                                                    <div className="bg-red-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-red-400 font-bold">Half Sangam Close:</div>
-                                                                        <div className="text-gray-300">Pattern: {openResult}X{closeMain}</div>
-                                                                        <div className="text-gray-300">Bet Amount: ₹{halfSangamCloseAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES.halfSangam}x</div>
-                                                                        <div className="text-green-400 font-bold">Half Sangam Close Win: ₹{halfSangamCloseWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Full Sangam */}
-                                                                    <div className="bg-indigo-900/20 p-2 rounded mb-2">
-                                                                        <div className="text-indigo-400 font-bold">Full Sangam:</div>
-                                                                        <div className="text-gray-300">Pattern: {openResult}X{combinedDigitSums}X{resultNumber}</div>
-                                                                        <div className="text-gray-300">Bet Amount: ₹{fullSangamAmount.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">Rate: {WINNING_RATES.fullSangam}x</div>
-                                                                        <div className="text-green-400 font-bold">Full Sangam Win: ₹{fullSangamWin.toLocaleString()}</div>
-                                                                    </div>
-
-                                                                    {/* Total */}
-                                                                    <div className="bg-green-900/20 p-2 rounded">
-                                                                        <div className="text-green-400 font-bold">Total Close Win:</div>
-                                                                        <div className="text-gray-300">Base Win: ₹{(pannaWin + digitSumWin).toLocaleString()}</div>
-                                                                        <div className="text-gray-300">+ Combined Main: ₹{doubleNumberWin.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">+ Half Sangam Open: ₹{halfSangamOpenWin.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">+ Half Sangam Close: ₹{halfSangamCloseWin.toLocaleString()}</div>
-                                                                        <div className="text-gray-300">+ Full Sangam: ₹{fullSangamWin.toLocaleString()}</div>
-                                                                        <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    } else {
-                                                        // No open result available
-                                                        return (
-                                                            <div className="mt-3 space-y-2 text-xs">
-                                                                <div className="border-t border-yellow-600/30 pt-2">
-                                                                    <div className="text-red-400 font-bold mb-1">⚠️ No Open Result Available:</div>
-                                                                    <div className="text-gray-300">Open result must be declared first to calculate close result wins.</div>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    }
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            {/* Result Type */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Result Type</Label>
+                                <div className="flex space-x-4">
+                                    <label className="flex items-center space-x-2">
+                                        <input
+                                            type="radio"
+                                            name="resultType"
+                                            value="open"
+                                            checked={resultType === 'open'}
+                                            onChange={() => onResultTypeChange('open')}
+                                        />
+                                        <span className="text-gray-300">Open</span>
+                                    </label>
+                                    <label className={`flex items-center space-x-2 ${canDeclareClose() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}>
+                                        <input
+                                            type="radio"
+                                            name="resultType"
+                                            value="close"
+                                            checked={resultType === 'close'}
+                                            onChange={() => {
+                                                if (canDeclareClose()) {
+                                                    onResultTypeChange('close');
+                                                } else {
+                                                    toast.error('Open result must be declared first');
                                                 }
-                                            })()}
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            })()}
-                        </div>
+                                            }}
+                                            disabled={!canDeclareClose()}
+                                        />
+                                        <span className={`${canDeclareClose() ? 'text-gray-300' : 'text-gray-500'}`}>
+                                            Close {canDeclareClose() ? '' : '(Open Required)'}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
 
-                        {/* Target Date */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">Target Date</Label>
-                            <Input
-                                type="date"
-                                value={targetDate}
-                                onChange={(e) => onTargetDateChange(e.target.value)}
-                                className="text-center"
-                            />
-                        </div>
+                            {/* Result Number */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Result Number</Label>
+                                <Input
+                                    type="text"
+                                    placeholder="Enter number (1-3 digits)"
+                                    value={resultNumber}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        // Allow 1-3 digits and numeric characters
+                                        if (value.length <= 3 && /^\d*$/.test(value)) {
+                                            onResultNumberChange(value);
+                                        }
+                                    }}
+                                    onBlur={(e) => {
+                                        const value = e.target.value;
+                                        if (value.length === 1) {
+                                            // Single number (0-9) - always valid
+                                            if (!/^[0-9]$/.test(value)) {
+                                                onResultNumberChange('');
+                                                toast.error('Please enter a valid single number (0-9)');
+                                            }
+                                        } else if (value.length === 2) {
+                                            // Double number (00-99) - always valid
+                                            if (!/^[0-9]{2}$/.test(value)) {
+                                                onResultNumberChange('');
+                                                toast.error('Please enter a valid double number (00-99)');
+                                            }
+                                        } else if (value.length === 3) {
+                                            const num = parseInt(value);
+                                            const allPannaNumbers = [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers];
+                                            if (!allPannaNumbers.includes(num)) {
+                                                onResultNumberChange('');
+                                                toast.error('Please enter a valid panna number from the game list');
+                                            }
+                                        }
+                                    }}
+                                    className="text-center text-lg font-bold"
+                                />
+                                <div className="text-xs text-gray-400">
+                                    Enter a valid number: Single (0-9), Double (00-99), or Panna (3-digit)
+                                </div>
+                                {resultNumber && resultNumber.length > 0 && (
+                                    <div className="space-y-2">
+                                        {resultNumber.length === 3 && (
+                                            <div className="text-xs text-blue-400">
+                                                Main will be: {calculateMainValue(parseInt(resultNumber))}
+                                            </div>
+                                        )}
 
-                        {/* Submit Button */}
-                        <div className="space-y-3">
-                            <Label className="text-gray-300 font-medium">&nbsp;</Label>
-                            <Button
-                                onClick={onDeclareResult}
-                                disabled={
-                                    declareLoading ||
-                                    selectedMarket === 'all' ||
-                                    !resultNumber ||
-                                    !targetDate ||
-                                    resultNumber.length !== 3 ||
-                                    ![...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers].includes(parseInt(resultNumber))
-                                }
-                                className="w-full bg-green-600 hover:bg-green-700"
-                            >
-                                {declareLoading ? 'Declaring...' : `Declare ${resultType}`}
-                            </Button>
+                                    </div>
+                                )}
+                                {/* Panna Number Suggestions */}
+                                {resultNumber && resultNumber.length > 0 && (
+                                    <div className="text-xs text-green-400">
+                                        Suggestions: {
+                                            [...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers]
+                                                .filter(num => num.toString().includes(resultNumber))
+                                                .slice(0, 5)
+                                                .join(', ')
+                                        }
+                                    </div>
+                                )}
+
+                                {/* Total Win Amount Preview */}
+                                {resultNumber && resultNumber.length > 0 && processedData && (() => {
+                                    // Debug calculation
+                                    debugCalculation(processedData, resultNumber, resultType, marketResults);
+                                    let totalWinAmount = 0;
+                                    let gameType = '';
+                                    let gameTypeName = '';
+
+                                    if (resultNumber.length === 1) {
+                                        // Single number (0-9)
+                                        gameType = 'singleNumbers';
+                                        gameTypeName = 'Single Number';
+                                        const amount = processedData.singleNumbers[resultNumber] || 0;
+                                        totalWinAmount = calculateWinAmount(gameType, amount, resultNumber);
+                                    } else if (resultNumber.length === 2) {
+                                        // Double number (00-99)
+                                        gameType = 'doubleNumbers';
+                                        gameTypeName = 'Double Number';
+                                        const amount = processedData.doubleNumbers[resultNumber] || 0;
+                                        totalWinAmount = calculateWinAmount(gameType, amount, resultNumber);
+                                    } else if (resultNumber.length === 3) {
+                                        const num = parseInt(resultNumber);
+
+                                        if (singlePannaNumbers.includes(num)) {
+                                            gameType = 'singlePanna';
+                                            gameTypeName = 'Single Panna';
+                                        } else if (doublePannaNumbers.includes(num)) {
+                                            gameType = 'doublePanna';
+                                            gameTypeName = 'Double Panna';
+                                        } else if (triplePannaNumbers.includes(num.toString().padStart(3, '0'))) {
+                                            gameType = 'triplePanna';
+                                            gameTypeName = 'Triple Panna';
+                                        }
+
+                                        if (gameType) {
+                                            // Calculate win for the panna number itself
+                                            const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                            const pannaAmount = pannaData[resultNumber] || 0;
+
+                                            if (resultType === 'open') {
+                                                // For open results - standard calculation
+                                                if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
+                                                    // For panna games, calculate both panna win and digit sum win
+                                                    const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+                                                    const digitSum = calculateMainValue(parseInt(resultNumber));
+                                                    const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
+                                                    const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+                                                    totalWinAmount = pannaWin + digitSumWin;
+                                                } else {
+                                                    // For non-panna games, use the calculateWinAmount function
+                                                    totalWinAmount = calculateWinAmount(gameType, pannaAmount, resultNumber);
+                                                }
+                                            } else if (resultType === 'close') {
+                                                // For close results - complex calculation with open result
+                                                let baseWinAmount = 0;
+
+                                                // 1. Standard panna and digit sum calculation
+                                                if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
+                                                    const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+                                                    const digitSum = calculateMainValue(parseInt(resultNumber));
+                                                    const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
+                                                    const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+                                                    baseWinAmount = pannaWin + digitSumWin;
+                                                } else {
+                                                    baseWinAmount = calculateWinAmount(gameType, pannaAmount, resultNumber);
+                                                }
+
+                                                // 2. Get open result from market results
+                                                const today = new Date();
+                                                const dayName = getDayName(today);
+                                                const dayResult = marketResults?.results?.[dayName as keyof typeof marketResults.results];
+
+                                                if (dayResult?.open) {
+                                                    const openResult = dayResult.open.toString();
+                                                    const openMain = dayResult.main;
+
+                                                    // 3. Calculate combined main (openMain + closeMain) - ensure max 2 digits
+                                                    const closeMain = calculateMainValue(parseInt(resultNumber));
+                                                    const combinedMain = parseInt(openMain.toString() + closeMain.toString());
+                                                    const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
+
+                                                    // 4. Check for double number bet on combined main
+                                                    const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
+                                                    const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
+
+                                                    // 5. Check for half sangam open (openMain X closePanna)
+                                                    const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
+                                                    const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
+                                                    const halfSangamOpenWin = halfSangamOpenAmount * WINNING_RATES.halfSangam;
+
+                                                    // 6. Check for half sangam close (openPanna X closeMain)
+                                                    const halfSangamClosePattern = `${openResult}X${closeMain}`;
+                                                    const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
+                                                    const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
+
+                                                    // 7. Check for full sangam (openPanna X combinedDigitSums X closePanna)
+                                                    const openDigitSum = calculateDigitSum(parseInt(openResult));
+                                                    const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
+                                                    const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
+                                                    const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
+                                                    const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
+                                                    const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
+
+                                                    // 8. Calculate total
+                                                    totalWinAmount = baseWinAmount + doubleNumberWin + halfSangamOpenWin + halfSangamCloseWin + fullSangamWin;
+                                                } else {
+                                                    // If no open result, use standard calculation
+                                                    totalWinAmount = baseWinAmount;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (gameType && totalWinAmount > 0) {
+                                        return (
+                                            <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-600/30 rounded-lg">
+                                                <div className="text-xs text-yellow-400 font-bold mb-1">
+                                                    💰 Total Potential Win Amount:
+                                                </div>
+                                                <div className="text-lg font-bold text-yellow-400">
+                                                    ₹{totalWinAmount.toLocaleString()}
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-1">
+                                                    {gameTypeName} • Based on current filtered data
+                                                </div>
+
+                                                {/* Win Amount Breakdown */}
+                                                {(() => {
+                                                    if (resultType === 'open') {
+                                                        // Open result breakdown
+                                                        if (['singlePanna', 'doublePanna', 'triplePanna'].includes(gameType)) {
+                                                            const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                                            const pannaAmount = pannaData[resultNumber] || 0;
+                                                            const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+                                                            const digitSum = calculateMainValue(parseInt(resultNumber));
+                                                            const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
+                                                            const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+
+                                                            return (
+                                                                <div className="mt-3 space-y-2 text-xs">
+                                                                    <div className="border-t border-yellow-600/30 pt-2">
+                                                                        <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
+
+                                                                        {/* Main Panna Win */}
+                                                                        <div className="bg-blue-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-blue-400 font-bold">Main Panna Win:</div>
+                                                                            <div className="text-gray-300">Bet Amount: ₹{pannaAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
+                                                                            <div className="text-green-400 font-bold">Panna Win: ₹{pannaWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Digit Sum Win */}
+                                                                        <div className="bg-purple-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-purple-400 font-bold">Digit Sum Win:</div>
+                                                                            <div className="text-gray-300">Digit Sum ({resultNumber}): {digitSum}</div>
+                                                                            <div className="text-gray-300">Single Number Bet: ₹{singleNumberAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Single Rate: {WINNING_RATES.single}x</div>
+                                                                            <div className="text-green-400 font-bold">Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Total */}
+                                                                        <div className="bg-green-900/20 p-2 rounded">
+                                                                            <div className="text-green-400 font-bold">Total Win:</div>
+                                                                            <div className="text-gray-300">Panna Win: ₹{pannaWin.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">+ Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
+                                                                            <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            // For single and double numbers, show simple breakdown
+                                                            const gameData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                                            const amount = gameData[resultNumber] || 0;
+                                                            const winAmount = amount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+
+                                                            return (
+                                                                <div className="mt-3 space-y-2 text-xs">
+                                                                    <div className="border-t border-yellow-600/30 pt-2">
+                                                                        <div className="text-blue-400 font-bold mb-1">📊 Win Amount Breakdown:</div>
+                                                                        <div className="bg-blue-900/20 p-2 rounded">
+                                                                            <div className="text-blue-400 font-bold">{gameTypeName} Win:</div>
+                                                                            <div className="text-gray-300">Bet Amount: ₹{amount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES[gameType as keyof typeof WINNING_RATES]}x</div>
+                                                                            <div className="text-green-400 font-bold">Total Win: ₹{winAmount.toLocaleString()}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    } else if (resultType === 'close') {
+                                                        // Close result breakdown
+                                                        const today = new Date();
+                                                        const dayName = getDayName(today);
+                                                        const dayResult = marketResults?.results?.[dayName as keyof typeof marketResults.results];
+
+                                                        if (dayResult?.open) {
+                                                            const openResult = dayResult.open.toString();
+                                                            const openMain = dayResult.main;
+                                                            const closeMain = calculateMainValue(parseInt(resultNumber));
+                                                            const combinedMain = parseInt(openMain.toString() + closeMain.toString());
+                                                            const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
+
+                                                            // Calculate all components
+                                                            const pannaData = processedData[gameType as keyof ProcessedBetData] as { [key: string]: number };
+                                                            const pannaAmount = pannaData[resultNumber] || 0;
+                                                            const pannaWin = pannaAmount * WINNING_RATES[gameType as keyof typeof WINNING_RATES];
+                                                            const digitSum = calculateMainValue(parseInt(resultNumber));
+                                                            const singleNumberAmount = processedData.singleNumbers[digitSum.toString()] || 0;
+                                                            const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+
+                                                            const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
+                                                            const doubleNumberWin = doubleNumberAmount * WINNING_RATES.double;
+
+                                                            const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
+                                                            const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
+                                                            const halfSangamOpenWin = halfSangamOpenAmount * WINNING_RATES.halfSangam;
+
+                                                            const halfSangamClosePattern = `${openResult}X${closeMain}`;
+                                                            const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
+                                                            const halfSangamCloseWin = halfSangamCloseAmount * WINNING_RATES.halfSangam;
+
+                                                            const openDigitSum = calculateDigitSum(parseInt(openResult));
+                                                            const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
+                                                            const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
+                                                            const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
+                                                            const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
+                                                            const fullSangamWin = fullSangamAmount * WINNING_RATES.fullSangam;
+
+                                                            return (
+                                                                <div className="mt-3 space-y-2 text-xs">
+                                                                    <div className="border-t border-yellow-600/30 pt-2">
+                                                                        <div className="text-blue-400 font-bold mb-1">📊 Close Result Breakdown:</div>
+
+                                                                        {/* Base Win */}
+                                                                        <div className="bg-blue-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-blue-400 font-bold">Base Win (Close Panna + Digit Sum):</div>
+                                                                            <div className="text-gray-300">Panna Win: ₹{pannaWin.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Digit Sum Win: ₹{digitSumWin.toLocaleString()}</div>
+                                                                            <div className="text-green-400 font-bold">Base Total: ₹{(pannaWin + digitSumWin).toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Combined Main Win */}
+                                                                        <div className="bg-purple-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-purple-400 font-bold">Combined Main Win:</div>
+                                                                            <div className="text-gray-300">Open Main: {openMain} + Close Main: {closeMain} = {combinedMain} → Final: {finalMain}</div>
+                                                                            <div className="text-gray-300">Double Number Bet: ₹{doubleNumberAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES.double}x</div>
+                                                                            <div className="text-green-400 font-bold">Combined Main Win: ₹{doubleNumberWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Half Sangam Open */}
+                                                                        <div className="bg-orange-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-orange-400 font-bold">Half Sangam Open:</div>
+                                                                            <div className="text-gray-300">Pattern: {openMain}X{resultNumber}</div>
+                                                                            <div className="text-gray-300">Bet Amount: ₹{halfSangamOpenAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES.halfSangam}x</div>
+                                                                            <div className="text-green-400 font-bold">Half Sangam Open Win: ₹{halfSangamOpenWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Half Sangam Close */}
+                                                                        <div className="bg-red-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-red-400 font-bold">Half Sangam Close:</div>
+                                                                            <div className="text-gray-300">Pattern: {openResult}X{closeMain}</div>
+                                                                            <div className="text-gray-300">Bet Amount: ₹{halfSangamCloseAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES.halfSangam}x</div>
+                                                                            <div className="text-green-400 font-bold">Half Sangam Close Win: ₹{halfSangamCloseWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Full Sangam */}
+                                                                        <div className="bg-indigo-900/20 p-2 rounded mb-2">
+                                                                            <div className="text-indigo-400 font-bold">Full Sangam:</div>
+                                                                            <div className="text-gray-300">Pattern: {openResult}X{combinedDigitSums}X{resultNumber}</div>
+                                                                            <div className="text-gray-300">Bet Amount: ₹{fullSangamAmount.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">Rate: {WINNING_RATES.fullSangam}x</div>
+                                                                            <div className="text-green-400 font-bold">Full Sangam Win: ₹{fullSangamWin.toLocaleString()}</div>
+                                                                        </div>
+
+                                                                        {/* Total */}
+                                                                        <div className="bg-green-900/20 p-2 rounded">
+                                                                            <div className="text-green-400 font-bold">Total Close Win:</div>
+                                                                            <div className="text-gray-300">Base Win: ₹{(pannaWin + digitSumWin).toLocaleString()}</div>
+                                                                            <div className="text-gray-300">+ Combined Main: ₹{doubleNumberWin.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">+ Half Sangam Open: ₹{halfSangamOpenWin.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">+ Half Sangam Close: ₹{halfSangamCloseWin.toLocaleString()}</div>
+                                                                            <div className="text-gray-300">+ Full Sangam: ₹{fullSangamWin.toLocaleString()}</div>
+                                                                            <div className="text-yellow-400 font-bold text-sm">Total: ₹{totalWinAmount.toLocaleString()}</div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            // No open result available
+                                                            return (
+                                                                <div className="mt-3 space-y-2 text-xs">
+                                                                    <div className="border-t border-yellow-600/30 pt-2">
+                                                                        <div className="text-red-400 font-bold mb-1">⚠️ No Open Result Available:</div>
+                                                                        <div className="text-gray-300">Open result must be declared first to calculate close result wins.</div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    }
+                                                })()}
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+                            </div>
+
+                            {/* Target Date */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">Target Date</Label>
+                                <Input
+                                    type="date"
+                                    value={targetDate}
+                                    onChange={(e) => onTargetDateChange(e.target.value)}
+                                    className="text-center"
+                                />
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="space-y-3">
+                                <Label className="text-gray-300 font-medium">&nbsp;</Label>
+                                <Button
+                                    onClick={onDeclareResult}
+                                    disabled={
+                                        declareLoading ||
+                                        selectedMarket === 'all' ||
+                                        !resultNumber ||
+                                        !targetDate ||
+                                        resultNumber.length !== 3 ||
+                                        ![...singlePannaNumbers, ...doublePannaNumbers, ...triplePannaNumbers].includes(parseInt(resultNumber))
+                                    }
+                                    className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                    {declareLoading ? 'Declaring...' : `Declare ${resultType}`}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 {/* Clear Filters Button */}
                 <div className="mt-6 flex justify-center">

@@ -11,11 +11,7 @@ export const superNavbar: NavbarItem[] = [
         href: "/dashboard",
         icon: "Home",
     },
-    {
-        title: "All Bids",
-        href: "/bets",
-        icon: "ClipboardList",
-    },
+
     {
         title: "User Management",
         icon: "Users",
@@ -47,21 +43,10 @@ export const superNavbar: NavbarItem[] = [
         icon: "Wallet",
         children: [
             {
-                title: "Load",
-                href: "/load",
-                icon: "TrendingUp",
-            },
-            {
-                title: "Load V2",
+                title: "Load ",
                 href: "/loadv2",
                 icon: "TrendingUp",
             },
-            {
-                title: "Winner",
-                href: "/winner",
-                icon: "Award",
-            },
-
         ],
     },
     {
@@ -90,11 +75,6 @@ export const superNavbar: NavbarItem[] = [
                 href: "/points/transfer",
                 icon: "Wallet",
             },
-            {
-                title: "Transfer History",
-                href: "/points/history",
-                icon: "History",
-            },
         ],
     },
     {
@@ -102,44 +82,26 @@ export const superNavbar: NavbarItem[] = [
         icon: "BarChart3",
         children: [
             {
-                title: "Market Reports",
-                href: "/reports/markets",
+                title: "All Bids",
+                href: "/bets",
+                icon: "ClipboardList",
+            },
+            {
+                title: "Reports",
+                href: "/reports/",
                 icon: "BarChart3",
             },
-            {
-                title: "User Reports",
-                href: "/reports/users",
-                icon: "Users",
-            },
-            {
-                title: "Commission Reports",
-                href: "/reports/commissions",
-                icon: "DollarSign",
-            },
-            {
-                title: "Total Summary",
-                href: "/reports/summary",
-                icon: "Activity",
-            },
-            {
-                title: "System",
-                icon: "Settings",
-                children: [
-                    {
-                        title: "Settings",
-                        href: "/settings",
-                        icon: "Settings",
-                    },
-                    {
-                        title: "Logs",
-                        href: "/system/logs",
-                        icon: "Activity",
-                    },
-                ],
-            },
+
         ],
     },
+    {
+        title: "Logs",
+        href: "/logs",
+        icon: "Activity",
+    },
 ];
+
+
 
 export const adminNavbar: NavbarItem[] = [
     {
@@ -147,10 +109,12 @@ export const adminNavbar: NavbarItem[] = [
         href: "/dashboard",
         icon: "Home",
     },
+
     {
         title: "User Management",
         icon: "Users",
         children: [
+
             {
                 title: "All Distributers",
                 href: "/users/distributor/all",
@@ -169,27 +133,29 @@ export const adminNavbar: NavbarItem[] = [
         ],
     },
     {
-        title: "Markets",
-        href: "/markets",
-        icon: "Home",
-    },
-
-    {
-        title: "Bid Management",
-        icon: "TrendingUp",
+        title: "load management",
+        icon: "Wallet",
         children: [
             {
-                title: "All Bids",
-                href: "/bets",
-                icon: "ClipboardList",
-            },
-            {
-                title: "Bid History",
-                href: "/bets/history",
-                icon: "History",
+                title: "Load ",
+                href: "/loadv2",
+                icon: "TrendingUp",
             },
         ],
     },
+    {
+        title: "Markets Management",
+        icon: "Home",
+        children: [
+            {
+                title: "All Markets",
+                href: "/markets",
+                icon: "ClipboardList",
+            },
+
+        ],
+    },
+
     {
         title: "Point Management",
         icon: "Wallet",
@@ -199,11 +165,6 @@ export const adminNavbar: NavbarItem[] = [
                 href: "/points/transfer",
                 icon: "Wallet",
             },
-            {
-                title: "Transfer History",
-                href: "/points/history",
-                icon: "History",
-            },
         ],
     },
     {
@@ -211,39 +172,27 @@ export const adminNavbar: NavbarItem[] = [
         icon: "BarChart3",
         children: [
             {
-                title: "Market Reports",
-                href: "/reports/markets",
+                title: "All Bids",
+                href: "/bets",
+                icon: "ClipboardList",
+            },
+            {
+                title: "Reports",
+                href: "/reports/",
                 icon: "BarChart3",
             },
-            {
-                title: "User Reports",
-                href: "/reports/users",
-                icon: "Users",
-            },
-            {
-                title: "Commission Reports",
-                href: "/reports/commissions",
-                icon: "DollarSign",
-            },
-            {
-                title: "Total Summary",
-                href: "/reports/summary",
-                icon: "Activity",
-            },
-            {
-                title: "System",
-                icon: "Settings",
-                children: [
-                    {
-                        title: "Logs",
-                        href: "/system/logs",
-                        icon: "Activity",
-                    },
-                ],
-            },
+
         ],
     },
+    {
+        title: "Logs",
+        href: "/logs",
+        icon: "Activity",
+    },
 ];
+
+
+
 
 export const distributorNavbar: NavbarItem[] = [
     {
@@ -251,10 +200,13 @@ export const distributorNavbar: NavbarItem[] = [
         href: "/dashboard",
         icon: "Home",
     },
+
     {
         title: "User Management",
         icon: "Users",
         children: [
+
+
             {
                 title: "All Agents",
                 href: "/users/agent/all",
@@ -268,26 +220,29 @@ export const distributorNavbar: NavbarItem[] = [
         ],
     },
     {
-        title: "Markets",
-        href: "/markets",
-        icon: "Home",
-    },
-    {
-        title: "Bid Management",
-        icon: "TrendingUp",
+        title: "load management",
+        icon: "Wallet",
         children: [
             {
-                title: "All Bids",
-                href: "/bets",
-                icon: "ClipboardList",
-            },
-            {
-                title: "Bid History",
-                href: "/bets/history",
-                icon: "History",
+                title: "Load ",
+                href: "/loadv2",
+                icon: "TrendingUp",
             },
         ],
     },
+    {
+        title: "Markets Management",
+        icon: "Home",
+        children: [
+            {
+                title: "All Markets",
+                href: "/markets",
+                icon: "ClipboardList",
+            },
+
+        ],
+    },
+
     {
         title: "Point Management",
         icon: "Wallet",
@@ -297,11 +252,6 @@ export const distributorNavbar: NavbarItem[] = [
                 href: "/points/transfer",
                 icon: "Wallet",
             },
-            {
-                title: "Transfer History",
-                href: "/points/history",
-                icon: "History",
-            },
         ],
     },
     {
@@ -309,39 +259,29 @@ export const distributorNavbar: NavbarItem[] = [
         icon: "BarChart3",
         children: [
             {
-                title: "Market Reports",
-                href: "/reports/markets",
+                title: "All Bids",
+                href: "/bets",
+                icon: "ClipboardList",
+            },
+            {
+                title: "Reports",
+                href: "/reports/",
                 icon: "BarChart3",
             },
-            {
-                title: "User Reports",
-                href: "/reports/users",
-                icon: "Users",
-            },
-            {
-                title: "Commission Reports",
-                href: "/reports/commissions",
-                icon: "DollarSign",
-            },
-            {
-                title: "Total Summary",
-                href: "/reports/summary",
-                icon: "Activity",
-            },
-            {
-                title: "System",
-                icon: "Settings",
-                children: [
-                    {
-                        title: "Logs",
-                        href: "/system/logs",
-                        icon: "Activity",
-                    },
-                ],
-            },
+
         ],
     },
+    {
+        title: "Logs",
+        href: "/logs",
+        icon: "Activity",
+    },
 ];
+
+
+
+
+
 
 export const agentNavbar: NavbarItem[] = [
     {
@@ -349,11 +289,11 @@ export const agentNavbar: NavbarItem[] = [
         href: "/dashboard",
         icon: "Home",
     },
+
     {
         title: "User Management",
         icon: "Users",
         children: [
-
             {
                 title: "All players",
                 href: "/users/player/all",
@@ -362,26 +302,29 @@ export const agentNavbar: NavbarItem[] = [
         ],
     },
     {
-        title: "Markets",
-        href: "/markets",
-        icon: "Home",
-    },
-    {
-        title: "Bid Management",
-        icon: "TrendingUp",
+        title: "load management",
+        icon: "Wallet",
         children: [
             {
-                title: "All Bids",
-                href: "/bets",
-                icon: "ClipboardList",
-            },
-            {
-                title: "Bid History",
-                href: "/bets/history",
-                icon: "History",
+                title: "Load ",
+                href: "/loadv2",
+                icon: "TrendingUp",
             },
         ],
     },
+    {
+        title: "Markets Management",
+        icon: "Home",
+        children: [
+            {
+                title: "All Markets",
+                href: "/markets",
+                icon: "ClipboardList",
+            },
+
+        ],
+    },
+
     {
         title: "Point Management",
         icon: "Wallet",
@@ -391,11 +334,6 @@ export const agentNavbar: NavbarItem[] = [
                 href: "/points/transfer",
                 icon: "Wallet",
             },
-            {
-                title: "Transfer History",
-                href: "/points/history",
-                icon: "History",
-            },
         ],
     },
     {
@@ -403,39 +341,27 @@ export const agentNavbar: NavbarItem[] = [
         icon: "BarChart3",
         children: [
             {
-                title: "Market Reports",
-                href: "/reports/markets",
+                title: "All Bids",
+                href: "/bets",
+                icon: "ClipboardList",
+            },
+            {
+                title: "Reports",
+                href: "/reports/",
                 icon: "BarChart3",
             },
-            {
-                title: "User Reports",
-                href: "/reports/users",
-                icon: "Users",
-            },
-            {
-                title: "Commission Reports",
-                href: "/reports/commissions",
-                icon: "DollarSign",
-            },
-            {
-                title: "Total Summary",
-                href: "/reports/summary",
-                icon: "Activity",
-            },
-            {
-                title: "System",
-                icon: "Settings",
-                children: [
-                    {
-                        title: "Logs",
-                        href: "/system/logs",
-                        icon: "Activity",
-                    },
-                ],
-            },
+
         ],
     },
+    {
+        title: "Logs",
+        href: "/logs",
+        icon: "Activity",
+    },
 ];
+
+
+
 
 
 
