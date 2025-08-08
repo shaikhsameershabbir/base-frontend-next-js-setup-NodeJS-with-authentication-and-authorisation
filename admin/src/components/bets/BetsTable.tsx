@@ -15,7 +15,7 @@ interface Bet {
     winAmount?: number | null;
     result?: string;
     claimStatus?: boolean;
-    createdAt: string;
+    createdAt: string | Date;
 }
 
 interface BetsTableProps {
@@ -31,8 +31,9 @@ interface BetsTableProps {
     onPageChange: (page: number) => void;
 }
 
-const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('en-IN', {
+const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleString('en-IN', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
