@@ -285,10 +285,11 @@ export default function MarketPage() {
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Open Time</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Close Time</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden lg:table-cell">Week Days</th>
-                                            <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden md:table-cell">Created By</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
-                                            <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
+                                            {isSuperadmin && (
+                                                <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -314,12 +315,6 @@ export default function MarketPage() {
                                                         {formatWeekDays(market.weekDays || 7)}
                                                     </div>
                                                 </td>
-                                                <td className="py-3 sm:py-4 px-2 sm:px-4 hidden md:table-cell">
-                                                    <div className="flex items-center gap-1 sm:gap-2 text-secondary text-sm">
-                                                        <User className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                        <span className="truncate max-w-[100px]">{market.createdBy}</span>
-                                                    </div>
-                                                </td>
                                                 <td className="py-3 sm:py-4 px-2 sm:px-4">
                                                     <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${market.isActive
                                                         ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
@@ -328,22 +323,28 @@ export default function MarketPage() {
                                                         {market.isActive ? <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" /> : <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
                                                         <span className="hidden sm:inline">{market.isActive ? 'Active' : 'Inactive'}</span>
                                                         <span className="sm:hidden">{market.isActive ? 'On' : 'Off'}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
-                                                            onClick={() => handleToggleActive(market._id)}
-                                                            disabled={actionLoadingId === market._id}
-                                                            title={market.isActive ? 'Deactivate' : 'Activate'}
-                                                        >
-                                                            {actionLoadingId === market._id ? (
-                                                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
-                                                            ) : market.isActive ? (
-                                                                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
-                                                            ) : (
-                                                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
-                                                            )}
-                                                        </Button>
+                                                        {isSuperadmin ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
+                                                                onClick={() => handleToggleActive(market._id)}
+                                                                disabled={actionLoadingId === market._id}
+                                                                title={market.isActive ? 'Deactivate' : 'Activate'}
+                                                            >
+                                                                {actionLoadingId === market._id ? (
+                                                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
+                                                                ) : market.isActive ? (
+                                                                    <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                                                                ) : (
+                                                                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+                                                                )}
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="ml-1 sm:ml-2 text-xs text-muted-foreground">
+                                                                {market.isActive ? 'Active' : 'Inactive'}
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </td>
                                                 <td className="py-3 sm:py-4 px-2 sm:px-4">
@@ -354,26 +355,32 @@ export default function MarketPage() {
                                                         {market.isGolden ? <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-current" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
                                                         <span className="hidden sm:inline">{market.isGolden ? 'Golden' : 'Regular'}</span>
                                                         <span className="sm:hidden">{market.isGolden ? 'Gold' : 'Reg'}</span>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
-                                                            onClick={() => handleToggleGolden(market._id)}
-                                                            disabled={actionLoadingId === market._id}
-                                                            title={market.isGolden ? 'Remove Golden' : 'Make Golden'}
-                                                        >
-                                                            {actionLoadingId === market._id ? (
-                                                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
-                                                            ) : market.isGolden ? (
-                                                                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
-                                                            ) : (
-                                                                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
-                                                            )}
-                                                        </Button>
+                                                        {isSuperadmin ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
+                                                                onClick={() => handleToggleGolden(market._id)}
+                                                                disabled={actionLoadingId === market._id}
+                                                                title={market.isGolden ? 'Remove Golden' : 'Make Golden'}
+                                                            >
+                                                                {actionLoadingId === market._id ? (
+                                                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
+                                                                ) : market.isGolden ? (
+                                                                    <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                                                                ) : (
+                                                                    <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />
+                                                                )}
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="ml-1 sm:ml-2 text-xs text-muted-foreground">
+                                                                {market.isGolden ? 'Golden' : 'Regular'}
+                                                            </span>
+                                                        )}
                                                     </span>
                                                 </td>
-                                                <td className="py-3 sm:py-4 px-2 sm:px-4">
-                                                    {isSuperadmin ? (
+                                                {isSuperadmin && (
+                                                    <td className="py-3 sm:py-4 px-2 sm:px-4">
                                                         <div className="flex items-center gap-1 sm:gap-2">
                                                             <Button
                                                                 variant="ghost"
@@ -394,12 +401,8 @@ export default function MarketPage() {
                                                                 <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                                             </Button>
                                                         </div>
-                                                    ) : (
-                                                        <div className="text-xs text-muted-foreground">
-                                                            View only
-                                                        </div>
-                                                    )}
-                                                </td>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
