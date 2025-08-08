@@ -14,7 +14,7 @@ interface Bet {
     amount: number;
     winAmount?: number | null;
     result?: string;
-    claimStatus: boolean;
+    claimStatus?: boolean;
     createdAt: string;
 }
 
@@ -175,8 +175,8 @@ export const BetsTable: React.FC<BetsTableProps> = ({
                                         )}
                                     </td>
                                     <td className="p-3">
-                                        <Badge className={bet.claimStatus ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
-                                            {bet.claimStatus ? 'CLAIMED' : 'NOT CLAIMED'}
+                                        <Badge className={bet.claimStatus === true ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                            {bet.claimStatus === true ? 'CLAIMED' : 'NOT CLAIMED'}
                                         </Badge>
                                     </td>
                                     <td className="p-3">
