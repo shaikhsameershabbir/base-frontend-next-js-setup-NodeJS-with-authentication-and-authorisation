@@ -42,26 +42,38 @@ export class DashboardController {
             const totalUsers = downlineUserIds.length - 1; // Exclude self
 
             // Get markets based on user role
-            let activeMarkets: any[] = [];
+            let activeMarkets: Array<{ marketId: { _id: string; marketName: string; isActive: boolean } }> = [];
 
             if (currentUser.role === 'superadmin') {
                 // Superadmin can see all active markets
                 const allMarkets = await Market.find({ isActive: true });
-                activeMarkets = allMarkets.map(market => ({
-                    marketId: {
-                        _id: (market as any)._id.toString(),
-                        marketName: (market as any).marketName,
-                        isActive: (market as any).isActive
-                    }
-                }));
+                activeMarkets = allMarkets.map(market => {
+                    const marketDoc = market as unknown as { _id: string; marketName: string; isActive: boolean };
+                    return {
+                        marketId: {
+                            _id: marketDoc._id,
+                            marketName: marketDoc.marketName,
+                            isActive: marketDoc.isActive
+                        }
+                    };
+                });
             } else {
                 // Other users see only assigned markets
                 const assignedMarkets = await UserMarketAssignment.find({ assignedTo: currentUserId, isActive: true })
                     .populate('marketId', 'marketName isActive');
 
-                activeMarkets = assignedMarkets.filter(assignment =>
-                    assignment.marketId
-                );
+                activeMarkets = assignedMarkets
+                    .filter(assignment => assignment.marketId)
+                    .map(assignment => {
+                        const populatedMarket = assignment.marketId as unknown as { _id: string; marketName: string; isActive: boolean };
+                        return {
+                            marketId: {
+                                _id: populatedMarket._id,
+                                marketName: populatedMarket.marketName,
+                                isActive: populatedMarket.isActive
+                            }
+                        };
+                    });
             }
 
             // Get total bids from all downline users
