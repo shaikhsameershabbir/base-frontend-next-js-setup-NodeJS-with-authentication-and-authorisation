@@ -31,6 +31,7 @@ export default function MarketRankPage() {
   const [marketRanks, setMarketRanks] = useState<MarketRank[]>([]);
   const [loading, setLoading] = useState(false);
   const [adminsLoading, setAdminsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
   const [editingRank, setEditingRank] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
@@ -44,10 +45,10 @@ export default function MarketRankPage() {
       if (response.success) {
         setAdmins(response.data);
       } else {
-        console.error('Failed to fetch admins:', response.message);
+        setError(response.message || 'Failed to fetch admins');
       }
-    } catch (error) {
-      console.error('Error fetching admins:', error);
+    } catch (error: any) {
+      setError(error.message || 'Failed to fetch admins');
     } finally {
       setAdminsLoading(false);
     }
@@ -55,17 +56,20 @@ export default function MarketRankPage() {
 
   // Fetch market ranks for selected admin
   const fetchMarketRanks = async (page: number) => {
+    if (!selectedAdmin) return;
+
     try {
       setLoading(true);
-      const response = await marketsAPI.getMarketRanks(page, pagination.limit);
+      const response = await marketsAPI.getMarketRanks(selectedAdmin, page, pagination.limit);
 
       if (response.success) {
-        setMarketRanks(response.data.marketRanks);
+        console.log('Market ranks response:', response);
+        setMarketRanks(response.data || []);
         setPagination(prev => ({
           ...prev,
           page,
-          total: response.data.pagination.total,
-          totalPages: response.data.pagination.totalPages
+          total: response.pagination?.total || 0,
+          totalPages: response.pagination?.totalPages || 0
         }));
       } else {
         setError(response.message || 'Failed to fetch market ranks');
@@ -95,9 +99,12 @@ export default function MarketRankPage() {
         fetchMarketRanks(pagination.page);
         setEditingRank(null);
         setEditValue('');
+        setError(null);
+      } else {
+        setError(response.message || 'Failed to update market rank');
       }
-    } catch (error) {
-      console.error('Error updating market rank:', error);
+    } catch (error: any) {
+      setError(error.message || 'Failed to update market rank');
     } finally {
       setUpdatingRank(null);
     }
@@ -135,6 +142,7 @@ export default function MarketRankPage() {
     setMarketRanks([]);
     setEditingRank(null);
     setEditValue('');
+    setError(null);
   };
 
   // Format time
@@ -152,6 +160,7 @@ export default function MarketRankPage() {
   };
 
   useEffect(() => {
+    setError(null);
     fetchAdmins();
   }, []);
 
@@ -176,6 +185,18 @@ export default function MarketRankPage() {
           </div>
           <p className="text-sm sm:text-base md:text-lg text-muted-foreground">Manage market rankings for admin users</p>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <Card className="mb-4 sm:mb-6 border-red-200 bg-red-50 dark:bg-red-900/20">
+            <CardContent className="p-4">
+              <p className="text-red-600 dark:text-red-400">{error}</p>
+              <Button onClick={() => setError(null)} variant="outline" size="sm" className="mt-2">
+                Dismiss
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Admin Selection */}
         <Card className="mb-4 sm:mb-6">
