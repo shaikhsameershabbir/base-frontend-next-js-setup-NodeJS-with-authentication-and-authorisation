@@ -64,7 +64,7 @@ export class ReportsController {
             let reports: AdminReport[] = [];
 
             if (currentUser.role === 'superadmin') {
-                // Superadmin can see all admins
+                // Superadmin sees all admins
                 if (adminId) {
                     // Get specific admin report
                     const adminReport = await this.getAdminReport(adminId as string, dateFilter);
@@ -80,13 +80,55 @@ export class ReportsController {
                     reports = adminReports.filter((report): report is AdminReport => report !== null);
                 }
             } else if (currentUser.role === 'admin') {
-                // Admin can see their own report and their downline
-                const adminReport = await this.getAdminReport(currentUser._id.toString(), dateFilter);
-                if (adminReport) {
-                    reports = [adminReport];
+                // Admin sees all distributors
+                if (adminId) {
+                    // Get specific distributor report
+                    const distributorReport = await this.getDistributorReport(adminId as string, dateFilter);
+                    if (distributorReport) {
+                        reports = [distributorReport];
+                    }
+                } else {
+                    // Get all distributors reports
+                    const distributors = await User.find({ role: 'distributor', isActive: true });
+                    const distributorReports = await Promise.all(
+                        distributors.map(distributor => this.getDistributorReport((distributor._id as any).toString(), dateFilter))
+                    );
+                    reports = distributorReports.filter((report): report is AdminReport => report !== null);
+                }
+            } else if (currentUser.role === 'distributor') {
+                // Distributor sees all agents
+                if (adminId) {
+                    // Get specific agent report
+                    const agentReport = await this.getAgentReport(adminId as string, dateFilter);
+                    if (agentReport) {
+                        reports = [agentReport];
+                    }
+                } else {
+                    // Get all agents reports
+                    const agents = await User.find({ role: 'agent', isActive: true });
+                    const agentReports = await Promise.all(
+                        agents.map(agent => this.getAgentReport((agent._id as any).toString(), dateFilter))
+                    );
+                    reports = agentReports.filter((report): report is AdminReport => report !== null);
+                }
+            } else if (currentUser.role === 'agent') {
+                // Agent sees all players
+                if (adminId) {
+                    // Get specific player report
+                    const playerReport = await this.getPlayerReport(adminId as string, dateFilter);
+                    if (playerReport) {
+                        reports = [playerReport];
+                    }
+                } else {
+                    // Get all players reports
+                    const players = await User.find({ role: 'player', isActive: true });
+                    const playerReports = await Promise.all(
+                        players.map(player => this.getPlayerReport((player._id as any).toString(), dateFilter))
+                    );
+                    reports = playerReports.filter((report): report is AdminReport => report !== null);
                 }
             } else {
-                // Other roles can only see their own report
+                // Player can only see their own report
                 const userReport = await this.getUserReport(currentUser._id.toString(), dateFilter);
                 if (userReport) {
                     reports = [{
@@ -185,6 +227,159 @@ export class ReportsController {
 
         } catch (error) {
             console.error('Error getting admin report:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get detailed report for a specific distributor
+     */
+    private static async getDistributorReport(distributorId: string, dateFilter: any): Promise<AdminReport | null> {
+        try {
+            const distributor = await User.findById(distributorId);
+            if (!distributor) return null;
+
+            // Get all downline user IDs for this distributor
+            const downlineUserIds = await HierarchyService.getAllDownlineUserIds(distributorId, true);
+
+            // Get all bets for downline users
+            const bets = await Bet.find({
+                userId: { $in: downlineUserIds },
+                ...dateFilter
+            }).populate('userId', 'username role');
+
+            // Calculate distributor totals
+            const distributorTotals = this.calculateBetTotals(bets);
+
+            // Get individual user reports
+            const downlineUsers: BetReport[] = [];
+            const userBetsMap = new Map<string, any[]>();
+
+            // Group bets by user
+            bets.forEach(bet => {
+                const userId = (bet.userId as any)._id.toString();
+                if (!userBetsMap.has(userId)) {
+                    userBetsMap.set(userId, []);
+                }
+                userBetsMap.get(userId)!.push(bet);
+            });
+
+            // Calculate individual user reports
+            for (const [userId, userBets] of userBetsMap) {
+                const user = await User.findById(userId);
+                if (user) {
+                    const userTotals = this.calculateBetTotals(userBets);
+                    downlineUsers.push({
+                        userId,
+                        username: user.username,
+                        role: user.role,
+                        ...userTotals
+                    });
+                }
+            }
+
+            return {
+                adminId: (distributor._id as any).toString(),
+                adminUsername: distributor.username,
+                adminRole: distributor.role,
+                ...distributorTotals,
+                downlineUsers
+            };
+
+        } catch (error) {
+            console.error('Error getting distributor report:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get detailed report for a specific agent
+     */
+    private static async getAgentReport(agentId: string, dateFilter: any): Promise<AdminReport | null> {
+        try {
+            const agent = await User.findById(agentId);
+            if (!agent) return null;
+
+            // Get all downline user IDs for this agent
+            const downlineUserIds = await HierarchyService.getAllDownlineUserIds(agentId, true);
+
+            // Get all bets for downline users
+            const bets = await Bet.find({
+                userId: { $in: downlineUserIds },
+                ...dateFilter
+            }).populate('userId', 'username role');
+
+            // Calculate agent totals
+            const agentTotals = this.calculateBetTotals(bets);
+
+            // Get individual user reports
+            const downlineUsers: BetReport[] = [];
+            const userBetsMap = new Map<string, any[]>();
+
+            // Group bets by user
+            bets.forEach(bet => {
+                const userId = (bet.userId as any)._id.toString();
+                if (!userBetsMap.has(userId)) {
+                    userBetsMap.set(userId, []);
+                }
+                userBetsMap.get(userId)!.push(bet);
+            });
+
+            // Calculate individual user reports
+            for (const [userId, userBets] of userBetsMap) {
+                const user = await User.findById(userId);
+                if (user) {
+                    const userTotals = this.calculateBetTotals(userBets);
+                    downlineUsers.push({
+                        userId,
+                        username: user.username,
+                        role: user.role,
+                        ...userTotals
+                    });
+                }
+            }
+
+            return {
+                adminId: (agent._id as any).toString(),
+                adminUsername: agent.username,
+                adminRole: agent.role,
+                ...agentTotals,
+                downlineUsers
+            };
+
+        } catch (error) {
+            console.error('Error getting agent report:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get detailed report for a specific player
+     */
+    private static async getPlayerReport(playerId: string, dateFilter: any): Promise<AdminReport | null> {
+        try {
+            const player = await User.findById(playerId);
+            if (!player) return null;
+
+            // Get all bets for this player
+            const bets = await Bet.find({
+                userId: playerId,
+                ...dateFilter
+            });
+
+            // Calculate player totals
+            const playerTotals = this.calculateBetTotals(bets);
+
+            return {
+                adminId: (player._id as any).toString(),
+                adminUsername: player.username,
+                adminRole: player.role,
+                ...playerTotals,
+                downlineUsers: [] // No downline users for players
+            };
+
+        } catch (error) {
+            console.error('Error getting player report:', error);
             return null;
         }
     }
@@ -311,17 +506,32 @@ export class ReportsController {
             let userIds: string[] = [];
 
             if (currentUser.role === 'superadmin') {
-                // Get all admin IDs
+                // Get all admin IDs and their downlines
                 const admins = await User.find({ role: 'admin', isActive: true });
                 for (const admin of admins) {
                     const downlineIds = await HierarchyService.getAllDownlineUserIds((admin._id as any).toString(), true);
                     userIds.push(...downlineIds);
                 }
             } else if (currentUser.role === 'admin') {
-                // Get current admin's downline
-                userIds = await HierarchyService.getAllDownlineUserIds(currentUser._id.toString(), true);
+                // Admin sees all distributors and their downlines
+                const distributors = await User.find({ role: 'distributor', isActive: true });
+                for (const distributor of distributors) {
+                    const downlineIds = await HierarchyService.getAllDownlineUserIds((distributor._id as any).toString(), true);
+                    userIds.push(...downlineIds);
+                }
+            } else if (currentUser.role === 'distributor') {
+                // Distributor sees all agents and their downlines
+                const agents = await User.find({ role: 'agent', isActive: true });
+                for (const agent of agents) {
+                    const downlineIds = await HierarchyService.getAllDownlineUserIds((agent._id as any).toString(), true);
+                    userIds.push(...downlineIds);
+                }
+            } else if (currentUser.role === 'agent') {
+                // Agent sees all players
+                const players = await User.find({ role: 'player', isActive: true });
+                userIds = players.map(player => (player._id as any).toString());
             } else {
-                // Other roles only see their own stats
+                // Player only sees their own stats
                 userIds = [currentUser._id.toString()];
             }
 

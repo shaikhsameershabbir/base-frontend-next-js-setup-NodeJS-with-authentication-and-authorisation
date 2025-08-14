@@ -127,8 +127,8 @@ export default function ReportsPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">Bet Reports</h1>
-                        <p className="text-muted">Comprehensive bet calculations and analytics</p>
+                        <h1 className="text-3xl font-bold text-primary">User Reports</h1>
+                        <p className="text-muted">Comprehensive bet calculations and analytics based on user hierarchy</p>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={refreshReports} variant="outline" size="sm">
@@ -171,10 +171,10 @@ export default function ReportsPage() {
                                 />
                             </div>
                             <div>
-                                <Label htmlFor="adminId">Admin (Optional)</Label>
+                                <Label htmlFor="adminId">User ID (Optional)</Label>
                                 <Input
                                     id="adminId"
-                                    placeholder="Admin ID"
+                                    placeholder="User ID to filter"
                                     value={selectedAdminId}
                                     onChange={(e) => setSelectedAdminId(e.target.value)}
                                 />
@@ -213,7 +213,12 @@ export default function ReportsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-primary">{formatCurrency(reports.summary.totalBet)}</div>
-                                <p className="text-xs text-muted">Across all admins</p>
+                                <p className="text-xs text-muted">
+                                    {user?.role === 'superadmin' ? 'Across all admins' :
+                                        user?.role === 'admin' ? 'Across all distributors' :
+                                            user?.role === 'distributor' ? 'Across all agents' :
+                                                user?.role === 'agent' ? 'Across all players' : 'Total amount'}
+                                </p>
                             </CardContent>
                         </Card>
 
@@ -255,14 +260,19 @@ export default function ReportsPage() {
                 {/* Admin Reports */}
                 {reports?.reports && reports.reports.length > 0 ? (
                     <div className="space-y-6">
-                        <h2 className="text-2xl font-semibold text-primary">Admin Reports</h2>
+                        <h2 className="text-2xl font-semibold text-primary">
+                            {user?.role === 'superadmin' ? 'Admin Reports' :
+                                user?.role === 'admin' ? 'Distributor Reports' :
+                                    user?.role === 'distributor' ? 'Agent Reports' :
+                                        user?.role === 'agent' ? 'Player Reports' : 'User Reports'}
+                        </h2>
 
                         {/* Main Admin Summary Table */}
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Users className="h-5 w-5" />
-                                    Admin Summary Table
+                                    User Reports Table
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -270,13 +280,13 @@ export default function ReportsPage() {
                                     <table className="w-full text-sm text-white">
                                         <thead>
                                             <tr className="border-b bg-muted/50">
-                                                <th className="text-left py-3 px-4 text-muted font-medium text-white">Admin</th>
-                                    
+                                                <th className="text-left py-3 px-4 text-muted font-medium text-white">User</th>
+
                                                 <th className="text-right py-3 px-4 text-muted font-medium text-white">Total Bet</th>
                                                 <th className="text-right py-3 px-4 text-muted font-medium text-white">Total Win</th>
                                                 <th className="text-right py-3 px-4 text-muted font-medium text-white">Claimed</th>
                                                 <th className="text-right py-3 px-4 text-muted font-medium text-white">Unclaimed</th>
-                                           
+
                                                 <th className="text-center py-3 px-4 text-muted font-medium text-white">Actions</th>
                                             </tr>
                                         </thead>
@@ -286,7 +296,7 @@ export default function ReportsPage() {
                                                     <td className="py-3 px-4">
                                                         <div className="font-medium text-primary">{admin.adminUsername}</div>
                                                     </td>
-                                                   
+
                                                     <td className="py-3 px-4 text-right font-medium">
                                                         {formatCurrency(admin.totalBet)}
                                                     </td>
@@ -303,7 +313,7 @@ export default function ReportsPage() {
                                                             {formatCurrency(admin.unclaimedAmount)}
                                                         </span>
                                                     </td>
-                                                   
+
                                                     <td className="py-3 px-4 text-center">
                                                         <Button
                                                             variant="ghost"
