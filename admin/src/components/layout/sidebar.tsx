@@ -27,6 +27,7 @@ import {
     Gamepad2,
     Award,
     ClipboardList,
+    Eye,
 } from "lucide-react"
 import { superNavbar, adminNavbar, distributorNavbar, agentNavbar, NavbarItem } from "@/app/constant";
 
@@ -52,6 +53,7 @@ const iconMap = {
     Gamepad2,
     Award,
     ClipboardList,
+    Eye,
 };
 
 function getIcon(iconName: string) {
