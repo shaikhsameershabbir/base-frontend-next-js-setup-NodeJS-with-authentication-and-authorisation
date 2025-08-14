@@ -13,11 +13,9 @@ export function useReports() {
         adminId?: string;
     }) => {
         try {
-            console.log('Fetching reports with params:', params);
             setLoading(true);
             setError(null);
             const data = await ReportsApi.getBetReports(params);
-            console.log('Reports data received:', data);
             setReports(data);
         } catch (err) {
             console.error('Error fetching reports:', err);
@@ -29,10 +27,8 @@ export function useReports() {
 
     const fetchStats = useCallback(async () => {
         try {
-            console.log('Fetching stats...');
             setError(null);
             const data = await ReportsApi.getBetStats();
-            console.log('Stats data received:', data);
             setStats(data);
         } catch (err) {
             console.error('Error fetching stats:', err);
@@ -48,12 +44,6 @@ export function useReports() {
         fetchStats();
     }, [fetchStats]);
 
-    // Don't auto-fetch on mount - let the component control when to fetch
-    // useEffect(() => {
-    //     console.log('useReports useEffect triggered');
-    //     fetchReports();
-    //     fetchStats();
-    // }, [fetchReports, fetchStats]);
 
     return {
         reports,

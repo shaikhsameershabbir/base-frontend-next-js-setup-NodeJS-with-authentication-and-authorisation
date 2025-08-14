@@ -68,17 +68,14 @@ export class ReportsApi {
         endDate?: string;
         adminId?: string;
     }): Promise<ReportsResponse> {
-        console.log('ReportsApi.getBetReports called with params:', params);
         const queryParams = new URLSearchParams();
         if (params?.startDate) queryParams.append('startDate', params.startDate);
         if (params?.endDate) queryParams.append('endDate', params.endDate);
         if (params?.adminId) queryParams.append('adminId', params.adminId);
 
         const url = `/reports/bet-reports?${queryParams.toString()}`;
-        console.log('Making request to:', url);
 
         const response = await apiClient.get(url);
-        console.log('ReportsApi response:', response);
         return response.data.data;
     }
 
@@ -86,9 +83,7 @@ export class ReportsApi {
      * Get real-time bet statistics
      */
     static async getBetStats(): Promise<BetStats> {
-        console.log('ReportsApi.getBetStats called');
         const response = await apiClient.get('/reports/bet-stats');
-        console.log('StatsApi response:', response);
         return response.data.data;
     }
 }
