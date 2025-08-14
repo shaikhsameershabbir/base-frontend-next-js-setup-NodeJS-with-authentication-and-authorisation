@@ -44,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: '/passbook.svg', label: 'Passbook', href: '/passbook' },
     { icon: '/funds.svg', label: 'Funds', href: '/funds' },
     { icon: '/rate.svg', label: 'Game Rate', href: '/game-rate' },
-    { icon: '/chart.svg', label: 'Charts', href: '/charts' },
+    // { icon: '/chart.svg', label: 'Charts', href: '/charts' },
   ];
 
   return (
