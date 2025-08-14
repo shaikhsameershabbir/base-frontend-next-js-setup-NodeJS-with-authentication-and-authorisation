@@ -27,44 +27,44 @@ export function ReportsStats({ stats }: ReportsStatsProps) {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-primary">Today's Bets</CardTitle>
-                    <Target className="h-4 w-4 text-muted" />
+                    <Target className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-primary">{formatNumber(stats.todayBets)}</div>
-                    <p className="text-xs text-muted">Total bets placed today</p>
+                    <p className="text-xs text-white">Total bets placed today</p>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-primary">Today's Bet Amount</CardTitle>
-                    <Coins className="h-4 w-4 text-muted" />
+                    <Coins className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-primary">{formatCurrency(stats.todayBetAmount)}</div>
-                    <p className="text-xs text-muted">Total amount bet today</p>
+                    <p className="text-xs text-white">Total amount bet today</p>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-primary">Today's Winning Bets</CardTitle>
-                    <TrendingUp className="h-4 w-4 text-muted" />
+                    <TrendingUp className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-primary">{formatNumber(stats.todayWinningBets)}</div>
-                    <p className="text-xs text-muted">Winning bets today</p>
+                    <p className="text-xs text-white">Winning bets today</p>
                 </CardContent>
             </Card>
 
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-primary">Total Users</CardTitle>
-                    <Users className="h-4 w-4 text-muted" />
+                    <Users className="h-4 w-4 text-white" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold text-primary">{formatNumber(stats.totalUsers)}</div>
-                    <p className="text-xs text-muted">In your hierarchy</p>
+                    <p className="text-xs text-white">In your hierarchy</p>
                 </CardContent>
             </Card>
         </div>

@@ -178,7 +178,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
                         <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                        <p className="text-muted">Checking authentication...</p>
+                        <p className="text-secondary">Checking authentication...</p>
                     </div>
                 </div>
             </AdminLayout>
@@ -191,8 +191,8 @@ export default function ReportsPage() {
             <AdminLayout>
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
-                        <Shield className="h-12 w-12 mx-auto mb-4 text-muted" />
-                        <p className="text-muted">Please log in to view reports</p>
+                        <Shield className="h-12 w-12 mx-auto mb-4 text-white" />
+                        <p className="text-secondary">Please log in to view reports</p>
                     </div>
                 </div>
             </AdminLayout>
@@ -205,7 +205,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-center min-h-[400px]">
                     <div className="text-center">
                         <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-                        <p className="text-muted">Loading reports...</p>
+                        <p className="text-secondary">Loading reports...</p>
                     </div>
                 </div>
             </AdminLayout>
@@ -219,7 +219,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-primary">User Reports</h1>
-                        <p className="text-muted">Comprehensive bet calculations and analytics based on user hierarchy</p>
+                        <p className="text-secondary">Comprehensive bet calculations and analytics based on user hierarchy</p>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={drillDownLevel === 'main' ? refreshReports : () => {
@@ -315,14 +315,14 @@ export default function ReportsPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-primary">Total Bet Amount</CardTitle>
-                                <Coins className="h-4 w-4 text-muted" />
+                                <Coins className="h-4 w-4 text-white" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-primary">
                                     {formatCurrency(drillDownLevel === 'main' ? reports.summary.totalBet :
                                         drillDownData.reduce((sum, item) => sum + item.totalBet, 0))}
                                 </div>
-                                <p className="text-xs text-muted">
+                                <p className="text-xs text-secondary">
                                     {drillDownLevel === 'main' ?
                                         (user?.role === 'superadmin' ? 'Across all admins' :
                                             user?.role === 'admin' ? 'Across all distributors' :
@@ -337,42 +337,42 @@ export default function ReportsPage() {
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-primary">Total Win Amount</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-muted" />
+                                <TrendingUp className="h-4 w-4 text-white" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-primary">
                                     {formatCurrency(drillDownLevel === 'main' ? reports.summary.totalWin :
                                         drillDownData.reduce((sum, item) => sum + item.totalWin, 0))}
                                 </div>
-                                <p className="text-xs text-muted">Total winnings</p>
+                                <p className="text-xs text-secondary">Total winnings</p>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-primary">Claimed Amount</CardTitle>
-                                <Target className="h-4 w-4 text-muted" />
+                                <Target className="h-4 w-4 text-white" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-primary">
                                     {formatCurrency(drillDownLevel === 'main' ? reports.summary.claimedAmount :
                                         drillDownData.reduce((sum, item) => sum + item.claimedAmount, 0))}
                                 </div>
-                                <p className="text-xs text-muted">Already claimed</p>
+                                <p className="text-xs text-secondary">Already claimed</p>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                 <CardTitle className="text-sm font-medium text-primary">Unclaimed Amount</CardTitle>
-                                <TrendingDown className="h-4 w-4 text-muted" />
+                                <TrendingDown className="h-4 w-4 text-white" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-primary">
                                     {formatCurrency(drillDownLevel === 'main' ? reports.summary.unclaimedAmount :
                                         drillDownData.reduce((sum, item) => sum + item.unclaimedAmount, 0))}
                                 </div>
-                                <p className="text-xs text-muted">Pending claims</p>
+                                <p className="text-xs text-secondary">Pending claims</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -391,7 +391,7 @@ export default function ReportsPage() {
                                             user?.role === 'distributor' ? 'Agent' : 'User'} Reports
                                 </Button>
                                 <div>
-                                    <h3 className="text-lg font-medium text-muted">
+                                    <h3 className="text-lg font-medium text-secondary">
                                         Showing {drillDownLevel} under {drillDownParent.role} {drillDownParent.username}
                                     </h3>
                                 </div>
@@ -424,10 +424,10 @@ export default function ReportsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-white">
+                                    <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b bg-muted/50">
-                                                <th className="text-left py-3 px-4 text-muted font-medium text-white">
+                                                <th className="text-left py-3 px-4 text-secondary font-medium">
                                                     {drillDownLevel === 'main' ?
                                                         (user?.role === 'superadmin' ? 'Admin' :
                                                             user?.role === 'admin' ? 'Distributor' :
@@ -437,13 +437,13 @@ export default function ReportsPage() {
                                                     }
                                                 </th>
 
-                                                <th className="text-right py-3 px-4 text-muted font-medium text-white">Total Bet</th>
-                                                <th className="text-right py-3 px-4 text-muted font-medium text-white">Total Win</th>
-                                                <th className="text-right py-3 px-4 text-muted font-medium text-white">Claimed</th>
-                                                <th className="text-right py-3 px-4 text-muted font-medium text-white">Unclaimed</th>
+                                                <th className="text-right py-3 px-4 text-secondary font-medium">Total Bet</th>
+                                                <th className="text-right py-3 px-4 text-secondary font-medium">Total Win</th>
+                                                <th className="text-right py-3 px-4 text-secondary font-medium">Claimed</th>
+                                                <th className="text-right py-3 px-4 text-secondary font-medium">Unclaimed</th>
 
                                                 {shouldShowActions() && (
-                                                    <th className="text-center py-3 px-4 text-muted font-medium text-white">Actions</th>
+                                                    <th className="text-center py-3 px-4 text-secondary font-medium">Actions</th>
                                                 )}
                                             </tr>
                                         </thead>
@@ -454,10 +454,10 @@ export default function ReportsPage() {
                                                         <div className="font-medium text-primary">{admin.adminUsername}</div>
                                                     </td>
 
-                                                    <td className="py-3 px-4 text-right font-medium">
+                                                    <td className="py-3 px-4 text-right font-medium text-secondary">
                                                         {formatCurrency(admin.totalBet)}
                                                     </td>
-                                                    <td className="py-3 px-4 text-right font-medium">
+                                                    <td className="py-3 px-4 text-right font-medium text-secondary">
                                                         {formatCurrency(admin.totalWin)}
                                                     </td>
                                                     <td className="py-3 px-4 text-right">
@@ -497,9 +497,9 @@ export default function ReportsPage() {
                     <Card>
                         <CardContent className="pt-6">
                             <div className="text-center py-8">
-                                <Users className="h-12 w-12 mx-auto mb-4 text-muted" />
-                                <p className="text-muted">No reports available</p>
-                                <p className="text-sm text-muted">Try adjusting your filters or check back later</p>
+                                <Users className="h-12 w-12 mx-auto mb-4 text-white" />
+                                <p className="text-secondary">No reports available</p>
+                                <p className="text-sm text-secondary">Try adjusting your filters or check back later</p>
                             </div>
                         </CardContent>
                     </Card>

@@ -121,7 +121,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { role, page = 1, limit = 10, search = '' } = req.query;
-        const currentUserId = req.user?.id;
+        const currentUserId = req.user?.userId;
         const pageNum = parseInt(page as string);
         const limitNum = parseInt(limit as string);
 

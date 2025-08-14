@@ -3,6 +3,35 @@ import { Bet } from '../../../models/Bet';
 import { User } from '../../../models/User';
 import { HierarchyService } from '../../../services/hierarchyService';
 
+// Define proper types for request with user - using the same interface as auth middleware
+interface AuthenticatedRequest extends Omit<Request, 'user'> {
+    user?: {
+        userId: string;
+        username: string;
+        balance: number;
+        role: string;
+        parentId?: string;
+    };
+}
+
+// Define proper types for date filter
+interface DateFilter {
+    createdAt?: {
+        $gte: Date;
+        $lte: Date;
+    };
+}
+
+// Define proper types for populated bet data that matches Mongoose Document structure
+interface PopulatedBet {
+    _id: unknown;
+    userId: any; // Using any for populated userId field to handle complex Mongoose Document types
+    amount?: number | null | undefined;
+    winAmount?: number | null | undefined;
+    claimStatus?: boolean;
+}
+
+
 interface BetReport {
     userId: string;
     username: string;
@@ -40,9 +69,9 @@ export class ReportsController {
     /**
      * Get comprehensive bet reports for the current user's hierarchy
      */
-    static async getBetReports(req: Request, res: Response) {
+    static async getBetReports(req: AuthenticatedRequest, res: Response) {
         try {
-            const currentUser = (req as any).user;
+            const currentUser = req.user;
             if (!currentUser) {
                 return res.status(401).json({
                     success: false,
@@ -53,7 +82,7 @@ export class ReportsController {
             const { startDate, endDate, adminId } = req.query;
 
             // Build date filter
-            const dateFilter: { createdAt?: { $gte: Date; $lte: Date } } = {};
+            const dateFilter: DateFilter = {};
             if (startDate && endDate) {
                 dateFilter.createdAt = {
                     $gte: new Date(startDate as string),
@@ -75,7 +104,7 @@ export class ReportsController {
                     // Get all admins reports
                     const admins = await User.find({ role: 'admin', isActive: true });
                     const adminReports = await Promise.all(
-                        admins.map(admin => this.getAdminReport((admin._id as any).toString(), dateFilter))
+                        admins.map(admin => this.getAdminReport((admin._id as string).toString(), dateFilter))
                     );
                     reports = adminReports.filter((report): report is AdminReport => report !== null);
                 }
@@ -91,7 +120,7 @@ export class ReportsController {
                     // Get all distributors reports
                     const distributors = await User.find({ role: 'distributor', isActive: true });
                     const distributorReports = await Promise.all(
-                        distributors.map(distributor => this.getDistributorReport((distributor._id as any).toString(), dateFilter))
+                        distributors.map(distributor => this.getDistributorReport((distributor._id as string).toString(), dateFilter))
                     );
                     reports = distributorReports.filter((report): report is AdminReport => report !== null);
                 }
@@ -107,7 +136,7 @@ export class ReportsController {
                     // Get all agents reports
                     const agents = await User.find({ role: 'agent', isActive: true });
                     const agentReports = await Promise.all(
-                        agents.map(agent => this.getAgentReport((agent._id as any).toString(), dateFilter))
+                        agents.map(agent => this.getAgentReport((agent._id as string).toString(), dateFilter))
                     );
                     reports = agentReports.filter((report): report is AdminReport => report !== null);
                 }
@@ -123,16 +152,16 @@ export class ReportsController {
                     // Get all players reports
                     const players = await User.find({ role: 'player', isActive: true });
                     const playerReports = await Promise.all(
-                        players.map(player => this.getPlayerReport((player._id as any).toString(), dateFilter))
+                        players.map(player => this.getPlayerReport((player._id as string).toString(), dateFilter))
                     );
                     reports = playerReports.filter((report): report is AdminReport => report !== null);
                 }
             } else {
                 // Player can only see their own report
-                const userReport = await this.getUserReport(currentUser._id.toString(), dateFilter);
+                const userReport = await this.getUserReport(currentUser.userId, dateFilter);
                 if (userReport) {
                     reports = [{
-                        adminId: currentUser._id.toString(),
+                        adminId: currentUser.userId,
                         adminUsername: currentUser.username,
                         adminRole: currentUser.role,
                         totalBet: userReport.totalBet,
@@ -173,7 +202,7 @@ export class ReportsController {
     /**
      * Get detailed report for a specific admin
      */
-    private static async getAdminReport(adminId: string, dateFilter: any): Promise<AdminReport | null> {
+    private static async getAdminReport(adminId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
         try {
             const admin = await User.findById(adminId);
             if (!admin) return null;
@@ -192,15 +221,15 @@ export class ReportsController {
 
             // Get individual user reports
             const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, any[]>();
+            const userBetsMap = new Map<string, PopulatedBet[]>();
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as any)._id.toString();
+                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
-                userBetsMap.get(userId)!.push(bet);
+                userBetsMap.get(userId)!.push(bet as PopulatedBet);
             });
 
             // Calculate individual user reports
@@ -218,7 +247,7 @@ export class ReportsController {
             }
 
             return {
-                adminId: (admin._id as any).toString(),
+                adminId: (admin._id as string).toString(),
                 adminUsername: admin.username,
                 adminRole: admin.role,
                 ...adminTotals,
@@ -234,7 +263,7 @@ export class ReportsController {
     /**
      * Get detailed report for a specific distributor
      */
-    private static async getDistributorReport(distributorId: string, dateFilter: any): Promise<AdminReport | null> {
+    private static async getDistributorReport(distributorId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
         try {
             const distributor = await User.findById(distributorId);
             if (!distributor) return null;
@@ -253,15 +282,15 @@ export class ReportsController {
 
             // Get individual user reports
             const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, any[]>();
+            const userBetsMap = new Map<string, PopulatedBet[]>();
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as any)._id.toString();
+                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
-                userBetsMap.get(userId)!.push(bet);
+                userBetsMap.get(userId)!.push(bet as PopulatedBet);
             });
 
             // Calculate individual user reports
@@ -279,7 +308,7 @@ export class ReportsController {
             }
 
             return {
-                adminId: (distributor._id as any).toString(),
+                adminId: (distributor._id as string).toString(),
                 adminUsername: distributor.username,
                 adminRole: distributor.role,
                 ...distributorTotals,
@@ -295,7 +324,7 @@ export class ReportsController {
     /**
      * Get detailed report for a specific agent
      */
-    private static async getAgentReport(agentId: string, dateFilter: any): Promise<AdminReport | null> {
+    private static async getAgentReport(agentId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
         try {
             const agent = await User.findById(agentId);
             if (!agent) return null;
@@ -314,15 +343,15 @@ export class ReportsController {
 
             // Get individual user reports
             const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, any[]>();
+            const userBetsMap = new Map<string, PopulatedBet[]>();
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as any)._id.toString();
+                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
-                userBetsMap.get(userId)!.push(bet);
+                userBetsMap.get(userId)!.push(bet as PopulatedBet);
             });
 
             // Calculate individual user reports
@@ -340,7 +369,7 @@ export class ReportsController {
             }
 
             return {
-                adminId: (agent._id as any).toString(),
+                adminId: (agent._id as string).toString(),
                 adminUsername: agent.username,
                 adminRole: agent.role,
                 ...agentTotals,
@@ -356,7 +385,7 @@ export class ReportsController {
     /**
      * Get detailed report for a specific player
      */
-    private static async getPlayerReport(playerId: string, dateFilter: any): Promise<AdminReport | null> {
+    private static async getPlayerReport(playerId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
         try {
             const player = await User.findById(playerId);
             if (!player) return null;
@@ -371,7 +400,7 @@ export class ReportsController {
             const playerTotals = this.calculateBetTotals(bets);
 
             return {
-                adminId: (player._id as any).toString(),
+                adminId: (player._id as string).toString(),
                 adminUsername: player.username,
                 adminRole: player.role,
                 ...playerTotals,
@@ -387,7 +416,7 @@ export class ReportsController {
     /**
      * Get report for a specific user
      */
-    private static async getUserReport(userId: string, dateFilter: any): Promise<BetReport | null> {
+    private static async getUserReport(userId: string, dateFilter: DateFilter): Promise<BetReport | null> {
         try {
             const user = await User.findById(userId);
             if (!user) return null;
@@ -400,7 +429,7 @@ export class ReportsController {
             const totals = this.calculateBetTotals(bets);
 
             return {
-                userId: (user._id as any).toString(),
+                userId: (user._id as string).toString(),
                 username: user.username,
                 role: user.role,
                 ...totals
@@ -415,7 +444,7 @@ export class ReportsController {
     /**
      * Calculate bet totals from an array of bets
      */
-    private static calculateBetTotals(bets: any[]): {
+    private static calculateBetTotals(bets: PopulatedBet[]): {
         totalBet: number;
         totalWin: number;
         claimedAmount: number;
@@ -488,9 +517,9 @@ export class ReportsController {
     /**
      * Get real-time bet statistics
      */
-    static async getBetStats(req: Request, res: Response) {
+    static async getBetStats(req: AuthenticatedRequest, res: Response) {
         try {
-            const currentUser = (req as any).user;
+            const currentUser = req.user;
             if (!currentUser) {
                 return res.status(401).json({
                     success: false,
@@ -509,30 +538,30 @@ export class ReportsController {
                 // Get all admin IDs and their downlines
                 const admins = await User.find({ role: 'admin', isActive: true });
                 for (const admin of admins) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((admin._id as any).toString(), true);
+                    const downlineIds = await HierarchyService.getAllDownlineUserIds((admin._id as string).toString(), true);
                     userIds.push(...downlineIds);
                 }
             } else if (currentUser.role === 'admin') {
                 // Admin sees all distributors and their downlines
                 const distributors = await User.find({ role: 'distributor', isActive: true });
                 for (const distributor of distributors) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((distributor._id as any).toString(), true);
+                    const downlineIds = await HierarchyService.getAllDownlineUserIds((distributor._id as string).toString(), true);
                     userIds.push(...downlineIds);
                 }
             } else if (currentUser.role === 'distributor') {
                 // Distributor sees all agents and their downlines
                 const agents = await User.find({ role: 'agent', isActive: true });
                 for (const agent of agents) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((agent._id as any).toString(), true);
+                    const downlineIds = await HierarchyService.getAllDownlineUserIds((agent._id as string).toString(), true);
                     userIds.push(...downlineIds);
                 }
             } else if (currentUser.role === 'agent') {
                 // Agent sees all players
                 const players = await User.find({ role: 'player', isActive: true });
-                userIds = players.map(player => (player._id as any).toString());
+                userIds = players.map(player => (player._id as string).toString());
             } else {
                 // Player only sees their own stats
-                userIds = [currentUser._id.toString()];
+                userIds = [currentUser.userId];
             }
 
             // Get today's bets

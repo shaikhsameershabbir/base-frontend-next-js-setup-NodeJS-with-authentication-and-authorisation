@@ -33,7 +33,10 @@ export const getAvailableMarketsForAssignment = async (req: AuthenticatedRequest
         }
 
         // Validate hierarchy permissions
-        const canAssign = validateAssignmentPermission(currentUser, targetUser);
+        const canAssign = validateAssignmentPermission(currentUser, {
+            _id: (targetUser._id as any).toString(),
+            role: targetUser.role
+        });
 
         if (!canAssign) {
             res.status(403).json({
@@ -172,7 +175,10 @@ export const assignMarketsToUser = async (req: AuthenticatedRequest, res: Respon
         }
 
         // Validate hierarchy permissions
-        const canAssign = validateAssignmentPermission(currentUser, targetUser);
+        const canAssign = validateAssignmentPermission(currentUser, {
+            _id: (targetUser._id as any).toString(),
+            role: targetUser.role
+        });
         if (!canAssign) {
             res.status(403).json({
                 success: false,
@@ -300,7 +306,10 @@ export const getAssignedMarkets = async (req: AuthenticatedRequest, res: Respons
         }
 
         // Validate access permissions
-        const canView = validateViewPermission(currentUser, targetUser);
+        const canView = validateViewPermission(currentUser, {
+            _id: (targetUser._id as any).toString(),
+            role: targetUser.role
+        });
         if (!canView) {
             res.status(403).json({
                 success: false,
@@ -409,7 +418,10 @@ export const removeMarketAssignments = async (req: AuthenticatedRequest, res: Re
         }
 
         // Validate hierarchy permissions
-        const canAssign = validateAssignmentPermission(currentUser, targetUser);
+        const canAssign = validateAssignmentPermission(currentUser, {
+            _id: (targetUser._id as any).toString(),
+            role: targetUser.role
+        });
         if (!canAssign) {
             res.status(403).json({
                 success: false,

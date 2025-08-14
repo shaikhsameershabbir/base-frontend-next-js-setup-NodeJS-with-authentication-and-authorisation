@@ -51,7 +51,7 @@ export const createMarket = async (req: AuthenticatedRequest, res: Response): Pr
             res.status(400).json({ success: false, message: 'All fields required' });
             return;
         }
-        const market = new Market({ marketName, openTime, closeTime, createdBy });
+        const market = new Market({ marketName, openTime, closeTime, createdBy: currentUser.userId });
         await market.save();
         res.status(201).json({ success: true, data: { market } });
         return;
