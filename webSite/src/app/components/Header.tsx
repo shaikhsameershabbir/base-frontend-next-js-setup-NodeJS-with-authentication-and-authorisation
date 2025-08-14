@@ -1,16 +1,120 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Wallet, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Wallet, Menu, Gift, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuthContext } from '@/contexts/AuthContext';
+import apiClient from '@/lib/api-client';
+
+interface Ticket {
+  _id: string;
+  winAmount: number;
+  result: string;
+  type: string;
+  marketId?: {
+    marketName: string;
+  };
+}
+
+interface ClaimData {
+  unclaimedTickets: Ticket[];
+  winningTickets: Ticket[];
+  pendingTickets: Ticket[];
+  totalUnclaimed: number;
+  totalWinning: number;
+  totalPending: number;
+}
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { state: { user } } = useAuthContext();
+  const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
+  const [claimData, setClaimData] = useState<ClaimData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [claimMessage, setClaimMessage] = useState('');
+  const { state: { user }, updateBalance, refreshUser } = useAuthContext();
+
+  // Fetch claim data when component mounts (only once)
+  useEffect(() => {
+    if (user && !claimData) {
+      fetchUnclaimedTickets();
+    }
+  }, [user]);
+
+  // No periodic refresh - only refresh when needed (after claiming)
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+
+  const openClaimModal = async () => {
+    setIsClaimModalOpen(true);
+    await fetchUnclaimedTickets();
+  };
+
+  const closeClaimModal = () => {
+    setIsClaimModalOpen(false);
+    setClaimMessage('');
+  };
+
+  const [isFetching, setIsFetching] = useState(false);
+
+  const fetchUnclaimedTickets = async () => {
+    // Prevent duplicate calls
+    if (isFetching) return;
+
+    console.log('🔄 Header: Fetching unclaimed tickets...');
+    setIsFetching(true);
+    try {
+      const response = await apiClient.get('/claim/tickets');
+
+      if (response.status === 200) {
+        const data = response.data;
+        setClaimData(data.data);
+        console.log('✅ Header: Unclaimed tickets fetched successfully');
+      } else {
+        console.error('❌ Header: Failed to fetch unclaimed tickets');
+      }
+    } catch (error) {
+      console.error('❌ Header: Error fetching unclaimed tickets:', error);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  const claimTickets = async () => {
+    if (!claimData || claimData.totalWinning === 0) {
+      setClaimMessage('No winning tickets to claim');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await apiClient.post('/claim/claim');
+
+      if (response.status === 200) {
+        const data = response.data;
+        if (data.success) {
+          setClaimMessage(`Successfully claimed ₹${data.data.claimedAmount} from ${data.data.claimedTickets} tickets!`);
+
+          // Update user balance in context and localStorage
+          if (updateBalance) {
+            updateBalance(data.data.newBalance);
+          }
+
+          // Refresh the tickets data to show updated status
+          await fetchUnclaimedTickets();
+        } else {
+          setClaimMessage(data.message || 'Failed to claim tickets');
+        }
+      } else {
+        setClaimMessage('Failed to claim tickets');
+      }
+    } catch (error) {
+      console.error('Error claiming tickets:', error);
+      setClaimMessage('Error claiming tickets');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -22,13 +126,173 @@ const Header = () => {
           </button>
           <h1 className="text-xl font-bold pt-1">MK Booking</h1>
         </div>
-        <div className="flex items-center">
-          <div className="text-white px-3 py-1 rounded-lg flex items-center">
+        <div className="flex items-center gap-3">
+          {/* Claim Button */}
+          <button
+            onClick={openClaimModal}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors relative"
+          >
+            <Gift size={20} />
+            <span>Claim</span>
+            {claimData && claimData.totalWinning > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                {claimData.totalWinning}
+              </span>
+            )}
+          </button>
+
+          {/* Wallet */}
+          <div className="text-white px-3 py-1 rounded-lg flex items-center gap-2">
             <span className="mr-1"><Wallet /></span>
-            <span className="font-bold">{user?.balance || 0}</span>
+            <span className="font-bold">₹{user?.balance || 0}</span>
+            <button
+              onClick={() => {
+                if (refreshUser && !isFetching) {
+                  refreshUser();
+                }
+              }}
+              disabled={isFetching}
+              className={`text-white hover:text-yellow-200 transition-colors p-1 ${isFetching ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              title="Refresh balance"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Claim Modal */}
+      {isClaimModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-bold text-gray-800">Claim Winning Tickets</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchUnclaimedTickets}
+                  className="text-blue-500 hover:text-blue-700 p-1"
+                  title="Refresh tickets"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+                <button
+                  onClick={closeClaimModal}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-4">
+              {claimMessage && (
+                <div className={`mb-4 p-3 rounded-lg ${claimMessage.includes('Successfully')
+                  ? 'bg-green-100 text-green-800 border border-green-200'
+                  : 'bg-red-100 text-red-800 border border-red-200'
+                  }`}>
+                  {claimMessage}
+                </div>
+              )}
+
+              {claimData && (
+                <div className="space-y-4">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="text-green-800 font-bold text-lg">{claimData.totalWinning}</div>
+                      <div className="text-green-600 text-sm">Winning Tickets</div>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                      <div className="text-yellow-800 font-bold text-lg">{claimData.totalPending}</div>
+                      <div className="text-yellow-600 text-sm">Pending Results</div>
+                    </div>
+                  </div>
+
+                  {/* Winning Tickets */}
+                  {claimData.winningTickets.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                        <CheckCircle className="text-green-600" size={20} />
+                        Winning Tickets to Claim
+                      </h3>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {claimData.winningTickets.map((ticket) => (
+                          <div key={ticket._id} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="font-medium text-green-800">{ticket.type}</div>
+                                <div className="text-sm text-green-600">Result: {ticket.result}</div>
+                              </div>
+                              <div className="text-green-800 font-bold">₹{ticket.winAmount}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pending Tickets */}
+                  {claimData.pendingTickets.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                        <Clock className="text-yellow-600" size={20} />
+                        Pending Results
+                      </h3>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {claimData.pendingTickets.map((ticket) => (
+                          <div key={ticket._id} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="font-medium text-yellow-800">{ticket.type}</div>
+                                <div className="text-sm text-yellow-600">Result: {ticket.result}</div>
+                              </div>
+                              <div className="text-yellow-800 font-bold">Winning not declared</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No Tickets Message */}
+                  {claimData.totalUnclaimed === 0 && (
+                    <div className="text-center py-8">
+                      <Gift className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-600">No unclaimed tickets found</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                {claimData && claimData.totalWinning > 0 && (
+                  <button
+                    onClick={claimTickets}
+                    disabled={isLoading}
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                  >
+                    {isLoading ? 'Claiming...' : `Claim ₹${claimData.winningTickets.reduce((sum, ticket) => sum + ticket.winAmount, 0)}`}
+                  </button>
+                )}
+                <button
+                  onClick={closeClaimModal}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Sidebar
         isOpen={isSidebarOpen}

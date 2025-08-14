@@ -11,6 +11,7 @@ import loadRoutes from './load.routes';
 import resultRoutes from './resultRoutes';
 import dashboardRoutes from './dashboard.routes';
 import reportsRoutes from './reports.routes';
+import claimRoutes from './claim.routes';
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use(`/load`, loadRoutes);
 router.use(`/result`, resultRoutes);
 router.use(`/dashboard`, dashboardRoutes);
 router.use(`/reports`, reportsRoutes);
+router.use(`/claim`, claimRoutes);
 
 export default router; 

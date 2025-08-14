@@ -215,6 +215,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
     }, []);
 
+    // Sync user data to localStorage whenever user state changes
+    useEffect(() => {
+        if (state.user) {
+            localStorage.setItem('user', JSON.stringify(state.user));
+        }
+    }, [state.user]);
+
     // ============================================================================
     // HELPER FUNCTIONS
     // ============================================================================
@@ -372,6 +379,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      */
     const updateBalance = (newBalance: number): void => {
         dispatch({ type: 'UPDATE_USER_BALANCE', payload: newBalance });
+
+        // Also update localStorage to persist the balance change
+        if (state.user) {
+            const updatedUser = { ...state.user, balance: newBalance };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
     };
 
     /**
