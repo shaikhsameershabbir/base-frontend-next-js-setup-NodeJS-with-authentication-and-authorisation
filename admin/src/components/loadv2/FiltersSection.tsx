@@ -101,9 +101,6 @@ const calculateMainValue = (number: number): number => {
 const debugCalculation = (processedData: ProcessedBetData | null, resultNumber: string, resultType: 'open' | 'close', marketResults: any) => {
     if (!processedData) return null;
 
-    console.log('=== FRONTEND CALCULATION DEBUG ===');
-    console.log('Result Number:', resultNumber);
-    console.log('Result Type:', resultType);
 
     if (resultType === 'close' && marketResults) {
         const today = new Date();
@@ -117,35 +114,25 @@ const debugCalculation = (processedData: ProcessedBetData | null, resultNumber: 
             const combinedMain = parseInt(openMain.toString() + closeMain.toString());
             const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
 
-            console.log('Open Result:', openResult);
-            console.log('Open Main:', openMain);
-            console.log('Close Main:', closeMain);
-            console.log('Combined Main:', combinedMain);
-            console.log('Final Main:', finalMain);
 
             // Check for double number bet
             const doubleNumberAmount = processedData.doubleNumbers[finalMain.toString()] || 0;
-            console.log('Double Number Amount for', finalMain, ':', doubleNumberAmount);
 
             // Check for sangam bets
             const halfSangamOpenPattern = `${openMain}X${resultNumber}`;
             const halfSangamOpenAmount = processedData.halfSangamOpen[halfSangamOpenPattern] || 0;
-            console.log('Half Sangam Open Pattern:', halfSangamOpenPattern, 'Amount:', halfSangamOpenAmount);
 
             const halfSangamClosePattern = `${openResult}X${closeMain}`;
             const halfSangamCloseAmount = processedData.halfSangamClose[halfSangamClosePattern] || 0;
-            console.log('Half Sangam Close Pattern:', halfSangamClosePattern, 'Amount:', halfSangamCloseAmount);
 
             const openDigitSum = calculateDigitSum(parseInt(openResult));
             const closeDigitSum = calculateDigitSum(parseInt(resultNumber));
             const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
             const fullSangamPattern = `${openResult}X${combinedDigitSums}X${resultNumber}`;
             const fullSangamAmount = processedData.fullSangam[fullSangamPattern] || 0;
-            console.log('Full Sangam Pattern:', fullSangamPattern, 'Amount:', fullSangamAmount);
         }
     }
 
-    console.log('=== END FRONTEND DEBUG ===');
 };
 
 export function FiltersSection({
@@ -192,10 +179,6 @@ export function FiltersSection({
     // Check if user can declare results (only superadmin and admin)
     const canDeclareResults = currentUserRole === 'superadmin' || currentUserRole === 'admin';
 
-    console.log('Current user role:', currentUserRole);
-    console.log('Can declare results:', canDeclareResults);
-    console.log('Current user ID:', user?._id);
-    console.log('Hierarchical users:', hierarchicalUsers);
     return (
         <Card className="mb-6 bg-gray-900 border-gray-700">
             <CardHeader>

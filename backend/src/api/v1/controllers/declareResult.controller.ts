@@ -99,7 +99,6 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
         const digitSum = resultString.split('').reduce((sum: number, digit: string) => sum + parseInt(digit), 0);
         const mainValue = digitSum > 9 ? digitSum % 10 : digitSum;
 
-        console.log(`Result Number: ${resultNumber}, Digit Sum: ${digitSum}, Main Value: ${mainValue}`);
 
         // Check if market exists
         const market = await Market.findById(marketId);
@@ -158,7 +157,6 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 dayResult.open = resultNumber;
                 dayResult.main = mainValue;
                 dayResult.openDeclationTime = new Date();
-                console.log(`Open Result - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
 
                 // Calculate open winnings
                 await WinningCalculationService.calculateOpenWinnings(
@@ -187,7 +185,6 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 dayResult.main = finalMain;
                 dayResult.closeDeclationTime = new Date();
 
-                console.log(`Close Result - Day: ${dayName}, Open Main: ${openMain}, Close Main: ${closeMain}, Combined Main: ${combinedMain}, Final Main: ${finalMain}`);
 
                 // Calculate close winnings
                 await WinningCalculationService.calculateCloseWinnings(
@@ -232,7 +229,6 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
             existingResult = new Result(resultData);
             await existingResult.save();
-            console.log(`New Weekly Result Created - Day: ${dayName}, Number: ${resultNumber}, Main: ${mainValue}`);
 
             // Calculate open winnings for new result
             await WinningCalculationService.calculateOpenWinnings(

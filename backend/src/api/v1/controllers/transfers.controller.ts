@@ -39,7 +39,6 @@ export class TransfersController {
             let childUsers: ChildUser[] = [];
 
             // Handle different user roles
-            console.log('User role:', userRole, 'User ID:', userId);
 
             if (userRole === 'superadmin') {
                 // Superadmin can see all admins
@@ -48,7 +47,6 @@ export class TransfersController {
                     isActive: true
                 }).select('username balance role isActive');
 
-                console.log('Found admins for superadmin:', admins.length);
 
                 childUsers = admins.map((admin) => ({
                     id: (admin as unknown as PopulatedUser)._id.toString(),

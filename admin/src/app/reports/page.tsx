@@ -61,7 +61,6 @@ export default function ReportsPage() {
             // Apply filters to drill-down data
             // For now, just refresh the drill-down data with current filters
             // In a real implementation, you might want to re-fetch the drill-down data with filters
-            console.log('Filters applied to drill-down data:', params);
         }
     };
 
@@ -74,7 +73,6 @@ export default function ReportsPage() {
             fetchReports();
         } else {
             // Reset filters for drill-down data
-            console.log('Filters reset for drill-down data');
         }
     };
 

@@ -63,7 +63,6 @@ export default function MarketRankPage() {
       const response = await marketsAPI.getMarketRanks(selectedAdmin, page, pagination.limit);
 
       if (response.success) {
-        console.log('Market ranks response:', response);
         setMarketRanks(response.data || []);
         setPagination(prev => ({
           ...prev,

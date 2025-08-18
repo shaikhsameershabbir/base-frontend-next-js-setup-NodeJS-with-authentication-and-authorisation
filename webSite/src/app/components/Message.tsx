@@ -7,7 +7,7 @@ const MessageSection = () => {
     <div className="p-2 bg-white rounded-lg overflow-hidden flex justify-center items-center">
       <span className="zi text-2xl md:text-2xl">&#128073;</span>
       <a
-        href="https://new-mk.vercel.app/"
+        href="https://www.matkaresult.online/"
         target="_blank"
         title="Click to check Market results !"
         rel="noopener noreferrer"

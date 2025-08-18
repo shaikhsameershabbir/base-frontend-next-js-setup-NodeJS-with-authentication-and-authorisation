@@ -119,32 +119,32 @@ const Header = () => {
 
   return (
     <>
-      <div className="bg-primary text-white p-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
-        <div className="flex items-center gap-2">
-          <button onClick={toggleSidebar} className="p-1">
-            <Menu size={24} />
+      <div className="bg-primary text-white px-3 py-3 sm:px-4 sm:py-4 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <button onClick={toggleSidebar} className="p-1 hover:bg-white/10 rounded transition-colors">
+            <Menu size={20} className="sm:w-6 sm:h-6" />
           </button>
-          <h1 className="text-xl font-bold pt-1">MK Booking</h1>
+          <h1 className="text-lg sm:text-xl font-bold pt-1 truncate">MK Booking</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Claim Button */}
           <button
             onClick={openClaimModal}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors relative"
+            className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
           >
-            <Gift size={20} />
-            <span>Claim</span>
+            <Gift size={16} className="sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">Claim</span>
             {claimData && claimData.totalWinning > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-bold">
                 {claimData.totalWinning}
               </span>
             )}
           </button>
 
           {/* Wallet */}
-          <div className="text-white px-3 py-1 rounded-lg flex items-center gap-2">
-            <span className="mr-1"><Wallet /></span>
-            <span className="font-bold">₹{user?.balance || 0}</span>
+          <div className="text-white px-2 py-1 sm:px-3 sm:py-1 rounded-lg flex items-center gap-1 sm:gap-2 min-w-0">
+            <span className="flex-shrink-0"><Wallet size={16} className="sm:w-5 sm:h-5" /></span>
+            <span className="font-bold text-sm sm:text-base truncate">₹{user?.balance || 0}</span>
             <button
               onClick={() => {
                 if (refreshUser && !isFetching) {
@@ -152,11 +152,11 @@ const Header = () => {
                 }
               }}
               disabled={isFetching}
-              className={`text-white hover:text-yellow-200 transition-colors p-1 ${isFetching ? 'opacity-50 cursor-not-allowed' : ''
+              className={`text-white hover:text-yellow-200 transition-colors p-0.5 sm:p-1 flex-shrink-0 ${isFetching ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               title="Refresh balance"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
@@ -166,34 +166,34 @@ const Header = () => {
 
       {/* Claim Modal */}
       {isClaimModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-sm sm:max-w-md lg:max-w-lg w-full max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-bold text-gray-800">Claim Winning Tickets</h2>
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">Claim Winning Tickets</h2>
+              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <button
                   onClick={fetchUnclaimedTickets}
-                  className="text-blue-500 hover:text-blue-700 p-1"
+                  className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors"
                   title="Refresh tickets"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
                 <button
                   onClick={closeClaimModal}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded transition-colors"
                 >
-                  <X size={24} />
+                  <X size={20} className="sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
 
             {/* Modal Content */}
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               {claimMessage && (
-                <div className={`mb-4 p-3 rounded-lg ${claimMessage.includes('Successfully')
+                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-sm sm:text-base ${claimMessage.includes('Successfully')
                   ? 'bg-green-100 text-green-800 border border-green-200'
                   : 'bg-red-100 text-red-800 border border-red-200'
                   }`}>
@@ -202,35 +202,35 @@ const Header = () => {
               )}
 
               {claimData && (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <div className="text-green-800 font-bold text-lg">{claimData.totalWinning}</div>
-                      <div className="text-green-600 text-sm">Winning Tickets</div>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                    <div className="bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
+                      <div className="text-green-800 font-bold text-base sm:text-lg">{claimData.totalWinning}</div>
+                      <div className="text-green-600 text-xs sm:text-sm">Winning Tickets</div>
                     </div>
-                    <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                      <div className="text-yellow-800 font-bold text-lg">{claimData.totalPending}</div>
-                      <div className="text-yellow-600 text-sm">Pending Results</div>
+                    <div className="bg-yellow-50 p-2 sm:p-3 rounded-lg border border-yellow-200">
+                      <div className="text-yellow-800 font-bold text-base sm:text-lg">{claimData.totalPending}</div>
+                      <div className="text-yellow-600 text-xs sm:text-sm">Pending Results</div>
                     </div>
                   </div>
 
                   {/* Winning Tickets */}
                   {claimData.winningTickets.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                        <CheckCircle className="text-green-600" size={20} />
+                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                        <CheckCircle className="text-green-600" size={16} />
                         Winning Tickets to Claim
                       </h3>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                      <div className="space-y-1.5 sm:space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
                         {claimData.winningTickets.map((ticket) => (
-                          <div key={ticket._id} className="bg-green-50 p-3 rounded-lg border border-green-200">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <div className="font-medium text-green-800">{ticket.type}</div>
-                                <div className="text-sm text-green-600">Result: {ticket.result}</div>
+                          <div key={ticket._id} className="bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-green-800 text-sm sm:text-base truncate">{ticket.type}</div>
+                                <div className="text-xs sm:text-sm text-green-600">Result: {ticket.result}</div>
                               </div>
-                              <div className="text-green-800 font-bold">₹{ticket.winAmount}</div>
+                              <div className="text-green-800 font-bold text-sm sm:text-base flex-shrink-0">₹{ticket.winAmount}</div>
                             </div>
                           </div>
                         ))}
@@ -241,19 +241,19 @@ const Header = () => {
                   {/* Pending Tickets */}
                   {claimData.pendingTickets.length > 0 && (
                     <div>
-                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
-                        <Clock className="text-yellow-600" size={20} />
+                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
+                        <Clock className="text-yellow-600" size={16} />
                         Pending Results
                       </h3>
-                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                      <div className="space-y-1.5 sm:space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
                         {claimData.pendingTickets.map((ticket) => (
-                          <div key={ticket._id} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <div className="font-medium text-yellow-800">{ticket.type}</div>
-                                <div className="text-sm text-yellow-600">Result: {ticket.result}</div>
+                          <div key={ticket._id} className="bg-yellow-50 p-2 sm:p-3 rounded-lg border border-yellow-200">
+                            <div className="flex justify-between items-start gap-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-yellow-800 text-sm sm:text-base truncate">{ticket.type}</div>
+                                <div className="text-xs sm:text-sm text-yellow-600">Result: {ticket.result}</div>
                               </div>
-                              <div className="text-yellow-800 font-bold">Winning not declared</div>
+                              <div className="text-yellow-800 font-bold text-xs sm:text-sm flex-shrink-0">Winning not declared</div>
                             </div>
                           </div>
                         ))}
@@ -263,28 +263,28 @@ const Header = () => {
 
                   {/* No Tickets Message */}
                   {claimData.totalUnclaimed === 0 && (
-                    <div className="text-center py-8">
-                      <Gift className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-gray-600">No unclaimed tickets found</p>
+                    <div className="text-center py-6 sm:py-8">
+                      <Gift className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-400" />
+                      <p className="text-gray-600 text-sm sm:text-base">No unclaimed tickets found</p>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 mt-6">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
                 {claimData && claimData.totalWinning > 0 && (
                   <button
                     onClick={claimTickets}
                     disabled={isLoading}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2.5 sm:py-2 px-4 rounded-lg font-medium transition-colors text-sm sm:text-base"
                   >
                     {isLoading ? 'Claiming...' : `Claim ₹${claimData.winningTickets.reduce((sum, ticket) => sum + ticket.winAmount, 0)}`}
                   </button>
                 )}
                 <button
                   onClick={closeClaimModal}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2.5 sm:py-2 px-4 rounded-lg font-medium transition-colors text-sm sm:text-base"
                 >
                   Close
                 </button>

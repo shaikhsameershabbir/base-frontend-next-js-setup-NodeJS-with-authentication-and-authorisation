@@ -42,8 +42,6 @@ const countEndpointHits = (req: express.Request, res: express.Response, next: ex
 
     // Real-time logging of endpoint hits
     // const timestamp = new Date().toISOString();
-    // console.log(`[${timestamp}] ${method} ${endpoint} }`);
-    // console.log(`[${timestamp}] ${method} ${endpoint} - Total hits: ${stats.count}`);
 
     next();
 };

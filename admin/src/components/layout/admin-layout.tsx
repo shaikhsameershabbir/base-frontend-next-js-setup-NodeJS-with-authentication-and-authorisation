@@ -19,7 +19,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
     // Redirect to login if not authenticated
     if (!loading && !isAuthenticated) {
-        console.log('🔄 Redirecting to login - not authenticated');
         router.push('/')
         return null
     }
@@ -36,7 +35,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     }
 
     if (!user) {
-        console.log('❌ No user data, redirecting to login');
         router.push('/')
         return null
     }

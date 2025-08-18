@@ -130,7 +130,6 @@ export class WinningCalculationService {
     // Calculate winnings for open result declaration
     static async calculateOpenWinnings(marketId: string, targetDate: Date, openResult: number, openMain: number): Promise<void> {
         try {
-            console.log(`Calculating open winnings for market: ${marketId}, date: ${targetDate}, result: ${openResult}, main: ${openMain}`);
 
             // Create date range for the target date
             const startOfDay = new Date(targetDate);
@@ -150,7 +149,6 @@ export class WinningCalculationService {
                 }
             });
 
-            console.log(`Found ${openBets.length} open bets to process`);
 
             for (const bet of openBets) {
                 let totalWinAmount = 0;
@@ -174,7 +172,6 @@ export class WinningCalculationService {
                     if (checkBetMatch(number, openResult)) {
                         const winAmount = amount * rate;
                         totalWinAmount += winAmount;
-                        console.log(`Bet ${bet._id}: Number ${number} matches open result ${openResult}, win amount: ${winAmount}`);
                     }
 
                     // For jodi bets (double numbers), only check double-digit patterns
@@ -186,7 +183,6 @@ export class WinningCalculationService {
                         if (checkBetMatch(number, openMain)) {
                             const winAmount = amount * rate;
                             totalWinAmount += winAmount;
-                            console.log(`Bet ${bet._id}: Number ${number} matches open main ${openMain}, win amount: ${winAmount}`);
                         }
                     }
                 }
@@ -196,16 +192,13 @@ export class WinningCalculationService {
                     bet.winAmount = totalWinAmount;
                     bet.result = 'won';
                     await bet.save();
-                    console.log(`Updated bet ${bet._id} with win amount: ${totalWinAmount}`);
                 } else {
                     bet.winAmount = 0;
                     bet.result = 'loss';
                     await bet.save();
-                    console.log(`Updated bet ${bet._id} as loss`);
                 }
             }
 
-            console.log(`Open winnings calculation completed for market: ${marketId}`);
         } catch (error) {
             console.error('Error calculating open winnings:', error);
             throw error;
@@ -215,8 +208,6 @@ export class WinningCalculationService {
     // Calculate winnings for close result declaration
     static async calculateCloseWinnings(marketId: string, targetDate: Date, openResult: number, openMain: number, closeResult: number, closeMain: number): Promise<void> {
         try {
-            console.log(`Calculating close winnings for market: ${marketId}, date: ${targetDate}`);
-            console.log(`Open: ${openResult} (main: ${openMain}), Close: ${closeResult} (main: ${closeMain})`);
 
             // Create date range for the target date
             const startOfDay = new Date(targetDate);
@@ -236,7 +227,6 @@ export class WinningCalculationService {
                 }
             });
 
-            console.log(`Found ${closeBets.length} close/both bets to process`);
 
             // Calculate combined main (open main + close main) - ensure max 2 digits
             const combinedMain = parseInt(openMain.toString() + closeMain.toString());
@@ -271,7 +261,6 @@ export class WinningCalculationService {
                     if (checkBetMatch(number, closeResult)) {
                         const winAmount = amount * rate;
                         totalWinAmount += winAmount;
-                        console.log(`Bet ${bet._id}: Number ${betNumber} (${number}) matches close result ${closeResult}, win amount: ${winAmount}`);
                     }
 
                     // For jodi bets (double numbers), only check double-digit patterns
@@ -280,14 +269,12 @@ export class WinningCalculationService {
                         if (checkBetMatch(number, finalMain)) {
                             const winAmount = amount * rate;
                             totalWinAmount += winAmount;
-                            console.log(`Bet ${bet._id}: Number ${betNumber} (${number}) matches combined main ${finalMain}, win amount: ${winAmount}`);
                         }
                     } else {
                         // For single numbers, check single-digit patterns
                         if (checkBetMatch(number, closeMain)) {
                             const winAmount = amount * rate;
                             totalWinAmount += winAmount;
-                            console.log(`Bet ${bet._id}: Number ${betNumber} (${number}) matches close main ${closeMain}, win amount: ${winAmount}`);
                         }
                     }
                 }
@@ -297,16 +284,13 @@ export class WinningCalculationService {
                     bet.winAmount = totalWinAmount;
                     bet.result = 'won';
                     await bet.save();
-                    console.log(`Updated bet ${bet._id} with win amount: ${totalWinAmount}`);
                 } else {
                     bet.winAmount = 0;
                     bet.result = 'loss';
                     await bet.save();
-                    console.log(`Updated bet ${bet._id} as loss`);
                 }
             }
 
-            console.log(`Close winnings calculation completed for market: ${marketId}`);
         } catch (error) {
             console.error('Error calculating close winnings:', error);
             throw error;
@@ -330,14 +314,12 @@ export class WinningCalculationService {
             const openXCloseMain = `${openResult}X${closeMain}`;
             if (betKey === openXCloseMain) {
                 winAmount = betAmount * WINNING_RATES.halfSangam;
-                console.log(`Half sangam match: ${betKey} = ${openXCloseMain}, win amount: ${winAmount}`);
             }
 
             // Check for openMain X closeResult pattern
             const openMainXClose = `${openMain}X${closeResult}`;
             if (betKey === openMainXClose) {
                 winAmount = betAmount * WINNING_RATES.halfSangam;
-                console.log(`Half sangam match: ${betKey} = ${openMainXClose}, win amount: ${winAmount}`);
             }
         } else if (type === 'fullSangam') {
             // Calculate digit sums for open and close results
@@ -349,7 +331,6 @@ export class WinningCalculationService {
             const fullSangamPattern = `${openResult}X${combinedDigitSums}X${closeResult}`;
             if (betKey === fullSangamPattern) {
                 winAmount = betAmount * WINNING_RATES.fullSangam;
-                console.log(`Full sangam match: ${betKey} = ${fullSangamPattern}, win amount: ${winAmount}`);
             }
         }
 

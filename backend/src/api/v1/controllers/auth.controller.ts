@@ -11,7 +11,6 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 export class AuthController {
     async login(req: Request, res: Response): Promise<void> {
         try {
-            console.log('----------------------------->>>> login', req.body);
             const { username, password, loginSource  } = req.body;
             // Check if user exists
             const user = await User.findOne({ username });

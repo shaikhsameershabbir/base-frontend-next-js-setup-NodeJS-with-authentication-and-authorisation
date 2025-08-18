@@ -175,7 +175,6 @@ export class ReportsController {
                     }];
                 }
             }
-            console.log('0------------------------>', reports)
             return res.json({
                 success: true,
                 data: {

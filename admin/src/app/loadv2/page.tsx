@@ -489,14 +489,7 @@ export default function LoadV2Page() {
         const dayResult = marketResults.results[dayName as keyof import('@/lib/api-service').WeeklyResult];
 
         const canDeclare = !!(dayResult && dayResult.open !== null && dayResult.open !== undefined);
-        console.log('Debug - canDeclareClose:', {
-            marketResults: !!marketResults,
-            targetDate,
-            dayName,
-            dayResult: !!dayResult,
-            dayResultOpen: dayResult?.open,
-            canDeclare
-        });
+
         return canDeclare;
     };
 
