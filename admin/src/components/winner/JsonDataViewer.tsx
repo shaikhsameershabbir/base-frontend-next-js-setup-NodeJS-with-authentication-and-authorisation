@@ -85,10 +85,11 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
                                     let entryCount = 0;
 
                                     if (value && typeof value === 'object') {
-                                        if (value.open || value.close) {
+                                        const valueObj = value as any;
+                                        if (valueObj.open || valueObj.close) {
                                             // Structure: { open: {...}, close: {...} }
-                                            const openData = value.open || {};
-                                            const closeData = value.close || {};
+                                            const openData = valueObj.open || {};
+                                            const closeData = valueObj.close || {};
 
                                             Object.values(openData).forEach(amount => {
                                                 totalAmount += amount as number;
@@ -98,15 +99,15 @@ export const JsonDataViewer = ({ data }: JsonDataViewerProps) => {
                                                 totalAmount += amount as number;
                                                 entryCount++;
                                             });
-                                        } else if (value.both) {
+                                        } else if (valueObj.both) {
                                             // Structure: { both: {...} }
-                                            Object.values(value.both).forEach(amount => {
+                                            Object.values(valueObj.both).forEach(amount => {
                                                 totalAmount += amount as number;
                                                 entryCount++;
                                             });
                                         } else {
                                             // Direct structure
-                                            Object.values(value).forEach(amount => {
+                                            Object.values(valueObj).forEach(amount => {
                                                 totalAmount += amount as number;
                                                 entryCount++;
                                             });

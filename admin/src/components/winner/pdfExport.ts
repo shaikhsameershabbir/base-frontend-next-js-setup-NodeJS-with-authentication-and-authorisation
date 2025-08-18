@@ -148,10 +148,10 @@ export const exportToPDF = (gameType: string, gameTypeLabel: string, exportData:
                         const closeData = betData.close || {};
 
                         if (selectedBetType === 'all' || selectedBetType === 'open') {
-                            entries.push(...Object.entries(openData));
+                            entries.push(...Object.entries(openData) as [string, number][]);
                         }
                         if (selectedBetType === 'all' || selectedBetType === 'close') {
-                            entries.push(...Object.entries(closeData));
+                            entries.push(...Object.entries(closeData) as [string, number][]);
                         }
                     }
 
@@ -466,10 +466,10 @@ export const exportAllToPDF = (exportData: PDFExportData) => {
                             const closeData = betData.close || {};
 
                             if (selectedBetType === 'all' || selectedBetType === 'open') {
-                                entries.push(...Object.entries(openData));
+                                entries.push(...Object.entries(openData) as [string, number][]);
                             }
                             if (selectedBetType === 'all' || selectedBetType === 'close') {
-                                entries.push(...Object.entries(closeData));
+                                entries.push(...Object.entries(closeData) as [string, number][]);
                             }
                         }
 

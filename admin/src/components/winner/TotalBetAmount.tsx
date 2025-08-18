@@ -45,11 +45,12 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                 if (betType === 'single') return;
 
                 if (betData && typeof betData === 'object') {
+                    const betDataObj = betData as any;
                     // Handle different data structures
-                    if (betData.open || betData.close) {
+                    if (betDataObj.open || betDataObj.close) {
                         // Structure: { open: {...}, close: {...} }
-                        const openData = betData.open || {};
-                        const closeData = betData.close || {};
+                        const openData = betDataObj.open || {};
+                        const closeData = betDataObj.close || {};
 
                         let betTypeTotal = 0;
 
@@ -74,9 +75,9 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                         }
 
                         grandTotal += betTypeTotal;
-                    } else if (betData.both) {
+                    } else if (betDataObj.both) {
                         // Structure: { both: {...} }
-                        Object.entries(betData.both).forEach(([number, amount]) => {
+                        Object.entries(betDataObj.both).forEach(([number, amount]) => {
                             const numAmount = amount as number;
                             if (numAmount > cuttingValue && !(number === "1" && numAmount === 60)) {
                                 grandTotal += numAmount;
@@ -84,7 +85,7 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                         });
                     } else {
                         // Direct structure: { number: amount, ... }
-                        Object.entries(betData).forEach(([number, amount]) => {
+                        Object.entries(betDataObj).forEach(([number, amount]) => {
                             const numAmount = amount as number;
                             if (numAmount > cuttingValue && !(number === "1" && numAmount === 60)) {
                                 grandTotal += numAmount;
@@ -138,21 +139,22 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
         betTypesToCheck.forEach(betType => {
             if (data?.data?.[betType]) {
                 const betData = data.data[betType];
+                const betDataObj = betData as any;
 
                 // Handle different data structures
                 let entries: [string, number][] = [];
 
-                if (betData.both) {
-                    entries = Object.entries(betData.both);
-                } else if (betData.open || betData.close) {
-                    const openData = betData.open || {};
-                    const closeData = betData.close || {};
+                if (betDataObj.both) {
+                    entries = Object.entries(betDataObj.both);
+                } else if (betDataObj.open || betDataObj.close) {
+                    const openData = betDataObj.open || {};
+                    const closeData = betDataObj.close || {};
 
                     if (selectedBetType === 'all' || selectedBetType === 'open') {
-                        entries.push(...Object.entries(openData));
+                        entries.push(...Object.entries(openData) as [string, number][]);
                     }
                     if (selectedBetType === 'all' || selectedBetType === 'close') {
-                        entries.push(...Object.entries(closeData));
+                        entries.push(...Object.entries(closeData) as [string, number][]);
                     }
                 }
 
@@ -182,11 +184,12 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                 let betTypeTotal = 0;
 
                 if (betData && typeof betData === 'object') {
+                    const betDataObj = betData as any;
                     // Handle different data structures
-                    if (betData.open || betData.close) {
+                    if (betDataObj.open || betDataObj.close) {
                         // Structure: { open: {...}, close: {...} }
-                        const openData = betData.open || {};
-                        const closeData = betData.close || {};
+                        const openData = betDataObj.open || {};
+                        const closeData = betDataObj.close || {};
 
                         // Process open data
                         if (selectedBetType === 'all' || selectedBetType === 'open') {
@@ -207,9 +210,9 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                                 }
                             });
                         }
-                    } else if (betData.both) {
+                    } else if (betDataObj.both) {
                         // Structure: { both: {...} }
-                        Object.entries(betData.both).forEach(([number, amount]) => {
+                        Object.entries(betDataObj.both).forEach(([number, amount]) => {
                             const numAmount = amount as number;
                             if (numAmount > cuttingValue && !(number === "1" && numAmount === 60)) {
                                 betTypeTotal += numAmount;
@@ -217,7 +220,7 @@ export const TotalBetAmount = ({ data, selectedBetType, cuttingAmount }: TotalBe
                         });
                     } else {
                         // Direct structure: { number: amount, ... }
-                        Object.entries(betData).forEach(([number, amount]) => {
+                        Object.entries(betDataObj).forEach(([number, amount]) => {
                             const numAmount = amount as number;
                             if (numAmount > cuttingValue && !(number === "1" && numAmount === 60)) {
                                 betTypeTotal += numAmount;

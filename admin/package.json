@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "node deploy.js",
+    "build:prod": "bash build-production.sh",
+    "start:prod": "NODE_ENV=production PORT=3012 npm start",
+    "deploy:server": "bash deploy-server.sh",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:stop": "pm2 stop matka-admin",
+    "pm2:restart": "pm2 restart matka-admin",
+    "pm2:logs": "pm2 logs matka-admin",
+    "verify": "node verify-build.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

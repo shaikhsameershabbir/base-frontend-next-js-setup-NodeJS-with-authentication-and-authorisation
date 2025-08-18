@@ -48,8 +48,14 @@ export function useUsers(): UseUsersReturn {
             const response = await usersAPI.getUsers(page, limit, search, role);
 
             if (response.success && response.data) {
-                setUsers(response.data.data);
-                setPagination(response.data.pagination);
+                setUsers(response.data);
+                // Update pagination based on actual response or assume defaults
+                setPagination({
+                    page,
+                    limit,
+                    total: response.data.length,
+                    totalPages: Math.ceil(response.data.length / limit)
+                });
             } else {
                 setError(response.message || 'Failed to fetch users');
             }
@@ -160,7 +166,7 @@ export function useUsers(): UseUsersReturn {
                 setUsers(prevUsers =>
                     prevUsers.map(user =>
                         user._id === userId
-                            ? { ...user, isActive: response.data.user.isActive }
+                            ? { ...user, isActive: response.data!.user.isActive }
                             : user
                     )
                 );

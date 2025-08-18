@@ -38,7 +38,7 @@ export class ClaimController {
             const winningBets = unclaimedBets.filter(bet => bet.winAmount && bet.winAmount > 0);
             const pendingBets = unclaimedBets.filter(bet => !bet.winAmount || bet.winAmount === 0);
 
-            res.json({
+            return res.json({
                 success: true,
                 data: {
                     unclaimedTickets: unclaimedBets,
@@ -52,7 +52,7 @@ export class ClaimController {
 
         } catch (error) {
             console.error('Error getting unclaimed tickets:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -116,7 +116,7 @@ export class ClaimController {
                 { claimStatus: true }
             );
 
-            res.json({
+            return res.json({
                 success: true,
                 message: 'Tickets claimed successfully',
                 data: {
@@ -134,7 +134,7 @@ export class ClaimController {
 
         } catch (error) {
             console.error('Error claiming tickets:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -169,7 +169,7 @@ export class ClaimController {
             const claimedAmount = claimedBets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
             const unclaimedAmount = unclaimedBets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
 
-            res.json({
+            return res.json({
                 success: true,
                 data: {
                     totalBets,
@@ -185,7 +185,7 @@ export class ClaimController {
 
         } catch (error) {
             console.error('Error getting claim summary:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'

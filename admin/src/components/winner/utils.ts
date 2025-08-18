@@ -20,7 +20,7 @@ export const getGameTypeAndAmount = (number: string, amount: number) => {
             return { type: 'triplePanna', rate: WINNING_RATES.triplePanna, amount: amount * WINNING_RATES.triplePanna };
         }
 
-        if (triplePannaNumbers.includes(numValue)) {
+        if (triplePannaNumbers.includes(number)) {
             return { type: 'triplePanna', rate: WINNING_RATES.triplePanna, amount: amount * WINNING_RATES.triplePanna };
         } else if (singlePannaNumbers.includes(numValue)) {
             return { type: 'singlePanna', rate: WINNING_RATES.singlePanna, amount: amount * WINNING_RATES.singlePanna };

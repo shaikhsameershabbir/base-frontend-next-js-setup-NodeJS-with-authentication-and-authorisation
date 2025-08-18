@@ -25,7 +25,7 @@ interface DateFilter {
 // Define proper types for populated bet data that matches Mongoose Document structure
 interface PopulatedBet {
     _id: unknown;
-    userId: any; // Using any for populated userId field to handle complex Mongoose Document types
+    userId: unknown; // Using any for populated userId field to handle complex Mongoose Document types
     amount?: number | null | undefined;
     winAmount?: number | null | undefined;
     claimStatus?: boolean;
@@ -176,7 +176,7 @@ export class ReportsController {
                 }
             }
             console.log('0------------------------>', reports)
-            res.json({
+            return res.json({
                 success: true,
                 data: {
                     reports,
@@ -191,7 +191,7 @@ export class ReportsController {
 
         } catch (error) {
             console.error('Error getting bet reports:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -585,14 +585,14 @@ export class ReportsController {
                 totalUsers: userIds.length
             };
 
-            res.json({
+            return res.json({
                 success: true,
                 data: stats
             });
 
         } catch (error) {
             console.error('Error getting bet stats:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
                 error: error instanceof Error ? error.message : 'Unknown error'

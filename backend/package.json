@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --legacy-watch server.ts",
-    "build": "if exist dist rmdir /s /q dist && tsc",
+    "build": "rimraf dist && tsc",
     "create-admin": "ts-node scripts/createAdmin.ts",
     "seed": "ts-node scripts/seedData.ts",
     "seed-users": "ts-node scripts/seedUsers.ts",
@@ -39,7 +39,8 @@
     "nodemon": "^3.1.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0"
+    "typescript-eslint": "^8.22.0",
+    "rimraf": "^6.0.1"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",

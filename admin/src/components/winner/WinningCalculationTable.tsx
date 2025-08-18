@@ -144,10 +144,10 @@ export const WinningCalculationTable = ({
                     const closeData = betData.close || {};
 
                     if (selectedBetType === 'all' || selectedBetType === 'open') {
-                        entries.push(...Object.entries(openData));
+                        entries.push(...Object.entries(openData) as [string, number][]);
                     }
                     if (selectedBetType === 'all' || selectedBetType === 'close') {
-                        entries.push(...Object.entries(closeData));
+                        entries.push(...Object.entries(closeData) as [string, number][]);
                     }
                 }
 
@@ -293,7 +293,7 @@ export const WinningCalculationTable = ({
     return (
         <Card className="mb-6 bg-gray-900 border-gray-700">
             <CardHeader>
-            <TotalBetAmount
+                <TotalBetAmount
                     data={data}
                     selectedBetType={selectedBetType}
                     cuttingAmount={cuttingAmount}

@@ -174,7 +174,7 @@ export function Sidebar({ role }: SidebarProps) {
                 </nav>
             </div>
 
-            <div className="border-t border-border p-3 sm:p-4 bg-background/80 dark:bg-background/90">
+            {/* <div className="border-t border-border p-3 sm:p-4 bg-background/80 dark:bg-background/90">
                 <Link href="/settings">
                     <div className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-xl hover:bg-card/20 dark:hover:bg-card/30 transition-all duration-200 cursor-pointer group">
                         <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-lg bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center">
@@ -187,7 +187,7 @@ export function Sidebar({ role }: SidebarProps) {
                         <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </Link>
-            </div>
+            </div> */}
         </div>
     )
 } 

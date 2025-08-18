@@ -14,10 +14,10 @@ interface UseMarketsReturn {
     };
     getMarkets: (page?: number, limit?: number, status?: string) => Promise<void>;
     getMarketById: (marketId: string) => Promise<Market | null>;
-    createMarket: (data: { name: string; status: string }) => Promise<boolean>;
+    createMarket: (data: { marketName: string; openTime: string; closeTime: string; weekDays: number }) => Promise<boolean>;
     updateMarket: (marketId: string, data: Partial<Market>) => Promise<boolean>;
     deleteMarket: (marketId: string) => Promise<boolean>;
-    updateMarketStatus: (marketId: string, status: string) => Promise<boolean>;
+    updateMarketStatus: (marketId: string, isActive: boolean) => Promise<boolean>;
     clearError: () => void;
 }
 
@@ -43,8 +43,14 @@ export function useMarkets(): UseMarketsReturn {
             const response = await marketsAPI.getMarkets(page, limit, status);
 
             if (response.success && response.data) {
-                setMarkets(response.data.data);
-                setPagination(response.data.pagination);
+                setMarkets(response.data);
+                // Update pagination based on actual response headers or assume defaults
+                setPagination({
+                    page,
+                    limit,
+                    total: response.data.length,
+                    totalPages: Math.ceil(response.data.length / limit)
+                });
             } else {
                 setError(response.message || 'Failed to fetch markets');
             }
@@ -72,7 +78,7 @@ export function useMarkets(): UseMarketsReturn {
         }
     }, []);
 
-    const createMarket = useCallback(async (data: { name: string; status: string }): Promise<boolean> => {
+    const createMarket = useCallback(async (data: { marketName: string; openTime: string; closeTime: string; weekDays: number }): Promise<boolean> => {
         try {
             setLoading(true);
             setError(null);
@@ -144,18 +150,18 @@ export function useMarkets(): UseMarketsReturn {
         }
     }, []);
 
-    const updateMarketStatus = useCallback(async (marketId: string, status: string): Promise<boolean> => {
+    const updateMarketStatus = useCallback(async (marketId: string, isActive: boolean): Promise<boolean> => {
         try {
             setLoading(true);
             setError(null);
-            const response = await marketsAPI.updateMarketStatus(marketId, status);
+            const response = await marketsAPI.updateMarketStatus(marketId, isActive);
 
             if (response.success && response.data?.market) {
                 // Update market in the list
                 setMarkets(prevMarkets =>
                     prevMarkets.map(market =>
                         market._id === marketId
-                            ? { ...market, status: response.data.market.status }
+                            ? { ...market, isActive: response.data!.market.isActive }
                             : market
                     )
                 );

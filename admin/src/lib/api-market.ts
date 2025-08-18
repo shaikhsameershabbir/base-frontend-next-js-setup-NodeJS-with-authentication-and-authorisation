@@ -33,7 +33,7 @@ export const legacyMarketAPI = {
         return marketsAPI.getMarkets(page, limit, status);
     },
     createMarket: async (data: Partial<Market>) => {
-        return marketsAPI.createMarket(data as { name: string; status: string });
+        return marketsAPI.createMarket(data as { marketName: string; openTime: string; closeTime: string; weekDays: number });
     },
     updateMarket: async (marketId: string, data: Partial<Market>) => {
         return marketsAPI.updateMarket(marketId, data);
@@ -42,6 +42,6 @@ export const legacyMarketAPI = {
         return marketsAPI.deleteMarket(marketId);
     },
     toggleMarketActive: async (marketId: string) => {
-        return marketsAPI.updateMarketStatus(marketId, 'active');
+        return marketsAPI.updateMarketStatus(marketId, true);
     },
 }; 

@@ -24,7 +24,8 @@ export default function ProfilePage() {
             setLoading(true)
             const response = await authAPI.getProfile()
             if (response.success) {
-                const userData = response.data?.user
+                //@ts-ignore
+                const userData = response.data
                 setUser(userData || null)
                 if (userData) {
                     setEditData({
