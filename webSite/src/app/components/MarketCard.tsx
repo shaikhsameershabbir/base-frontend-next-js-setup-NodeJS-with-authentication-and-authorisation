@@ -52,15 +52,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <div className="rounded-2xl flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-            {market.isGolden && (
-              <Star className="w-6 h-6 text-yellow-500 fill-current" />
-            )}
-            {market.rank && (
-              <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-2 py-1 rounded-full text-sm font-bold">
-                <Hash className="w-3 h-3" />
-                {market.rank}
-              </div>
-            )}
+
           </div>
 
 

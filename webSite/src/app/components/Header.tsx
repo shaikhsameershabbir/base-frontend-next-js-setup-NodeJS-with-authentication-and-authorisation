@@ -130,7 +130,7 @@ const Header = () => {
           {/* Claim Button */}
           <button
             onClick={openClaimModal}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
+            className="bg-yellow-600  hover:bg-yellow-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-2xl flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
           >
             <Gift size={16} className="sm:w-5 sm:h-5" />
             <span className="hidden sm:inline">Claim</span>
