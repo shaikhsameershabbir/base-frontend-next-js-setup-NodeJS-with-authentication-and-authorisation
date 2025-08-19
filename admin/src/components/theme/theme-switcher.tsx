@@ -42,6 +42,17 @@ const themeOptions: ThemeOption[] = [
             secondary: "#1F2937",
             tertiary: "#A78BFA"
         }
+    },
+    {
+        id: "auto",
+        name: "Auto (System)",
+        description: "Follows system preference",
+        icon: <Monitor className="h-5 w-5" />,
+        colors: {
+            primary: "#8B5CF6",
+            secondary: "#F3F4F6",
+            tertiary: "#A78BFA"
+        }
     }
 ]
 
@@ -128,16 +139,16 @@ export function ThemeSwitcher() {
                         <Card
                             key={themeOption.id}
                             className={`cursor-pointer transition-all duration-200 hover:scale-105 ${theme === themeOption.id
-                                    ? "ring-2 ring-primary bg-gradient-to-br from-primary/10 to-tertiary/10"
-                                    : "hover:bg-white/5"
+                                ? "ring-2 ring-primary bg-gradient-to-br from-primary/10 to-tertiary/10"
+                                : "hover:bg-white/5"
                                 }`}
                             onClick={() => handleThemeChange(themeOption.id)}
                         >
                             <CardHeader className="pb-3">
                                 <div className="flex items-center gap-3">
                                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${theme === themeOption.id
-                                            ? "bg-gradient-to-br from-primary to-tertiary text-white"
-                                            : "bg-white/10"
+                                        ? "bg-gradient-to-br from-primary to-tertiary text-white"
+                                        : "bg-white/10"
                                         }`}>
                                         {themeOption.icon}
                                     </div>
