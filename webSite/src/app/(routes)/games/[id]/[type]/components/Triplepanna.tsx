@@ -367,11 +367,11 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                   </div>
                   <button
                     type="button"
-                    onClick={() => handleClick(() => handlePannaClick(digit))}
-                    onContextMenu={(e) => handleRightClick(e, () => handlePannaClick(digit, true))}
+                    onClick={() => handleClick(() => handlePannaClick(digit.toString()))}
+                    onContextMenu={(e) => handleRightClick(e, () => handlePannaClick(digit.toString(), true))}
                     onTouchStart={() => handleTouchStart(
-                      () => handlePannaClick(digit),
-                      () => handlePannaClick(digit, true)
+                      () => handlePannaClick(digit.toString()),
+                      () => handlePannaClick(digit.toString(), true)
                     )}
                     onTouchEnd={handleTouchEnd}
                     onTouchMove={handleTouchMove}

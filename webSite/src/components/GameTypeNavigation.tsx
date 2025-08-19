@@ -58,7 +58,7 @@ const GameTypeNavigation: React.FC<GameTypeNavigationProps> = ({
                             className={`
                                 flex items-center justify-center
                                 px-1 py-1 rounded-2xl border-2 transition-all duration-200
-                                text-xs font-medium truncate 
+                                text-[10px] md:text-xs font-medium truncate 
                                 ${isActive
                                     ? `bg-gradient-to-r ${gameType.color} text-white border-transparent shadow-lg scale-105`
                                     : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100 hover:shadow-md'

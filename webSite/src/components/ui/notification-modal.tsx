@@ -75,19 +75,23 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
     if (!isVisible) return null;
 
+    // Check if this is a bet success message and extract amount
+    const isBetSuccess = type === 'success' && title.toLowerCase().includes('bet') && message.includes('₹');
+    const extractedAmount = isBetSuccess ? message.match(/₹([\d,]+)/)?.[1] : null;
+
     const getIcon = () => {
         switch (type) {
             case 'success':
                 return (
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                     </div>
                 );
             case 'error':
                 return (
-                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                         <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -95,7 +99,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 );
             case 'warning':
                 return (
-                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
                         <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
@@ -103,7 +107,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 );
             case 'info':
                 return (
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
                         <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -123,7 +127,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     title: 'text-green-900',
                     message: 'text-green-700',
                     button: 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg',
-                    accent: 'bg-green-500'
+                    accent: 'bg-green-500',
+                    amount: 'text-green-600'
                 };
             case 'error':
                 return {
@@ -132,7 +137,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     title: 'text-red-900',
                     message: 'text-red-700',
                     button: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white shadow-lg',
-                    accent: 'bg-red-500'
+                    accent: 'bg-red-500',
+                    amount: 'text-red-600'
                 };
             case 'warning':
                 return {
@@ -141,7 +147,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     title: 'text-yellow-900',
                     message: 'text-yellow-700',
                     button: 'bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white shadow-lg',
-                    accent: 'bg-yellow-500'
+                    accent: 'bg-yellow-500',
+                    amount: 'text-yellow-600'
                 };
             case 'info':
                 return {
@@ -150,7 +157,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     title: 'text-blue-900',
                     message: 'text-blue-700',
                     button: 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg',
-                    accent: 'bg-blue-500'
+                    accent: 'bg-blue-500',
+                    amount: 'text-blue-600'
                 };
             default:
                 return {
@@ -159,7 +167,8 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                     title: 'text-gray-900',
                     message: 'text-gray-700',
                     button: 'bg-gradient-to-r from-gray-500 to-slate-600 hover:from-gray-600 hover:to-slate-700 text-white shadow-lg',
-                    accent: 'bg-gray-500'
+                    accent: 'bg-gray-500',
+                    amount: 'text-gray-600'
                 };
         }
     };
@@ -177,7 +186,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 
             {/* Modal with modern design */}
             <div
-                className={`relative w-full max-w-lg transform rounded-3xl border-0 shadow-2xl transition-all duration-300 ease-out ${styles.bg
+                className={`relative w-full max-w-md transform rounded-3xl border-0 shadow-2xl transition-all duration-300 ease-out ${styles.bg
                     } ${isAnimating
                         ? 'scale-95 opacity-0 translate-y-4'
                         : 'scale-100 opacity-100 translate-y-0'
@@ -186,47 +195,62 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
                 {/* Top accent bar */}
                 <div className={`h-1 w-full rounded-t-3xl ${styles.accent}`} />
 
-                {/* Content container */}
-                <div className="p-8">
-                    {/* Header with icon and close button */}
-                    <div className="flex items-start justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className={`transition-all duration-500 ${isAnimating ? 'scale-0 rotate-180' : 'scale-100 rotate-0'
+                {/* Content container - centered */}
+                <div className="p-8 text-center">
+                    {/* Close button - top right */}
+                    {showCloseButton && (
+                        <button
+                            onClick={onClose}
+                            className="absolute top-4 right-4 rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200 hover:scale-110 hover:rotate-90"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    )}
+
+                    {/* Icon - centered */}
+                    <div className={`mx-auto mb-6 transition-all duration-500 ${isAnimating ? 'scale-0 rotate-180' : 'scale-100 rotate-0'
+                        }`}>
+                        {getIcon()}
+                    </div>
+
+                    {/* Title - centered */}
+                    <div className={`mb-4 transition-all duration-500 delay-100 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+                        }`}>
+                        <h3 className={`text-2xl font-bold ${styles.title}`}>
+                            {title}
+                        </h3>
+                    </div>
+
+                    {/* Special handling for bet success with big amount display */}
+                    {isBetSuccess && extractedAmount ? (
+                        <div className="mb-6">
+                            {/* Big amount display */}
+                            <div className={`text-4xl font-bold ${styles.amount} mb-2 transition-all duration-500 delay-200 ${isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                                 }`}>
-                                {getIcon()}
+                                ₹{extractedAmount}
                             </div>
-                            <div className={`transition-all duration-500 delay-100 ${isAnimating ? 'opacity-0 translate-x-2' : 'opacity-100 translate-x-0'
+                            {/* Amount label */}
+                            <div className={`text-sm text-gray-600 transition-all duration-500 delay-300 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
                                 }`}>
-                                <h3 className={`text-xl font-bold ${styles.title}`}>
-                                    {title}
-                                </h3>
+                                Bet Amount
                             </div>
                         </div>
+                    ) : (
+                        /* Regular message display */
+                        <div className={`text-base leading-relaxed ${styles.message} mb-6 transition-all duration-500 delay-200 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+                            }`}>
+                            {message}
+                        </div>
+                    )}
 
-                        {showCloseButton && (
-                            <button
-                                onClick={onClose}
-                                className="flex-shrink-0 rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all duration-200 hover:scale-110 hover:rotate-90"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Message with modern typography */}
-                    <div className={`text-base leading-relaxed ${styles.message} transition-all duration-500 delay-200 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
-                        }`}>
-                        {message}
-                    </div>
-
-                    {/* Footer with modern button */}
-                    <div className={`mt-8 flex justify-end transition-all duration-500 delay-300 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
+                    {/* Footer with centered button */}
+                    <div className={`transition-all duration-500 delay-300 ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'
                         }`}>
                         <button
                             onClick={onClose}
-                            className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 ${styles.button}`}
+                            className={`px-8 py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 ${styles.button}`}
                         >
                             Got it
                         </button>
