@@ -124,7 +124,7 @@ const Header = () => {
           <button onClick={toggleSidebar} className="p-1 hover:bg-white/10 rounded transition-colors">
             <Menu size={20} className="sm:w-6 sm:h-6" />
           </button>
-          <h1 className="text-lg sm:text-xl font-bold pt-1 truncate">MK Booking</h1>
+          <h1 className="text-lg sm:text-xl font-bold pt-1 truncate">MR GAME</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Claim Button */}

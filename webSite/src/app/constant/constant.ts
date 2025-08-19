@@ -203,7 +203,7 @@ export const games: Game[] = [
 
 export const messages: Message[] = [
   {
-    message: 'Welcome to MK Booking, Most Trusted Satta Matka Experience From 2019'
+    message: 'Welcome to MR GAME, Most Trusted Satta Matka Experience From 2019'
   }
 ];
 
