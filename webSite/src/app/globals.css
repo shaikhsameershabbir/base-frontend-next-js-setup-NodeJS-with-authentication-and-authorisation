@@ -6,7 +6,6 @@
   --background: #ffffff;
   --foreground: #171717;
   --primary: #4d0060;
-  ;
   --secondary: #2ec7fb;
 }
 
@@ -14,8 +13,7 @@
   :root {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
-    --font-sans: var(--font-geist-sans);
-    --font-mono: var(--font-geist-mono);
+    --font-quicksand: var(--font-quicksand);
   }
 }
 
@@ -29,7 +27,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-quicksand), 'Quicksand', Arial, Helvetica, sans-serif;
 }
 
 @keyframes scroll-left {

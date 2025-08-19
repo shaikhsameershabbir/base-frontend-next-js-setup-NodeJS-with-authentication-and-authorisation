@@ -9,6 +9,9 @@ const config: Config = {
 	],
 	theme: {
 		extend: {
+			fontFamily: {
+				quicksand: ['var(--font-quicksand)', 'Quicksand', 'sans-serif'],
+			},
 			colors: {
 				secondary: "#2ec7fb",
 				background: 'hsl(var(--background))',

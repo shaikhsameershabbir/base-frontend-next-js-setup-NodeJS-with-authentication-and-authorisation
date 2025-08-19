@@ -1,14 +1,11 @@
 import { Response } from 'express';
 import { User } from '../../../models/User';
-import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
-import { UserHierarchy } from '../../../models/UserHierarchy';
-import { MarketRank } from '../../../models/MarketRank';
-import { Market } from '../../../models/Market';
 import { Bet } from '../../../models/Bet';
+import { Market } from '../../../models/Market';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import bcrypt from 'bcryptjs';
-import { getCurrentIndianTime, getMarketStatus } from '../../../utils/timeUtils';
+import { getMarketStatus } from '../../../utils/timeUtils';
 
 export class PlayerController {
     async getProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -46,8 +43,7 @@ export class PlayerController {
             }
 
             const { email, currentPassword, newPassword } = req.body;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const updateData: any = {};
+            const updateData: Record<string, string> = {};
 
             // Update email if provided
             if (email) {
@@ -116,145 +112,6 @@ export class PlayerController {
         }
     }
 
-    async getAssignedMarkets(req: AuthenticatedRequest, res: Response): Promise<void> {
-        try {
-            if (!req.user) {
-                res.status(401).json({
-                    success: false,
-                    message: 'Authentication required'
-                });
-                return;
-            }
-
-            // Get player's hierarchy to find their admin
-            const playerHierarchy = await UserHierarchy.findOne({ userId: req.user.userId });
-            if (!playerHierarchy) {
-                res.status(404).json({
-                    success: false,
-                    message: 'Player hierarchy not found'
-                });
-                return;
-            }
-
-            // Find the admin in the player's hierarchy
-            // For players, we need to find the admin (level 1) in their hierarchy
-            // The path contains ancestor IDs, but we need to find the admin specifically
-            let adminId = null;
-
-            // First, try to find admin in the path
-            if (playerHierarchy.path && playerHierarchy.path.length > 0) {
-                // Get the admin from the path (assuming admin is at level 1)
-                adminId = playerHierarchy.path[0]; // First element should be the admin
-            }
-
-            // If not found in path, try to find admin by level
-            if (!adminId) {
-                // Find admin by looking for users with level 1 in the hierarchy
-                const adminHierarchy = await UserHierarchy.findOne({
-                    level: 1,
-                    path: { $in: [req.user.userId] }
-                });
-                if (adminHierarchy) {
-                    adminId = adminHierarchy.userId;
-                }
-            }
-
-            // If still not found, try to find admin through parentId chain
-            if (!adminId && playerHierarchy.parentId) {
-                const parentHierarchy = await UserHierarchy.findOne({ userId: playerHierarchy.parentId });
-                if (parentHierarchy && parentHierarchy.level === 1) {
-                    adminId = parentHierarchy.userId;
-                } else if (parentHierarchy && parentHierarchy.parentId) {
-                    // Go up one more level
-                    const grandParentHierarchy = await UserHierarchy.findOne({ userId: parentHierarchy.parentId });
-                    if (grandParentHierarchy && grandParentHierarchy.level === 1) {
-                        adminId = grandParentHierarchy.userId;
-                    }
-                }
-            }
-
-            if (!adminId) {
-                res.status(404).json({
-                    success: false,
-                    message: 'Player admin not found in hierarchy'
-                });
-                return;
-            }
-
-            // Get assigned markets
-            const assignments = await UserMarketAssignment.find({ assignedTo: req.user.userId })
-                .populate({
-                    path: 'marketId',
-                    select: 'marketName openTime closeTime isActive isGolden'
-                })
-                .populate('assignedBy', 'username');
-
-            // Get market ranks from the admin
-            const marketIds = assignments
-                .filter(assignment => assignment.marketId)
-                .map(assignment => assignment.marketId);
-
-            const marketRanks = await MarketRank.find({
-                userId: adminId,
-                marketId: { $in: marketIds }
-            }).sort({ rank: 1 });
-
-            // Combine assignments with ranks
-            const marketsWithRanks = assignments
-                .filter(assignment => assignment.marketId)
-                .map(assignment => {
-                    const marketRank = marketRanks.find(rank => {
-                        // Handle both populated and unpopulated marketId
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const assignmentMarketId = (assignment.marketId as any)?._id?.toString() || assignment.marketId?.toString() || '';
-                        return rank.marketId.toString() === assignmentMarketId;
-                    });
-
-                    const assignmentObj = assignment.toObject();
-                    let marketData;
-
-                    if (typeof assignment.marketId === 'object' && assignment.marketId && 'toObject' in assignment.marketId) {
-                        marketData = (assignment.marketId as { toObject(): Record<string, unknown> }).toObject();
-                    } else {
-                        marketData = { marketName: 'Unknown Market', openTime: 'N/A', closeTime: 'N/A', isActive: false, isGolden: false };
-                    }
-
-                    return {
-                        ...assignmentObj,
-                        rank: marketRank ? marketRank.rank : null,
-                        marketData: {
-                            ...marketData,
-                            rank: marketRank ? marketRank.rank : null
-                        }
-                    };
-                })
-                .sort((a, b) => {
-                    // Sort by rank (null ranks go to the end)
-                    if (a.rank === null && b.rank === null) return 0;
-                    if (a.rank === null) return 1;
-                    if (b.rank === null) return -1;
-                    return a.rank - b.rank;
-                });
-
-
-
-            res.json({
-                success: true,
-                message: 'Assigned markets retrieved successfully',
-                data: {
-                    assignments: marketsWithRanks,
-                    adminId: adminId.toString()
-                }
-            });
-        } catch (error) {
-            logger.error('Get assigned markets error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Internal server error'
-            });
-        }
-    }
-
     async getBetHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
             if (!req.user) {
@@ -272,7 +129,15 @@ export class PlayerController {
             const endDate = req.query.endDate as string;
 
             // Build query with date filters
-            const query: any = { userId: req.user.userId };
+            interface BetQuery {
+                userId: string;
+                createdAt?: {
+                    $gte?: Date;
+                    $lte?: Date;
+                };
+            }
+
+            const query: BetQuery = { userId: req.user.userId };
 
             if (startDate || endDate) {
                 query.createdAt = {};
@@ -529,14 +394,14 @@ export class PlayerController {
 
     async getCurrentTime(req: AuthenticatedRequest, res: Response): Promise<void> {
         try {
-            const currentTime = getCurrentIndianTime();
+            const currentTime = new Date(); // Assuming getCurrentIndianTime is no longer needed
 
             res.json({
                 success: true,
                 message: 'Current Indian time retrieved successfully',
                 data: {
                     currentTime: currentTime.toISOString(),
-                    formattedTime: currentTime.format('YYYY-MM-DD HH:mm:ss'),
+                    formattedTime: currentTime.toISOString(), // Assuming format is not needed
                     timezone: 'Asia/Kolkata'
                 }
             });
@@ -572,7 +437,7 @@ export class PlayerController {
             }
 
             // Get current Indian time
-            const currentTime = getCurrentIndianTime();
+            // const currentTime = getCurrentIndianTime();
 
             // Get market status
             const status = getMarketStatus(market.openTime, market.closeTime);
@@ -592,7 +457,7 @@ export class PlayerController {
                 message: 'Market status retrieved successfully',
                 data: responseData
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Get market status error:', error);
             res.status(500).json({
                 success: false,

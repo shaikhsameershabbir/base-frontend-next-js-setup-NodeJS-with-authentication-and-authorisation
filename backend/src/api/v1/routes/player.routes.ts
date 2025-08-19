@@ -1,11 +1,13 @@
 import { Router, RequestHandler } from 'express';
 import { PlayerController } from '../controllers/player.controller';
+import { MarketAssignmentController } from '../controllers/marketAssignment.controller';
 import { TransfersController } from '../controllers/transfers.controller';
 import { PlayerAuthMiddleware } from '../middlewares/playerAuth.middleware';
 import { PlayerValidator } from '../validators/player.validator';
 
 const router = Router();
 const playerController = new PlayerController();
+const marketAssignmentController = new MarketAssignmentController();
 const transfersController = new TransfersController();
 const playerAuthMiddleware = new PlayerAuthMiddleware();
 const playerValidator = new PlayerValidator();
@@ -25,7 +27,7 @@ router.put('/profile',
 // Get player's assigned markets
 router.get('/assigned-markets',
     playerAuthMiddleware.authenticatePlayer,
-    playerController.getAssignedMarkets as unknown as RequestHandler
+    marketAssignmentController.getAssignedMarkets as unknown as RequestHandler
 );
 
 // Bet-related routes (except placeBet which is in bet controller)

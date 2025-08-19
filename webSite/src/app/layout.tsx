@@ -1,12 +1,18 @@
 
 import type { Metadata } from 'next';
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
+import { Quicksand } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { MarketDataProvider } from '@/contexts/MarketDataContext';
 import { NotificationRenderer } from '@/components/ui/notification-renderer';
+
+const quicksand = Quicksand({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-quicksand',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Matka SK',
@@ -20,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
+      <body className={`${quicksand.variable} font-quicksand antialiased`}>
         <AuthProvider>
           <NotificationProvider>
             <MarketDataProvider>
