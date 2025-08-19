@@ -6,35 +6,114 @@ import Header from "@/app/components/Header";
 import BottomNav from "@/app/components/BottomNav";
 
 function Page() {
-  return (
-    <main className="min-h-screen bg-gray-100">
-      <div className="pt-16 px-2 md:px-4">
-        <h1 className="text-2xl font-bold text-center text-black mb-6 mt-2">
-          Game Rate
-        </h1>
-        <p className="text-center text-orange-500 font-bold mb-6">
-          {gameRate[0].message}
-        </p>
+  const rates = [
+    {
+      name: "Single",
+      bet: "10₹",
+      win: "90₹",
+      icon: "🎯",
+      bgColor: "bg-gradient-to-r from-emerald-400 to-teal-500"
+    },
+    {
+      name: "Jodi",
+      bet: "10₹",
+      win: "900₹",
+      icon: "🎲",
+      bgColor: "bg-gradient-to-r from-violet-400 to-purple-500"
+    },
+    {
+      name: "Single Panna",
+      bet: "10₹",
+      win: "1500₹",
+      icon: "🔢",
+      bgColor: "bg-gradient-to-r from-amber-400 to-orange-500"
+    },
+    {
+      name: "Double Panna",
+      bet: "10₹",
+      win: "3000₹",
+      icon: "🎪",
+      bgColor: "bg-gradient-to-r from-rose-400 to-pink-500"
+    },
+    {
+      name: "Triple Panna",
+      bet: "10₹",
+      win: "10000₹",
+      icon: "⭐",
+      bgColor: "bg-gradient-to-r from-cyan-400 to-blue-500"
+    },
+    {
+      name: "Half Sangam",
+      bet: "10₹",
+      win: "10000₹",
+      icon: "🏆",
+      bgColor: "bg-gradient-to-r from-lime-400 to-green-500"
+    },
+    {
+      name: "Full Sangam",
+      bet: "10₹",
+      win: "100000₹",
+      icon: "👑",
+      bgColor: "bg-gradient-to-r from-red-400 to-rose-500"
+    }
+  ];
 
-        {/* Cards: 1 column on mobile, 3 columns on medium+ */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
-          {[gameRate[0].r1, gameRate[0].r2, gameRate[0].r3, gameRate[0].r4, gameRate[0].r5, gameRate[0].r6, gameRate[0].r7].map(
-            (rate, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg shadow-md p-4 flex items-center justify-center"
-              >
-                <h2 className="text-2xl font-bold text-gray-800">{rate}</h2>
-              </div>
-            )
-          )}
+  return (
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 pb-24">
+        <div className="container mx-auto px-4 py-6">
+          {/* Simple Title */}
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-gray-800">Game Rates</h1>
+          </div>
+
+          {/* Rates Table */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="bg-gray-800 px-4 py-3">
+              <h2 className="text-lg font-semibold text-white">Current Rates</h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Game Type</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Bet Amount</th>
+                    <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Win Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {rates.map((rate, index) => (
+                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${rate.bgColor}`}>
+                            {rate.icon}
+                          </div>
+                          <span className="font-medium text-gray-800">{rate.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-sm font-medium bg-red-100 text-red-800">
+                          {rate.bet}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center px-2 py-1 rounded text-sm font-medium bg-green-100 text-green-800">
+                          {rate.win}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className="hidden md:block">
-        <BottomNav />
-      </div>
-    </main>
+      <BottomNav />
+    </>
   );
 }
 

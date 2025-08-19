@@ -129,7 +129,7 @@ export const doublePannaNumbers = [
   880, 566, 800, 667, 668,
   899, 700, 990, 900, 677
 ];
-export const triplePannaNumbers = [111 ,222,333,444,555,666,777,888,999]
+export const triplePannaNumbers = [111, 222, 333, 444, 555, 666, 777, 888, 999]
 
 
 export const family = [
@@ -478,13 +478,13 @@ export const funds: Fund[] = [
 export const gameRate: GameRate[] = [
   {
     message: "Game Win Ratio For all Bids",
-    r1: "Single 1Rs Ka 9Rs",
-    r2: "Jodi 1Rs Ka 90Rs",
-    r3: "Single Panna 1Rs Ka 150Rs",
-    r4: "Double Panna 1Rs Ka 300Rs",
-    r5: "Triple Panna 1Rs Ka 800Rs",
-    r6: "Half Sangam 1Rs Ka 1000Rs",
-    r7: "Full Sangam 1Rs Ka 1800Rs",
+    r1: "Single 10₹ → 90₹ (9x)",
+    r2: "Jodi 10₹ → 900₹ (90x)",
+    r3: "Single Panna 10₹ → 1500₹ (150x)",
+    r4: "Double Panna 10₹ → 3000₹ (300x)",
+    r5: "Triple Panna 10₹ → 10000₹ (1000x)",
+    r6: "Half Sangam 10₹ → 10000₹ (1000x)",
+    r7: "Full Sangam 10₹ → 100000₹ (10000x)",
   }
 ];
 export default games;
