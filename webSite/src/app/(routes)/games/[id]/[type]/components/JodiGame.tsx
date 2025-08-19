@@ -3,6 +3,7 @@ import { betAPI } from '@/lib/api/bet';
 import React, { useState, useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
+import GameTypeNavigation from '@/components/GameTypeNavigation';
 
 interface JodiGameProps {
   marketId: string;
@@ -269,6 +270,9 @@ const JodiGame: React.FC<JodiGameProps> = ({ marketId, marketName = 'Market', ma
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
       <div className="max-w-4xl mx-auto">
+        {/* Game Type Navigation */}
+        <GameTypeNavigation currentGameType="jodi-digits" marketId={marketId} className="mb-4" />
+
         {/* Compact Header */}
         <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
           <div className="flex items-center justify-between">

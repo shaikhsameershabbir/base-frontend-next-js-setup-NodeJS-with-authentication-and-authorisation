@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
 import { isBetTypeAllowed, isBettingAllowed } from '@/lib/utils/marketUtils';
+import GameTypeNavigation from '@/components/GameTypeNavigation';
 
 interface CommonSpDpProps {
   marketId: string;
@@ -275,6 +276,9 @@ const CommonSpDp: React.FC<CommonSpDpProps> = ({ marketId, marketName = 'Market'
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
       <div className="max-w-4xl mx-auto">
+        {/* Game Type Navigation */}
+        <GameTypeNavigation currentGameType="SP_DP" marketId={marketId} className="mb-4" />
+
         {/* Compact Header */}
         <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
           <div className="flex items-center justify-between">
