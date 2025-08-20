@@ -48,7 +48,7 @@ export class BetController {
             }
 
             // Check if betting is allowed based on current time and bet type
-            const timeValidation = isBettingAllowed(betType, market.openTime, market.closeTime);
+            const timeValidation = isBettingAllowed(betType, market.openTime, market.closeTime, market.weekDays || 7);
 
             if (!timeValidation.allowed) {
                 res.status(400).json({

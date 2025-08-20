@@ -1,10 +1,10 @@
 'use client';
 
 import React from "react";
-import Image from "next/image";
-import { CalendarDays, PlayCircle, Star, Hash } from "lucide-react";
+import { PlayCircle, Clock, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import WinningNumbers from "./WinningNumbers";
+import { useMarketStatus } from "@/hooks/useMarketStatus";
 
 interface MarketCardProps {
   market: {
@@ -17,27 +17,19 @@ interface MarketCardProps {
     rank?: number;
     weekDays?: number;
   };
-  status?: string;
-  statusColor?: string;
   marketResult?: any;
 }
 
 const MarketCard: React.FC<MarketCardProps> = ({
   market,
-  status,
-  statusColor = "text-green-500",
   marketResult,
 }) => {
   const router = useRouter();
-
-  // Check if market is open for betting
-  const isMarketOpen = status === "Open" || status === "open_betting" || status === "Close Only" || status === "close_betting";
-
-  // Debug logging
+  const marketStatus = useMarketStatus(market);
 
   const handlePlayClick = () => {
     // Only allow navigation if market is open
-    if (!isMarketOpen) {
+    if (!marketStatus?.isOpen) {
       return;
     }
 
@@ -46,15 +38,80 @@ const MarketCard: React.FC<MarketCardProps> = ({
     router.push(`/games/${gameId}`);
   };
 
+  // Format time for display
+  const formatTimeDisplay = (timeStr: string): string => {
+    try {
+      if (!timeStr || typeof timeStr !== 'string') {
+        return 'Invalid Time';
+      }
+
+      // Handle ISO date string format
+      if (timeStr.includes('T')) {
+        const date = new Date(timeStr);
+        if (isNaN(date.getTime())) {
+          return 'Invalid Time';
+        }
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+      }
+
+      // Handle simple time format (HH:MM)
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      if (isNaN(hours) || isNaN(minutes)) {
+        return 'Invalid Time';
+      }
+      const date = new Date();
+      date.setHours(hours, minutes);
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error parsing time:', timeStr, error);
+      return timeStr || 'Invalid Time';
+    }
+  };
+
+  // Get status icon based on market status
+  const getStatusIcon = () => {
+    if (!marketStatus) return null;
+
+    switch (marketStatus.status) {
+      case 'open_betting':
+        return <span className="text-green-600">●</span>;
+      case 'close_betting':
+        return <span className="text-blue-600">●</span>;
+      case 'open_loading':
+      case 'close_loading':
+        return <Clock className="w-4 h-4 text-orange-600 animate-pulse" />;
+      case 'closed_today':
+        return <AlertCircle className="w-4 h-4 text-red-600" />;
+      default:
+        return <span className="text-gray-500">●</span>;
+    }
+  };
+
   return (
     <div className={`rounded-2xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
       <div className="rounded-2xl flex justify-between items-start">
         <div className="rounded-2xl flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-
+            {getStatusIcon()}
           </div>
 
+          {/* Market Status - Only show when closed today */}
+          {marketStatus?.status === 'closed_today' && (
+            <div className="mb-2">
+              <div className="text-sm font-medium text-red-600">
+                Market closed today
+              </div>
+            </div>
+          )}
 
           {/* Winning Numbers Section */}
           <WinningNumbers
@@ -70,89 +127,13 @@ const MarketCard: React.FC<MarketCardProps> = ({
             <div>
               <p className="text-sm text-gray-600 font-bold">Time Open:</p>
               <p className="text-orange-500 font-semibold">
-                {(() => {
-                  try {
-                    if (!market.openTime || typeof market.openTime !== 'string') {
-                      console.error('Invalid open time format:', market.openTime);
-                      return 'Invalid Time';
-                    }
-
-                    // Handle ISO date string format
-                    if (market.openTime.includes('T')) {
-                      const date = new Date(market.openTime);
-                      if (isNaN(date.getTime())) {
-                        console.error('Invalid ISO date:', market.openTime);
-                        return 'Invalid Time';
-                      }
-                      return date.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      });
-                    }
-
-                    // Handle simple time format (HH:MM)
-                    const [hours, minutes] = market.openTime.split(':').map(Number);
-                    if (isNaN(hours) || isNaN(minutes)) {
-                      console.error('Invalid hours or minutes:', hours, minutes);
-                      return 'Invalid Time';
-                    }
-                    const date = new Date();
-                    date.setHours(hours, minutes);
-                    return date.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    });
-                  } catch (error) {
-                    console.error('Error parsing open time:', market.openTime, error);
-                    return market.openTime || 'Invalid Time';
-                  }
-                })()}
+                {formatTimeDisplay(market.openTime)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600 font-bold">Time Close:</p>
               <p className="text-orange-500 font-semibold">
-                {(() => {
-                  try {
-                    if (!market.closeTime || typeof market.closeTime !== 'string') {
-                      console.error('Invalid close time format:', market.closeTime);
-                      return 'Invalid Time';
-                    }
-
-                    // Handle ISO date string format
-                    if (market.closeTime.includes('T')) {
-                      const date = new Date(market.closeTime);
-                      if (isNaN(date.getTime())) {
-                        console.error('Invalid ISO date:', market.closeTime);
-                        return 'Invalid Time';
-                      }
-                      return date.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      });
-                    }
-
-                    // Handle simple time format (HH:MM)
-                    const [hours, minutes] = market.closeTime.split(':').map(Number);
-                    if (isNaN(hours) || isNaN(minutes)) {
-                      console.error('Invalid hours or minutes:', hours, minutes);
-                      return 'Invalid Time';
-                    }
-                    const date = new Date();
-                    date.setHours(hours, minutes);
-                    return date.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    });
-                  } catch (error) {
-                    console.error('Error parsing close time:', market.closeTime, error);
-                    return market.closeTime || 'Invalid Time';
-                  }
-                })()}
+                {formatTimeDisplay(market.closeTime)}
               </p>
             </div>
           </div>
@@ -161,22 +142,22 @@ const MarketCard: React.FC<MarketCardProps> = ({
           <div className="flex flex-col items-center">
             <button
               onClick={handlePlayClick}
-              disabled={!isMarketOpen}
-              className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${isMarketOpen
+              disabled={!marketStatus?.isOpen}
+              className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
                 ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
                 : 'border-gray-300 bg-gray-100 cursor-not-allowed'
                 }`}
             >
               <PlayCircle
-                className={`w-8 h-8 rounded-full ${isMarketOpen
+                className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
                   ? 'bg-primary text-white'
                   : 'text-gray-400 bg-gray-200'
                   }`}
               />
             </button>
-            <span className={`text-sm font-medium mt-1 ${isMarketOpen ? 'text-black' : 'text-gray-400'
+            <span className={`text-sm font-medium mt-1 ${marketStatus?.isOpen ? 'text-black' : 'text-gray-400'
               }`}>
-              Play Now
+              {marketStatus?.isOpen ? 'Play Now' : 'Not Available'}
             </span>
           </div>
         </div>

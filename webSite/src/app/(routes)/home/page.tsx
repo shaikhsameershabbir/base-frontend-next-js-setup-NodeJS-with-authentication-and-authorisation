@@ -38,118 +38,8 @@ interface MarketResult {
     };
 }
 
-interface MarketStatus {
-    status: string;
-    isOpen: boolean;
-    timeUntilOpen?: number;
-    timeUntilClose?: number;
-}
-
 function HomeContent() {
     const { markets, marketResults, loading, error, fetchData } = useMarketData();
-    const [currentTime, setCurrentTime] = React.useState<Date>(new Date());
-
-    // Update current time every minute
-    React.useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentTime(new Date());
-        }, 60000);
-
-        return () => clearInterval(interval);
-    }, []);
-
-    // Get market status
-    const getMarketStatus = (market: Market): MarketStatus => {
-        const now = currentTime;
-
-        // Parse market times (they are stored as strings like "13:14")
-        const parseTimeString = (timeStr: string) => {
-            // Handle ISO date string format
-            if (timeStr.includes('T')) {
-                const date = new Date(timeStr);
-                if (isNaN(date.getTime())) {
-                    console.error('Invalid ISO date:', timeStr);
-                    return { hours: 0, minutes: 0 };
-                }
-                return { hours: date.getHours(), minutes: date.getMinutes() };
-            }
-
-            // Handle simple time format (HH:MM)
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return { hours, minutes };
-        };
-
-        const openTime = parseTimeString(market.openTime);
-        const closeTime = parseTimeString(market.closeTime);
-
-        // Create Date objects for today with the market times
-        const today = new Date();
-        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTime.hours, openTime.minutes);
-        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTime.hours, closeTime.minutes);
-
-        // Calculate loading periods (15 minutes before each time)
-        const openLoadingStart = new Date(todayOpenTime.getTime() - (15 * 60 * 1000));
-        const closeLoadingStart = new Date(todayCloseTime.getTime() - (15 * 60 * 1000));
-
-        // Market day starts at midnight
-        const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-
-
-
-        let status = 'Closed';
-        let isOpen = false;
-
-        // Before midnight: Market closed
-        if (now < midnight) {
-            status = 'Opening Soon';
-            isOpen = false;
-        }
-        // Open betting: From midnight to open loading start
-        else if (now >= midnight && now < openLoadingStart) {
-            status = 'Open';
-            isOpen = true;
-        }
-        // Open loading: 15 minutes before open time to open time
-        else if (now >= openLoadingStart && now < todayOpenTime) {
-            status = 'Loading';
-            isOpen = false;
-        }
-        // Close betting: From open time to close loading start
-        else if (now >= todayOpenTime && now < closeLoadingStart) {
-            status = 'Close Only';
-            isOpen = true;
-        }
-        // Close loading: 15 minutes before close time to close time
-        else if (now >= closeLoadingStart && now < todayCloseTime) {
-            status = 'Loading';
-            isOpen = false;
-        }
-        // After close time: Market closed
-        else {
-            status = 'Closed';
-            isOpen = false;
-        }
-
-        const timeUntilOpen = midnight.getTime() - now.getTime();
-        const timeUntilClose = todayCloseTime.getTime() - now.getTime();
-
-        return {
-            status,
-            isOpen,
-            timeUntilOpen: timeUntilOpen > 0 ? timeUntilOpen : undefined,
-            timeUntilClose: timeUntilClose > 0 ? timeUntilClose : undefined
-        };
-    };
-
-    // Get market status color
-    const getMarketStatusColor = (market: Market): string => {
-        const status = getMarketStatus(market);
-        if (status.status === 'Open') return 'text-green-600';
-        if (status.status === 'Close Only') return 'text-blue-600';
-        if (status.status === 'Loading') return 'text-orange-600';
-        if (status.status === 'Opening Soon') return 'text-yellow-600';
-        return 'text-red-600';
-    };
 
     return (
         <main className="min-h-screen bg-gray-100">
@@ -188,16 +78,12 @@ function HomeContent() {
                                 return a.rank - b.rank;
                             })
                             .map((market) => {
-                                const status = getMarketStatus(market);
-                                const statusColor = getMarketStatusColor(market);
                                 const marketResult = marketResults[market._id];
 
                                 return (
                                     <MarketCard
                                         key={market._id}
                                         market={market}
-                                        status={status.status}
-                                        statusColor={statusColor}
                                         marketResult={marketResult}
                                     />
                                 );

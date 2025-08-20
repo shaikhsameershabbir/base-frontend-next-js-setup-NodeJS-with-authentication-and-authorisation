@@ -57,89 +57,77 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
         return days[date.getDay()];
     };
 
-    // Parse time string helper function
-    const parseTimeString = (timeStr: string) => {
-        console.log(`Parsing time string: ${timeStr}`);
+    // Check if market is open today based on weekDays
+    const isMarketOpenToday = (): boolean => {
+        const currentDay = currentTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-        // Handle ISO date string format
-        if (timeStr.includes('T')) {
-            const date = new Date(timeStr);
-            if (isNaN(date.getTime())) {
-                console.error('Invalid ISO date:', timeStr);
-                return { hours: 0, minutes: 0 };
-            }
-            // Convert to local time
-            const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-            const result = { hours: localDate.getHours(), minutes: localDate.getMinutes() };
-            console.log(`ISO date parsed: ${timeStr} -> ${JSON.stringify(result)}`);
-            return result;
-        }
+        // Convert to market days (Monday = 1, Tuesday = 2, ..., Sunday = 7)
+        const marketDay = currentDay === 0 ? 7 : currentDay;
 
-        // Handle simple time format (HH:MM)
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const result = { hours, minutes };
-        console.log(`Simple time parsed: ${timeStr} -> ${JSON.stringify(result)}`);
-        return result;
+        return marketDay <= weekDays;
     };
 
-    const isMarketOpen = (): boolean => {
-        const now = currentTime;
-        const openTimeParsed = parseTimeString(openTime);
-        const closeTimeParsed = parseTimeString(closeTime);
-
-        // Create Date objects for today with the market times
-        const today = new Date();
-        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
-        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTimeParsed.hours, closeTimeParsed.minutes);
-
-        console.log(`WinningNumbers - ${marketName}:`, {
-            now: now.toLocaleTimeString(),
-            openTime: openTime,
-            openTimeParsed,
-            todayOpenTime: todayOpenTime.toLocaleTimeString(),
-            closeTime: closeTime,
-            closeTimeParsed,
-            todayCloseTime: todayCloseTime.toLocaleTimeString(),
-            isOpen: now >= todayOpenTime && now <= todayCloseTime
-        });
-
-        return now >= todayOpenTime && now <= todayCloseTime;
-    };
-
+    // Check if current time is in loading window (15 minutes before open/close times)
     const isInLoadingWindow = (): boolean => {
-        const now = currentTime;
-        const openTimeParsed = parseTimeString(openTime);
-        const closeTimeParsed = parseTimeString(closeTime);
+        try {
+            // Parse times
+            let openTimeParsed, closeTimeParsed;
 
-        // Create Date objects for today with the market times
-        const today = new Date();
-        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
-        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTimeParsed.hours, closeTimeParsed.minutes);
+            if (openTime.includes('T')) {
+                const openDate = new Date(openTime);
+                openTimeParsed = { hours: openDate.getHours(), minutes: openDate.getMinutes() };
+            } else {
+                const [hours, minutes] = openTime.split(':').map(Number);
+                openTimeParsed = { hours, minutes };
+            }
 
-        // Create 15-minute windows
-        const openWindowStart = new Date(todayOpenTime.getTime() - 15 * 60 * 1000);
-        const openWindowEnd = new Date(todayOpenTime.getTime() + 15 * 60 * 1000);
-        const closeWindowStart = new Date(todayCloseTime.getTime() - 15 * 60 * 1000);
-        const closeWindowEnd = new Date(todayCloseTime.getTime() + 15 * 60 * 1000);
+            if (closeTime.includes('T')) {
+                const closeDate = new Date(closeTime);
+                closeTimeParsed = { hours: closeDate.getHours(), minutes: closeDate.getMinutes() };
+            } else {
+                const [hours, minutes] = closeTime.split(':').map(Number);
+                closeTimeParsed = { hours, minutes };
+            }
 
-        const inLoadingWindow = (now >= openWindowStart && now <= openWindowEnd) ||
-            (now >= closeWindowStart && now <= closeWindowEnd);
+            // Create Date objects for today with the market times
+            const today = new Date();
+            const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
+            const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTimeParsed.hours, closeTimeParsed.minutes);
 
-        console.log(`WinningNumbers - ${marketName} Loading Window:`, {
-            now: now.toLocaleTimeString(),
-            openWindowStart: openWindowStart.toLocaleTimeString(),
-            openWindowEnd: openWindowEnd.toLocaleTimeString(),
-            closeWindowStart: closeWindowStart.toLocaleTimeString(),
-            closeWindowEnd: closeWindowEnd.toLocaleTimeString(),
-            inLoadingWindow
-        });
+            // Create 15-minute windows BEFORE the times only (not after)
+            const openWindowStart = new Date(todayOpenTime.getTime() - 15 * 60 * 1000);
+            const closeWindowStart = new Date(todayCloseTime.getTime() - 15 * 60 * 1000);
 
-        return inLoadingWindow;
+            // Only show loading if we're in the 15-minute window BEFORE the time
+            return (currentTime >= openWindowStart && currentTime < todayOpenTime) ||
+                (currentTime >= closeWindowStart && currentTime < todayCloseTime);
+        } catch (error) {
+            console.error('Error checking loading window:', error);
+            return false;
+        }
     };
 
-    const isMarketClosedToday = (): boolean => {
-        const today = currentTime.getDay();
-        return today >= weekDays; // 0 = Sunday, so if weekDays = 5, Saturday (6) and Sunday (0) are closed
+    // Check if open time has passed
+    const hasOpenTimePassed = (): boolean => {
+        try {
+            let openTimeParsed;
+
+            if (openTime.includes('T')) {
+                const openDate = new Date(openTime);
+                openTimeParsed = { hours: openDate.getHours(), minutes: openDate.getMinutes() };
+            } else {
+                const [hours, minutes] = openTime.split(':').map(Number);
+                openTimeParsed = { hours, minutes };
+            }
+
+            const today = new Date();
+            const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
+
+            return currentTime > todayOpenTime;
+        } catch (error) {
+            console.error('Error checking if open time passed:', error);
+            return false;
+        }
     };
 
     const getTodayResult = (): { open: number | null; main: number | null; close: number | null } | null => {
@@ -181,19 +169,9 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
 
     // Determine what to display
     const getDisplayContent = () => {
-        const isClosedToday = isMarketClosedToday();
+        const isClosedToday = !isMarketOpenToday();
         const inLoadingWindow = isInLoadingWindow();
-        const isOpen = isMarketOpen();
-
-        console.log(`WinningNumbers - ${marketName} Display Logic:`, {
-            isClosedToday,
-            inLoadingWindow,
-            isOpen,
-            currentTime: currentTime.toLocaleTimeString(),
-            openTime,
-            closeTime,
-            weekDays
-        });
+        const openTimePassed = hasOpenTimePassed();
 
         // Check if market is closed today
         if (isClosedToday) {
@@ -205,7 +183,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
             };
         }
 
-        // Check if in loading window
+        // Check if in loading window (15 minutes BEFORE open/close times)
         if (inLoadingWindow) {
             return {
                 type: 'loading',
@@ -214,8 +192,8 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
             };
         }
 
-        // Check if market is open
-        if (isOpen) {
+        // After open time has passed - check for today's result
+        if (openTimePassed) {
             const todayResult = getTodayResult();
             if (todayResult && (todayResult.open || todayResult.close)) {
                 return {
@@ -226,23 +204,13 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
             } else {
                 return {
                     type: 'no-result',
-                    content: "**-**-**",
+                    content: "Result not declared",
                     icon: <AlertCircle className="w-4 h-4" />
                 };
             }
         }
 
-        // Market is closed, show today's result if available
-        const todayResult = getTodayResult();
-        if (todayResult && (todayResult.open || todayResult.close)) {
-            return {
-                type: 'result',
-                content: formatResult(todayResult),
-                icon: <Trophy className="w-4 h-4" />
-            };
-        }
-
-        // No result for today, show previous day
+        // Before open time - show previous day result
         const previousResult = getPreviousDayResult();
         return {
             type: 'previous',
@@ -254,8 +222,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
     const display = getDisplayContent();
 
     return (
-        <div >
-
+        <div>
             {!result ? (
                 <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
@@ -269,21 +236,10 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
                 </div>
             )}
 
+            {/* Only show "Market closed today" message */}
             {display.type === 'closed' && (
                 <div className="text-xs text-gray-600 mt-1">
                     Market closed today • Showing previous result
-                </div>
-            )}
-
-            {display.type === 'loading' && (
-                <div className="text-xs text-gray-600 mt-1">
-                    Result declaration in progress
-                </div>
-            )}
-
-            {display.type === 'previous' && (
-                <div className="text-xs text-gray-600 mt-1">
-                    Previous Day Result
                 </div>
             )}
         </div>

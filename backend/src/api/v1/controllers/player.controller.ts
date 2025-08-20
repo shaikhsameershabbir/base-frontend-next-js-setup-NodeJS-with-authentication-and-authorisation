@@ -440,7 +440,7 @@ export class PlayerController {
             // const currentTime = getCurrentIndianTime();
 
             // Get market status
-            const status = getMarketStatus(market.openTime, market.closeTime);
+            const status = getMarketStatus(market.openTime, market.closeTime, market.weekDays || 7);
 
             const responseData = {
                 marketId,

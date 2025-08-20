@@ -75,7 +75,7 @@ export class MarketAssignmentController {
             const assignments = await UserMarketAssignment.find({ assignedTo: req.user.userId })
                 .populate({
                     path: 'marketId',
-                    select: 'marketName openTime closeTime isActive isGolden'
+                    select: 'marketName openTime closeTime isActive isGolden weekDays'
                 })
                 .populate('assignedBy', 'username');
 

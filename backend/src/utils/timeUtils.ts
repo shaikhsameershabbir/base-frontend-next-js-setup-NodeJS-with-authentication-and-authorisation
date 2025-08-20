@@ -19,7 +19,7 @@ export const getCurrentIndianTimeAsDate = (): Date => {
 
 /**
  * Convert a time string to Indian timezone moment object
- * @param timeString - Time string in format "HH:mm" or ISO format (e.g., "09:30" or "2025-07-25T07:00:00.000Z")
+ * @param timeString - Time string in format "HH:mm" or ISO format
  * @param date - Optional date, defaults to today
  */
 export const parseTimeToIndianMoment = (timeString: string, date?: Date): moment.Moment => {
@@ -53,100 +53,59 @@ export const parseTimeToIndianMoment = (timeString: string, date?: Date): moment
 };
 
 /**
- * Check if betting is allowed for a specific bet type and market times
- * @param betType - 'open', 'close', or 'both'
- * @param openTime - Market open time string (HH:mm or ISO format)
- * @param closeTime - Market close time string (HH:mm or ISO format)
- * @param bufferMinutes - Minutes before the time when betting is not allowed (default: 15)
+ * Check if market is open today based on weekDays
+ * @param weekDays - Number of days market operates (5 = Mon-Fri, 6 = Mon-Sat, 7 = Mon-Sun)
  */
-export const isBettingAllowed = (
-    betType: 'open' | 'close' | 'both',
-    openTime: string,
-    closeTime: string,
-    bufferMinutes: number = 15
-): { allowed: boolean; message?: string; nextBetTime?: Date } => {
+export const isMarketOpenToday = (weekDays: number): boolean => {
     const now = getCurrentIndianTime();
+    const currentDay = now.day(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-    // Parse the times
-    const openMoment = parseTimeToIndianMoment(openTime);
-    const closeMoment = parseTimeToIndianMoment(closeTime);
+    // Convert to market days (Monday = 1, Tuesday = 2, ..., Sunday = 7)
+    const marketDay = currentDay === 0 ? 7 : currentDay;
 
-    // Calculate loading periods
-    const openLoadingStart = openMoment.clone().subtract(bufferMinutes, 'minutes');
-    const closeLoadingStart = closeMoment.clone().subtract(bufferMinutes, 'minutes');
-
-    // Market day starts at midnight
-    const midnight = now.clone().startOf('day'); // 00:00 AM
-
-    // Before midnight: No betting allowed
-    if (now.isBefore(midnight)) {
-        return {
-            allowed: false,
-            message: `Market opens at midnight (00:00). Betting will be available until ${closeLoadingStart.format('HH:mm')}`
-        };
-    }
-
-    // During open betting period: All bet types allowed (midnight to open loading start)
-    if (now.isBetween(midnight, openLoadingStart)) {
-        return {
-            allowed: true
-        };
-    }
-
-    // During open loading period: No betting allowed
-    if (now.isBetween(openLoadingStart, openMoment)) {
-        return {
-            allowed: false,
-            message: `Loading period. Market opens at ${openMoment.format('HH:mm')}`
-        };
-    }
-
-    // During close betting period: Only close betting allowed (open time to close loading start)
-    if (now.isBetween(openMoment, closeLoadingStart)) {
-        if (betType === 'close' || betType === 'both') {
-            return {
-                allowed: true
-            };
-        } else {
-            return {
-                allowed: false,
-                message: `Only close betting is allowed. Market closes at ${closeMoment.format('HH:mm')}`
-            };
-        }
-    }
-
-    // During close loading period: No betting allowed
-    if (now.isBetween(closeLoadingStart, closeMoment)) {
-        return {
-            allowed: false,
-            message: `Loading period. Market closes at ${closeMoment.format('HH:mm')}`
-        };
-    }
-
-    // After close time: No betting allowed until next midnight
-    return {
-        allowed: false,
-        message: 'Market is closed for today. Next market opens at midnight (00:00)'
-    };
+    return marketDay <= weekDays;
 };
 
 /**
- * Get market status based on current time and market times
+ * Get market status with detailed information
  * @param openTime - Market open time string (HH:mm or ISO format)
  * @param closeTime - Market close time string (HH:mm or ISO format)
+ * @param weekDays - Number of days market operates
  */
-export const getMarketStatus = (openTime: string, closeTime: string): {
-    status: 'open_betting' | 'close_betting' | 'open_loading' | 'close_loading' | 'closed';
+export const getMarketStatus = (
+    openTime: string,
+    closeTime: string,
+    weekDays: number
+): {
+    status: 'open_betting' | 'close_betting' | 'open_loading' | 'close_loading' | 'closed' | 'closed_today';
     message: string;
-    nextEvent?: { type: string; time: Date };
+    isOpen: boolean;
+    canPlayOpen: boolean;
+    canPlayClose: boolean;
+    canPlayBoth: boolean;
+    nextEvent?: { type: string; time: Date; message: string };
+    timeUntilOpen?: number;
+    timeUntilClose?: number;
 } => {
     const now = getCurrentIndianTime();
+
+    // Check if market is open today
+    if (!isMarketOpenToday(weekDays)) {
+        return {
+            status: 'closed_today',
+            message: 'Market closed today',
+            isOpen: false,
+            canPlayOpen: false,
+            canPlayClose: false,
+            canPlayBoth: false
+        };
+    }
 
     // Parse the times
     const openMoment = parseTimeToIndianMoment(openTime);
     const closeMoment = parseTimeToIndianMoment(closeTime);
 
-    // Calculate loading periods
+    // Calculate loading periods (15 minutes before each time)
     const openLoadingStart = openMoment.clone().subtract(15, 'minutes');
     const closeLoadingStart = closeMoment.clone().subtract(15, 'minutes');
 
@@ -155,54 +114,223 @@ export const getMarketStatus = (openTime: string, closeTime: string): {
 
     // Before midnight: Market closed
     if (now.isBefore(midnight)) {
+        const timeUntilOpen = midnight.diff(now);
         return {
             status: 'closed',
-            message: `Market opens at midnight (00:00). Open betting will be available until ${openLoadingStart.format('HH:mm')}`,
-            nextEvent: { type: 'market_open', time: midnight.toDate() }
+            message: 'Market opens at midnight',
+            isOpen: false,
+            canPlayOpen: false,
+            canPlayClose: false,
+            canPlayBoth: false,
+            nextEvent: {
+                type: 'market_open',
+                time: midnight.toDate(),
+                message: 'Market opens at midnight'
+            },
+            timeUntilOpen
         };
     }
 
     // Open betting: From midnight to open loading start
     if (now.isBetween(midnight, openLoadingStart)) {
+        const timeUntilOpenLoading = openLoadingStart.diff(now);
         return {
             status: 'open_betting',
-            message: `Open betting is active until ${openLoadingStart.format('HH:mm')}`,
-            nextEvent: { type: 'open_loading', time: openLoadingStart.toDate() }
+            message: 'Open betting active',
+            isOpen: true,
+            canPlayOpen: true,
+            canPlayClose: true,
+            canPlayBoth: true,
+            nextEvent: {
+                type: 'open_loading',
+                time: openLoadingStart.toDate(),
+                message: `Loading period starts at ${openLoadingStart.format('HH:mm')}`
+            },
+            timeUntilClose: closeLoadingStart.diff(now)
         };
     }
 
     // Open loading: 15 minutes before open time to open time
     if (now.isBetween(openLoadingStart, openMoment)) {
+        const timeUntilOpen = openMoment.diff(now);
         return {
             status: 'open_loading',
-            message: `Loading period. Market opens at ${openMoment.format('HH:mm')}`,
-            nextEvent: { type: 'market_open', time: openMoment.toDate() }
+            message: 'Loading period',
+            isOpen: false,
+            canPlayOpen: false,
+            canPlayClose: false,
+            canPlayBoth: false,
+            nextEvent: {
+                type: 'market_open',
+                time: openMoment.toDate(),
+                message: `Market opens at ${openMoment.format('HH:mm')}`
+            },
+            timeUntilOpen
         };
     }
 
     // Close betting: From open time to close loading start
     if (now.isBetween(openMoment, closeLoadingStart)) {
+        const timeUntilCloseLoading = closeLoadingStart.diff(now);
         return {
             status: 'close_betting',
-            message: `Close betting is active until ${closeLoadingStart.format('HH:mm')}`,
-            nextEvent: { type: 'close_loading', time: closeLoadingStart.toDate() }
+            message: 'Close betting only',
+            isOpen: true,
+            canPlayOpen: false, // Open result should be declared by now
+            canPlayClose: true,
+            canPlayBoth: false,
+            nextEvent: {
+                type: 'close_loading',
+                time: closeLoadingStart.toDate(),
+                message: `Loading period starts at ${closeLoadingStart.format('HH:mm')}`
+            },
+            timeUntilClose: timeUntilCloseLoading
         };
     }
 
     // Close loading: 15 minutes before close time to close time
     if (now.isBetween(closeLoadingStart, closeMoment)) {
+        const timeUntilClose = closeMoment.diff(now);
         return {
             status: 'close_loading',
-            message: `Loading period. Market closes at ${closeMoment.format('HH:mm')}`,
-            nextEvent: { type: 'market_close', time: closeMoment.toDate() }
+            message: 'Loading period',
+            isOpen: false,
+            canPlayOpen: false,
+            canPlayClose: false,
+            canPlayBoth: false,
+            nextEvent: {
+                type: 'market_close',
+                time: closeMoment.toDate(),
+                message: `Market closes at ${closeMoment.format('HH:mm')}`
+            },
+            timeUntilClose
         };
     }
 
     // After close time: Market closed until next midnight
+    const nextMidnight = midnight.clone().add(1, 'day');
+    const timeUntilNextMidnight = nextMidnight.diff(now);
+
     return {
         status: 'closed',
-        message: 'Market is closed for today. Next market opens at midnight (00:00)'
+        message: 'Market closed',
+        isOpen: false,
+        canPlayOpen: false,
+        canPlayClose: false,
+        canPlayBoth: false,
+        nextEvent: {
+            type: 'next_market',
+            time: nextMidnight.toDate(),
+            message: 'Next market opens at midnight'
+        },
+        timeUntilOpen: timeUntilNextMidnight
     };
+};
+
+/**
+ * Check if betting is allowed for a specific bet type and market times
+ * @param betType - 'open', 'close', or 'both'
+ * @param openTime - Market open time string (HH:mm or ISO format)
+ * @param closeTime - Market close time string (HH:mm or ISO format)
+ * @param weekDays - Number of days market operates
+ * @param bufferMinutes - Minutes before the time when betting is not allowed (default: 15)
+ */
+export const isBettingAllowed = (
+    betType: 'open' | 'close' | 'both',
+    openTime: string,
+    closeTime: string,
+    weekDays: number,
+    bufferMinutes: number = 15
+): { allowed: boolean; message?: string; nextBetTime?: Date } => {
+    const marketStatus = getMarketStatus(openTime, closeTime, weekDays);
+
+    if (marketStatus.status === 'closed_today') {
+        return {
+            allowed: false,
+            message: marketStatus.message
+        };
+    }
+
+    if (!marketStatus.isOpen) {
+        return {
+            allowed: false,
+            message: marketStatus.message,
+            nextBetTime: marketStatus.nextEvent?.time
+        };
+    }
+
+    // Check bet type restrictions
+    if (betType === 'open' && !marketStatus.canPlayOpen) {
+        return {
+            allowed: false,
+            message: 'Open betting is not available at this time. Only close betting is allowed.',
+            nextBetTime: marketStatus.nextEvent?.time
+        };
+    }
+
+    if (betType === 'close' && !marketStatus.canPlayClose) {
+        return {
+            allowed: false,
+            message: 'Close betting is not available at this time.',
+            nextBetTime: marketStatus.nextEvent?.time
+        };
+    }
+
+    if (betType === 'both' && !marketStatus.canPlayBoth) {
+        return {
+            allowed: false,
+            message: 'Both betting types are not available at this time.',
+            nextBetTime: marketStatus.nextEvent?.time
+        };
+    }
+
+    return {
+        allowed: true
+    };
+};
+
+/**
+ * Get time until next betting window
+ * @param betType - 'open' or 'close'
+ * @param openTime - Market open time string (HH:mm)
+ * @param closeTime - Market close time string (HH:mm)
+ * @param weekDays - Number of days market operates
+ */
+export const getTimeUntilNextBetting = (
+    betType: 'open' | 'close' | 'both',
+    openTime: string,
+    closeTime: string,
+    weekDays: number
+): { hours: number; minutes: number; seconds: number } | null => {
+    const marketStatus = getMarketStatus(openTime, closeTime, weekDays);
+
+    if (marketStatus.status === 'closed_today') {
+        // Calculate time until next market day
+        const now = getCurrentIndianTime();
+        const nextMarketDay = now.clone().add(1, 'day').startOf('day');
+        const diff = nextMarketDay.diff(now);
+        const duration = moment.duration(diff);
+
+        return {
+            hours: Math.floor(duration.asHours()),
+            minutes: duration.minutes(),
+            seconds: duration.seconds()
+        };
+    }
+
+    if (marketStatus.nextEvent) {
+        const now = getCurrentIndianTime();
+        const diff = moment(marketStatus.nextEvent.time).diff(now);
+        const duration = moment.duration(diff);
+
+        return {
+            hours: Math.floor(duration.asHours()),
+            minutes: duration.minutes(),
+            seconds: duration.seconds()
+        };
+    }
+
+    return null;
 };
 
 /**
@@ -214,46 +342,16 @@ export const formatTimeForDisplay = (time: Date | moment.Moment): string => {
 };
 
 /**
- * Get time until next betting window
- * @param betType - 'open' or 'close'
- * @param openTime - Market open time string (HH:mm)
- * @param closeTime - Market close time string (HH:mm)
+ * Get readable time difference
+ * @param milliseconds - Time difference in milliseconds
  */
-export const getTimeUntilNextBetting = (
-    betType: 'open' | 'close' | 'both',
-    openTime: string,
-    closeTime: string
-): { hours: number; minutes: number; seconds: number } | null => {
-    const now = getCurrentIndianTime();
+export const getReadableTimeDifference = (milliseconds: number): string => {
+    const duration = moment.duration(milliseconds);
+    const hours = Math.floor(duration.asHours());
+    const minutes = duration.minutes();
 
-    // Parse the times
-    const openMoment = parseTimeToIndianMoment(openTime);
-    const closeMoment = parseTimeToIndianMoment(closeTime);
-
-    // Calculate loading periods
-    const openLoadingStart = openMoment.clone().subtract(15, 'minutes');
-    const closeLoadingStart = closeMoment.clone().subtract(15, 'minutes');
-
-    let targetTime: moment.Moment;
-
-    if (betType === 'open' || betType === 'both') {
-        // For open betting, target is open loading start
-        targetTime = openLoadingStart;
-    } else {
-        // For close betting, target is close loading start
-        targetTime = closeLoadingStart;
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
     }
-
-    if (now.isBefore(targetTime)) {
-        const diff = targetTime.diff(now);
-        const duration = moment.duration(diff);
-
-        return {
-            hours: Math.floor(duration.asHours()),
-            minutes: duration.minutes(),
-            seconds: duration.seconds()
-        };
-    }
-
-    return null;
+    return `${minutes}m`;
 }; 
