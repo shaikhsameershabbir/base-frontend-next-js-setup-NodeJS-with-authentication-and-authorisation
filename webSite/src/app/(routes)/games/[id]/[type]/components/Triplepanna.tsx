@@ -13,11 +13,35 @@ interface TriplepannaProps {
   marketId: string;
   marketName?: string;
   marketResult?: any;
+  gameType: string;
 }
 
+// Amount options for mapping
 const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
-const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Market', marketResult }) => {
+// Helper function for game type display
+const getGameTypeName = (type: string): string => {
+  const gameTypes: { [key: string]: string } = {
+    'single': 'Single',
+    'double': 'Double',
+    'triple': 'Triple',
+    'jodi': 'Jodi',
+    'jodi-digits': 'Jodi Digits',
+    'single-panna': 'Single Panna',
+    'double-panna': 'Double Panna',
+    'triple-panna': 'Triple Panna',
+    'panel': 'Panel',
+    'family-panel': 'Family Panel',
+    'cycle-panna': 'Cycle Panna',
+    'half-sangam': 'Half Sangam',
+    'full-sangam': 'Full Sangam',
+    'sp-dp-tp': 'SP/DP/TP',
+    'motor': 'Motor'
+  };
+  return gameTypes[type] || type.charAt(0).toUpperCase() + type.slice(1);
+};
+
+const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Market', marketResult, gameType }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { showError, showSuccess, showInfo } = useNotification();
   const { getMarketStatus, fetchMarketStatus } = useMarketData();
@@ -259,16 +283,16 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
       <div className="max-w-4xl mx-auto">
         {/* Game Type Navigation */}
-        <GameTypeNavigation currentGameType="triple-panna" marketId={marketId} className="mb-4" />
+        <GameTypeNavigation currentGameType="triple-panna" marketId={marketId} className="mb-2 sm:mb-4" />
 
         {/* Compact Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 mb-2 sm:mb-4 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-bold text-gray-800">{marketName}</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm sm:text-lg font-bold text-gray-800">{marketName} {getGameTypeName(gameType)}</span>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2">
                 {(() => {
                   const openAllowed = isBetTypeAllowed('open');
                   const closeAllowed = isBetTypeAllowed('close');
@@ -280,7 +304,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                           onClick={() => {
                             setSelectedBetType('open');
                           }}
-                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
                             ? 'text-white bg-green-600 shadow-md scale-105'
                             : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
                             }`}
@@ -294,7 +318,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                           onClick={() => {
                             setSelectedBetType('close');
                           }}
-                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
                             ? 'text-white bg-blue-600 shadow-md scale-105'
                             : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
                             }`}
@@ -310,30 +334,30 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
             {/* Compact Amount Selection */}
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full"></div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Amount</h2>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
                 {amountOptions.map((amt) => (
                   <button
                     key={amt}
                     type="button"
-                    className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
+                    className={`relative group transition-all duration-200 rounded-xl p-1.5 sm:p-3 text-center font-bold ${selectedAmount === amt
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
-                    <div className="text-base font-bold">{amt}</div>
+                    <div className="text-xs sm:text-base font-bold">{amt}</div>
                     {selectedAmount === amt && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-1 h-1 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
@@ -344,25 +368,25 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
             </div>
 
             {/* Compact Total Display */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-2 sm:p-4 text-white flex items-center justify-center">
               <div className="text-center">
-                <div className="text-sm opacity-90 mb-1">Total Amount</div>
-                <div className="text-2xl font-bold">₹{total.toLocaleString()}</div>
+                <div className="text-xs sm:text-sm opacity-90 mb-0.5 sm:mb-1">Total Amount</div>
+                <div className="text-lg sm:text-2xl font-bold">₹{total.toLocaleString()}</div>
               </div>
             </div>
           </div>
 
           {/* Compact Triple Panna Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Select Triple Panna</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
+              <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Triple Panna</h2>
             </div>
 
-            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
               {triplePannaNumbers.map((digit) => (
                 <div key={digit} className="group">
-                  <div className="text-center mb-1">
+                  <div className="text-center mb-0.5 sm:mb-1">
                     <span className="text-xs font-bold text-gray-600">{digit}</span>
                   </div>
                   <button
@@ -377,7 +401,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                     onTouchMove={handleTouchMove}
                     disabled={selectedAmount === null || isSubmitting}
                     title={`Click/Tap: Add ${selectedAmount || 0}, Right click/Long press: Subtract ${selectedAmount || 0}`}
-                    className={`w-full aspect-square rounded-md border transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[digit] && amounts[digit] > 0
+                    className={`w-full aspect-square rounded-xl border transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${amounts[digit] && amounts[digit] > 0
                       ? 'bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md'
                       : selectedAmount === null
                         ? 'bg-gray-100 border-gray-200 text-gray-400'
@@ -388,7 +412,7 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
                       {amounts[digit] > 0 ? (
                         <span className="text-xs font-bold">{amounts[digit]}</span>
                       ) : (
-                        <svg className="w-3 h-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
                       )}
@@ -400,15 +424,15 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
           </div>
 
           {/* Compact Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 border border-gray-200 text-xs sm:text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Reset
@@ -418,20 +442,21 @@ const Triplepanna: React.FC<TriplepannaProps> = ({ marketId, marketName = 'Marke
             <button
               type="submit"
               disabled={total === 0 || isSubmitting}
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
             >
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-1 sm:mr-3 h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Placing Bet...
+                    <span className="hidden sm:inline">Placing Bet...</span>
+                    <span className="sm:hidden">Placing...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                     Submit

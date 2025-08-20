@@ -50,29 +50,29 @@ const GameTypePageContent = () => {
     switch (gameType) {
 
       case 'single':
-        return <SingleGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <SingleGame marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'jodi-digits':
-        return <JodiGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <JodiGame marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'single-panna':
-        return <SinglePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <SinglePanna marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'double-panna':
-        return <DoublePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <DoublePanna marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'triple-panna':
-        return <TriplePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <TriplePanna marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'sp-motor':
         return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="SP" marketResult={marketResult} />;
       case 'dp-motor':
         return <BaseMotorGame marketId={gameId} marketName={marketName} gameType="DP" marketResult={marketResult} />;
       case 'SP_DP':
-        return <CommonSpDp marketId={gameId} marketName={marketName} marketResult={marketResult} />
+        return <CommonSpDp marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />
       case 'red-bracket':
-        return <RedBracket marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <RedBracket marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'cycle-panna':
-        return <CyclePanna marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <CyclePanna marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'family-panel':
-        return <FamilyPanel marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <FamilyPanel marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
       case 'sangam':
-        return <SangamGame marketId={gameId} marketName={marketName} marketResult={marketResult} />;
+        return <SangamGame marketId={gameId} marketName={marketName} marketResult={marketResult} gameType={gameType} />;
 
       default:
         return <div>Game type not found</div>;

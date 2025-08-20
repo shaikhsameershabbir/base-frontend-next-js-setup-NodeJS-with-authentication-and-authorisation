@@ -10,14 +10,53 @@ interface SingleGameProps {
   marketId: string;
   marketName?: string;
   marketResult?: any;
+  gameType?: string;
 }
 
-const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market', marketResult }) => {
+const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market', marketResult, gameType = 'single' }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { showError, showSuccess, showInfo } = useNotification();
   const { getMarketStatus, fetchMarketStatus } = useMarketData();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [marketStatus, setMarketStatus] = useState<any>(null);
+
+  // Helper function to get game type display name
+  const getGameTypeName = (type: string): string => {
+    const gameTypeNames: { [key: string]: string } = {
+      'single': 'Single Game',
+      'jodi-digits': 'Jodi Game',
+      'single-panna': 'Single Panna',
+      'double-panna': 'Double Panna',
+      'triple-panna': 'Triple Panna',
+      'sp-motor': 'SP Motor',
+      'dp-motor': 'DP Motor',
+      'SP_DP': 'SP/DP Game',
+      'red-bracket': 'Red Bracket',
+      'cycle-panna': 'Cycle Panna',
+      'family-panel': 'Family Panel',
+      'sangam': 'Sangam Game'
+    };
+    return gameTypeNames[type] || 'Single Game';
+  };
+
+  // Helper function to get game type description
+  const getGameTypeDescription = (type: string): string => {
+    const gameTypeDescriptions: { [key: string]: string } = {
+      'single': 'Select individual digits to bet on',
+      'jodi-digits': 'Select two digits combination',
+      'single-panna': 'Select single panna numbers',
+      'double-panna': 'Select double panna numbers',
+      'triple-panna': 'Select triple panna numbers',
+      'sp-motor': 'SP Motor game selection',
+      'dp-motor': 'DP Motor game selection',
+      'SP_DP': 'SP/DP combination game',
+      'red-bracket': 'Red bracket game selection',
+      'cycle-panna': 'Cycle panna game selection',
+      'family-panel': 'Family panel game selection',
+      'sangam': 'Sangam game selection'
+    };
+    return gameTypeDescriptions[type] || 'Select individual digits to bet on';
+  };
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({
@@ -298,19 +337,19 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
   const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-1 sm:p-2">
       <div className="max-w-4xl mx-auto">
         {/* Game Type Navigation */}
-        <GameTypeNavigation currentGameType="single" marketId={marketId} className="mb-4" />
+        <GameTypeNavigation currentGameType="single" marketId={marketId} className="mb-2 sm:mb-4" />
 
         {/* Compact Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 mb-2 sm:mb-4 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-lg font-bold text-gray-800">{marketName}</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-base sm:text-lg font-bold text-gray-800">{marketName} {getGameTypeName(gameType)}</span>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2">
                 {(() => {
                   const openAllowed = checkBetTypeAllowed('open');
                   const closeAllowed = checkBetTypeAllowed('close');
@@ -322,7 +361,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                           onClick={() => {
                             setSelectedBetType('open');
                           }}
-                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
+                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
                             ? 'text-white bg-green-600 shadow-md scale-105'
                             : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
                             }`}
@@ -336,7 +375,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                           onClick={() => {
                             setSelectedBetType('close');
                           }}
-                          className={`text-xs font-semibold px-2 py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
+                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
                             ? 'text-white bg-blue-600 shadow-md scale-105'
                             : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
                             }`}
@@ -354,30 +393,30 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
 
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
             {/* Compact Amount Selection */}
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-3 sm:p-4 border border-gray-100">
+              <div className="flex items-center gap-2 mb-2 sm:mb-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Amount</h2>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3">
                 {amountOptions.map((amt) => (
                   <button
                     key={amt}
                     type="button"
-                    className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
+                    className={`relative group transition-all duration-200 rounded-xl p-1.5 sm:p-3 text-center font-bold ${selectedAmount === amt
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
-                    <div className="text-base font-bold">{amt}</div>
+                    <div className="text-xs sm:text-base font-bold">{amt}</div>
                     {selectedAmount === amt && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-1 h-1 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
@@ -388,26 +427,26 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
             </div>
 
             {/* Compact Total Display */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-3 sm:p-4 text-white flex items-center justify-center">
               <div className="text-center">
-                <div className="text-sm opacity-90 mb-1">Total Amount</div>
-                <div className="text-2xl font-bold">₹{total.toLocaleString()}</div>
+                <div className="text-xs sm:text-sm opacity-90 mb-1">Total Amount</div>
+                <div className="text-xl sm:text-2xl font-bold">₹{total.toLocaleString()}</div>
               </div>
             </div>
           </div>
 
           {/* Compact Digits Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 border border-gray-100">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <h2 className="text-base font-bold text-gray-800">Select Digits</h2>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Digits</h2>
               </div>
 
             </div>
 
             {/* Even/Odd Quick Selection */}
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
               <button
                 type="button"
                 onClick={() => handleClick(() => handleEvenOddSelect('even'))}
@@ -420,7 +459,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                 onTouchMove={handleTouchMove}
                 disabled={selectedAmount === null || isSubmitting}
                 title={`Click/Tap: Add ${selectedAmount || 0} to all even digits, Right click/Long press: Subtract ${selectedAmount || 0} from all even digits`}
-                className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
+                className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-semibold py-1.5 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shadow-md hover:shadow-lg"
               >
                 Even (0,2,4,6,8)
               </button>
@@ -436,18 +475,18 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                 onTouchMove={handleTouchMove}
                 disabled={selectedAmount === null || isSubmitting}
                 title={`Click/Tap: Add ${selectedAmount || 0} to all odd digits, Right click/Long press: Subtract ${selectedAmount || 0} from all odd digits`}
-                className="flex-1 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-md hover:shadow-lg"
+                className="flex-1 bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white font-semibold py-1.5 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm shadow-md hover:shadow-lg"
               >
                 Odd (1,3,5,7,9)
               </button>
             </div>
 
-            {/* Optimized Digits Grid - More compact for desktop */}
-            <div className="grid grid-cols-5 lg:grid-cols-10 gap-3">
+            {/* Optimized Digits Grid - More compact for mobile */}
+            <div className="grid grid-cols-5 lg:grid-cols-10 gap-1.5 sm:gap-3">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="group">
-                  <div className="text-center mb-2">
-                    <span className="text-sm font-bold text-gray-600">{i}</span>
+                  <div className="text-center mb-1 sm:mb-2">
+                    <span className="text-xs sm:text-sm font-bold text-gray-600">{i}</span>
                   </div>
                   <button
                     type="button"
@@ -470,9 +509,9 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                   >
                     <div className="flex flex-col items-center justify-center h-full">
                       {amounts[i] > 0 ? (
-                        <span className="text-sm font-bold">{amounts[i]}</span>
+                        <span className="text-xs sm:text-sm font-bold">{amounts[i]}</span>
                       ) : (
-                        <svg className="w-5 h-5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3 h-3 sm:w-5 sm:h-5 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
                       )}
@@ -484,16 +523,16 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
           </div>
 
           {/* Compact Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 border border-gray-200 text-xs sm:text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Reset
               </div>
@@ -502,20 +541,21 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
             <button
               type="submit"
               disabled={total === 0 || isSubmitting}
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
             >
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-1.5 sm:mr-3 h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Placing Bet...
+                    <span className="hidden sm:inline">Placing Bet...</span>
+                    <span className="sm:hidden">Placing...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                     Submit

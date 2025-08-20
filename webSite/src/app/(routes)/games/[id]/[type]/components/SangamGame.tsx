@@ -11,12 +11,13 @@ import GameTypeNavigation from '@/components/GameTypeNavigation';
 interface SangamGameProps {
   marketId: string;
   marketName?: string;
+  gameType: string;
   marketResult?: any;
 }
 
 type SangamType = 'half_open' | 'half_close' | 'full';
 
-const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market', marketResult }) => {
+const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market', gameType, marketResult }) => {
   const { state: { user }, updateBalance } = useAuthContext();
   const { getMarketStatus, fetchMarketStatus } = useMarketData();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -319,6 +320,16 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
   // Amount options
   const amountOptions = [5, 10, 50, 100, 200, 500, 1000, 5000];
 
+  // Helper function to get game type display name
+  const getGameTypeName = (type: string): string => {
+    switch (type) {
+      case 'sangam':
+        return 'Sangam';
+      default:
+        return type;
+    }
+  };
+
   // Get all sangam bets for display
   const sangamBets = Object.entries(amounts).filter(([_, amount]) => amount > 0);
 
@@ -326,17 +337,17 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
       <div className="max-w-4xl mx-auto">
         {/* Game Type Navigation */}
-        <GameTypeNavigation currentGameType="sangam" marketId={marketId} className="mb-4" />
+        <GameTypeNavigation currentGameType="sangam" marketId={marketId} className="mb-2 sm:mb-4" />
 
         {/* Compact Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-4 mb-4 border border-gray-100">
+        <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 mb-2 sm:mb-4 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full animate-pulse ${isSangamAllowed() ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span className="text-lg font-bold text-gray-800">{marketName}</span>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full animate-pulse ${isSangamAllowed() ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-sm sm:text-lg font-bold text-gray-800">{marketName} - {getGameTypeName(gameType)}</span>
 
-              <div className="flex gap-2">
-                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-600 text-white shadow-md">
+              <div className="flex gap-1 sm:gap-2">
+                <span className="text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full bg-purple-600 text-white shadow-md">
                   BOTH
                 </span>
               </div>
@@ -344,30 +355,30 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
             {/* Compact Amount Selection */}
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <h2 className="text-base font-bold text-gray-800">Select Amount</h2>
+            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full"></div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Amount</h2>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
                 {amountOptions.map((amt) => (
                   <button
                     key={amt}
                     type="button"
-                    className={`relative group transition-all duration-200 rounded-xl p-3 text-center font-bold ${selectedAmount === amt
+                    className={`relative group transition-all duration-200 rounded-xl p-1.5 sm:p-3 text-center font-bold ${selectedAmount === amt
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
                       : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
                       }`}
                     onClick={() => handleAmountSelect(amt)}
                   >
-                    <div className="text-base font-bold">{amt}</div>
+                    <div className="text-xs sm:text-base font-bold">{amt}</div>
                     {selectedAmount === amt && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg className="w-1 h-1 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                         </svg>
                       </div>
@@ -378,22 +389,22 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
             </div>
 
             {/* Compact Total Display */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-4 text-white flex items-center justify-center">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-2 sm:p-4 text-white flex items-center justify-center">
               <div className="text-center">
-                <div className="text-sm opacity-90 mb-1">Total Amount</div>
-                <div className="text-2xl font-bold">₹{total.toLocaleString()}</div>
+                <div className="text-xs sm:text-sm opacity-90 mb-0.5 sm:mb-1">Total Amount</div>
+                <div className="text-lg sm:text-2xl font-bold">₹{total.toLocaleString()}</div>
               </div>
             </div>
           </div>
 
           {/* Sangam Type Selection */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Select Sangam Typeddd</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
+              <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Sangam Type</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -404,12 +415,12 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_open'
+                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_open'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50'
                   }`}
               >
-                <div className="text-sm font-bold">Half Sangam Open</div>
+                <div className="text-xs sm:text-sm font-bold">Half Sangam Open</div>
                 <div className="text-xs opacity-75">123X6</div>
               </button>
 
@@ -423,12 +434,12 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_close'
+                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_close'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
                   }`}
               >
-                <div className="text-sm font-bold">Half Sangam Close</div>
+                <div className="text-xs sm:text-sm font-bold">Half Sangam Close</div>
                 <div className="text-xs opacity-75">4X123</div>
               </button>
 
@@ -442,50 +453,50 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'full'
+                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'full'
                   ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
                   }`}
               >
-                <div className="text-sm font-bold">Full Sangam</div>
+                <div className="text-xs sm:text-sm font-bold">Full Sangam</div>
                 <div className="text-xs opacity-75">123-64-112</div>
               </button>
             </div>
           </div>
 
           {/* Input Section */}
-          <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <h2 className="text-base font-bold text-gray-800">Sangam Input</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
+              <h2 className="text-sm sm:text-base font-bold text-gray-800">Sangam Input</h2>
             </div>
 
             {selectedSangamType === 'full' ? (
               // Full Sangam - Two panna inputs
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     First Panna (3 digits)
                   </label>
                   <input
                     type="text"
                     value={pannaInput}
                     onChange={(e) => handlePannaInputChange(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                     placeholder="Enter 3 digits (e.g., 123)"
                     maxLength={3}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     Second Panna (3 digits)
                   </label>
                   <input
                     type="text"
                     value={secondPannaInput}
                     onChange={(e) => handleSecondPannaInputChange(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                    className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                     placeholder="Enter 3 digits (e.g., 112)"
                     maxLength={3}
                   />
@@ -493,33 +504,33 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
               </div>
             ) : (
               // Half Sangam - Panna and digit inputs
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mb-2 sm:mb-4">
                 {selectedSangamType === 'half_close' ? (
                   // Half Sangam Close - Digit first, then Panna
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                         Enter Digit (0-9)
                       </label>
                       <input
                         type="text"
                         value={digitInput}
                         onChange={(e) => handleDigitInputChange(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                         placeholder="Enter digit 0-9"
                         maxLength={1}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                         Enter Panna (3 digits)
                       </label>
                       <input
                         type="text"
                         value={pannaInput}
                         onChange={(e) => handlePannaInputChange(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                         placeholder="Enter 3 digits (e.g., 123)"
                         maxLength={3}
                       />
@@ -529,28 +540,28 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   // Half Sangam Open - Panna first, then Digit
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                         Enter Panna (3 digits)
                       </label>
                       <input
                         type="text"
                         value={pannaInput}
                         onChange={(e) => handlePannaInputChange(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                         placeholder="Enter 3 digits (e.g., 123)"
                         maxLength={3}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                         Enter Digit (0-9)
                       </label>
                       <input
                         type="text"
                         value={digitInput}
                         onChange={(e) => handleDigitInputChange(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black"
+                        className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-black text-sm sm:text-base"
                         placeholder="Enter digit 0-9"
                         maxLength={1}
                       />
@@ -562,18 +573,18 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
             {/* Filtered Panna Options */}
             {pannaInput && filteredPannas.length > 0 && selectedSangamType !== 'full' && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="mb-2 sm:mb-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Available Pannas ({filteredPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
                   {filteredPannas.map((panna) => (
                     <button
                       key={panna}
                       type="button"
                       onClick={() => handlePannaSelect(panna)}
                       disabled={!digitInput || selectedAmount === null || !isSangamAllowed()}
-                      className="w-full aspect-square rounded-md border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                      className="w-full aspect-square rounded-xl border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       <div className="flex flex-col items-center justify-center h-full">
                         <span className="text-xs font-bold">{panna}</span>
@@ -586,17 +597,17 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
             {/* First Panna Suggestions for Full Sangam */}
             {selectedSangamType === 'full' && pannaInput && filteredPannas.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="mb-2 sm:mb-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   First Panna Suggestions ({filteredPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
                   {filteredPannas.map((panna) => (
                     <button
                       key={panna}
                       type="button"
                       onClick={() => handleFirstPannaSelect(panna)}
-                      className="w-full aspect-square rounded-md border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
+                      className="w-full aspect-square rounded-xl border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
                     >
                       <div className="flex flex-col items-center justify-center h-full">
                         <span className="text-xs font-bold">{panna}</span>
@@ -609,17 +620,17 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
             {/* Second Panna Suggestions for Full Sangam */}
             {selectedSangamType === 'full' && secondPannaInput && filteredSecondPannas.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="mb-2 sm:mb-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Second Panna Suggestions ({filteredSecondPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
+                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
                   {filteredSecondPannas.map((panna) => (
                     <button
                       key={panna}
                       type="button"
                       onClick={() => handleSecondPannaSelect(panna)}
-                      className="w-full aspect-square rounded-md border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
+                      className="w-full aspect-square rounded-xl border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm transition-all duration-200"
                     >
                       <div className="flex flex-col items-center justify-center h-full">
                         <span className="text-xs font-bold">{panna}</span>
@@ -632,11 +643,11 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
             {/* Full Sangam Panna Options */}
             {selectedSangamType === 'full' && pannaInput && secondPannaInput && filteredPannas.length > 0 && filteredSecondPannas.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="mb-2 sm:mb-4">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Full Sangam Combinations
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 sm:gap-2">
                   {filteredPannas.slice(0, 3).map((firstPanna) =>
                     filteredSecondPannas.slice(0, 3).map((secondPanna) => {
                       const firstSum = calculateDigitSum(firstPanna);
@@ -651,9 +662,9 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                           type="button"
                           onClick={() => handleFullSangamSelect(firstPanna, secondPanna)}
                           disabled={selectedAmount === null || !isSangamAllowed()}
-                          className="p-3 rounded-lg border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          className="p-2 sm:p-3 rounded-xl border bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                         >
-                          <div className="text-sm font-bold">{sangamKey}</div>
+                          <div className="text-xs sm:text-sm font-bold">{sangamKey}</div>
                           <div className="text-xs text-gray-500">
                             {firstPanna}({firstSum}) + {secondPanna}({secondSum})
                           </div>
@@ -668,13 +679,13 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
 
           {/* Selected Sangam Bets */}
           {sangamBets.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-lg p-4 border border-gray-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <h2 className="text-base font-bold text-gray-800">Selected Sangam Bets ({sangamBets.length})</h2>
+            <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
+              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"></div>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Selected Sangam Bets ({sangamBets.length})</h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1 sm:gap-2">
                 {sangamBets.map(([sangamKey, amount]) => (
                   <button
                     key={sangamKey}
@@ -682,9 +693,9 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                     onClick={() => handleSangamClick(sangamKey)}
                     onContextMenu={(e) => handleRightClick(e, () => handleSangamClick(sangamKey, true))}
                     disabled={selectedAmount === null || !isSangamAllowed()}
-                    className="relative group transition-all duration-200 rounded-lg p-3 text-center font-bold bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative group transition-all duration-200 rounded-xl p-2 sm:p-3 text-center font-bold bg-gradient-to-br from-green-400 to-green-600 text-white border-green-500 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <div className="text-sm font-bold">{sangamKey}</div>
+                    <div className="text-xs sm:text-sm font-bold">{sangamKey}</div>
                     <div className="text-xs opacity-90">₹{amount}</div>
                   </button>
                 ))}
@@ -693,15 +704,15 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
           )}
 
           {/* Compact Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               type="button"
               onClick={handleReset}
               disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 border border-gray-200 text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 border border-gray-200 text-xs sm:text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Reset
@@ -711,20 +722,21 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
             <button
               type="submit"
               disabled={total === 0 || isSubmitting || !isSangamAllowed()}
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
             >
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-1 sm:gap-2">
                 {isSubmitting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-1 sm:mr-3 h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Placing Bet...
+                    <span className="hidden sm:inline">Placing Bet...</span>
+                    <span className="sm:hidden">Placing...</span>
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                     Submit

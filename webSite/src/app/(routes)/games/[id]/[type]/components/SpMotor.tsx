@@ -13,7 +13,7 @@ const SpMotor: React.FC<SpMotorProps> = ({ marketId, marketName, gameType }) => 
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-2">
       <div className="max-w-4xl mx-auto">
         {/* Game Type Navigation */}
-        <GameTypeNavigation currentGameType="sp-motor" marketId={marketId} className="mb-4" />
+        <GameTypeNavigation currentGameType="sp-motor" marketId={marketId} className="mb-2 sm:mb-4" />
 
         <BaseMotorGame marketId={marketId} marketName={marketName} gameType={gameType} />
       </div>
