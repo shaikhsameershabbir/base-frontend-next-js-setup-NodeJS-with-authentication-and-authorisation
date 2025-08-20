@@ -378,7 +378,7 @@ const RedBracket: React.FC<RedBracketProps> = ({ marketId, marketName = 'Market'
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Generated Numbers ({bracketNumbers.length} numbers)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+                <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
                   {bracketNumbers.map((num, index) => (
                     <div key={index} className="group">
                       <div className="text-center mb-0.5 sm:mb-1">

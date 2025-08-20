@@ -414,7 +414,7 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                 <h2 className="text-sm sm:text-base font-bold text-gray-800">{gameType === 'SP' ? 'Single' : 'Double'} Pannas (Auto-placed)</h2>
               </div>
 
-              <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+              <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
                 {validPannas.map((panna) => (
                   <div key={panna} className="group">
                     <div className="text-center mb-0.5 sm:mb-1">

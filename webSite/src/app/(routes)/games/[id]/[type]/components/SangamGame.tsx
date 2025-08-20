@@ -404,7 +404,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
               <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Sangam Type</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+            <div className="grid grid-cols-3 gap-1 sm:gap-2 lg:gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -415,7 +415,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_open'
+                className={`p-1.5 sm:p-2 lg:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_open'
                   ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-green-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50'
                   }`}
@@ -434,7 +434,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_close'
+                className={`p-1.5 sm:p-2 lg:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'half_close'
                   ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50'
                   }`}
@@ -453,7 +453,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                   setFilteredPannas([]);
                   setFilteredSecondPannas([]);
                 }}
-                className={`p-2 sm:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'full'
+                className={`p-1.5 sm:p-2 lg:p-3 rounded-xl border-2 transition-all duration-200 font-semibold ${selectedSangamType === 'full'
                   ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-purple-500 shadow-lg'
                   : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50'
                   }`}
@@ -577,7 +577,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Available Pannas ({filteredPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+                <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
                   {filteredPannas.map((panna) => (
                     <button
                       key={panna}
@@ -601,7 +601,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   First Panna Suggestions ({filteredPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+                <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
                   {filteredPannas.map((panna) => (
                     <button
                       key={panna}
@@ -624,7 +624,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Second Panna Suggestions ({filteredSecondPannas.length} found)
                 </label>
-                <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+                <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
                   {filteredSecondPannas.map((panna) => (
                     <button
                       key={panna}

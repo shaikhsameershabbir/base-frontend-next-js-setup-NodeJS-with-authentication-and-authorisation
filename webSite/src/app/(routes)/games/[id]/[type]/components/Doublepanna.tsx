@@ -386,12 +386,10 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
             </div>
 
             {/* Optimized Digits Grid - More compact for mobile */}
-            <div className="grid grid-cols-5 lg:grid-cols-10 gap-1.5 sm:gap-3 mb-3 sm:mb-6">
+            <div className="grid grid-cols-10 sm:grid-cols-10 lg:grid-cols-10 gap-1 sm:gap-2 lg:gap-3 mb-3 sm:mb-6">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="group">
-                  <div className="text-center mb-1 sm:mb-2">
-                    <span className="text-xs sm:text-sm font-bold text-gray-600">{i}</span>
-                  </div>
+             
                   <button
                     type="button"
                     onClick={() => setSelectedNumber(i)}
@@ -410,7 +408,7 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
             </div>
 
             {/* Compact Panna Selection */}
-            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5">
+            <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
               {subRanges[selectedNumber.toString()].map((panna) => (
                 <div key={panna} className="group">
                   <div className="text-center mb-0.5 sm:mb-1">

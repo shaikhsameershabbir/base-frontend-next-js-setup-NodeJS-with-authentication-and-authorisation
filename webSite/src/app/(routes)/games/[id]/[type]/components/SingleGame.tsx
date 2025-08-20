@@ -5,6 +5,12 @@ import { useNotification } from '@/contexts/NotificationContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
 import { isBetTypeAllowed, isBettingAllowed } from '@/lib/utils/marketUtils';
 import GameTypeNavigation from '@/components/GameTypeNavigation';
+import {
+  GameHeader,
+  FormLayout,
+  AmountAndTotalSection,
+  ActionButtons
+} from './common';
 
 interface SingleGameProps {
   marketId: string;
@@ -342,98 +348,25 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
         {/* Game Type Navigation */}
         <GameTypeNavigation currentGameType="single" marketId={marketId} className="mb-2 sm:mb-4" />
 
-        {/* Compact Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 mb-2 sm:mb-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-base sm:text-lg font-bold text-gray-800">{marketName} {getGameTypeName(gameType)}</span>
+        {/* Game Header */}
+        <GameHeader
+          marketName={marketName}
+          gameTypeName={getGameTypeName(gameType)}
+          showBetTypeButtons={true}
+          selectedBetType={selectedBetType}
+          onBetTypeChange={(type) => setSelectedBetType(type as 'open' | 'close')}
+          openAllowed={checkBetTypeAllowed('open')}
+          closeAllowed={checkBetTypeAllowed('close')}
+        />
 
-              <div className="flex gap-1 sm:gap-2">
-                {(() => {
-                  const openAllowed = checkBetTypeAllowed('open');
-                  const closeAllowed = checkBetTypeAllowed('close');
-                  return (
-                    <>
-                      {openAllowed && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedBetType('open');
-                          }}
-                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'open'
-                            ? 'text-white bg-green-600 shadow-md scale-105'
-                            : 'text-green-700 bg-green-100 hover:bg-green-200 hover:shadow-sm'
-                            }`}
-                        >
-                          OPEN
-                        </button>
-                      )}
-                      {closeAllowed && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedBetType('close');
-                          }}
-                          className={`text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-200 ${selectedBetType === 'close'
-                            ? 'text-white bg-blue-600 shadow-md scale-105'
-                            : 'text-blue-700 bg-blue-100 hover:bg-blue-200 hover:shadow-sm'
-                            }`}
-                        >
-                          CLOSE
-                        </button>
-                      )}
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4">
-            {/* Compact Amount Selection */}
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-3 sm:p-4 border border-gray-100">
-              <div className="flex items-center gap-2 mb-2 sm:mb-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Amount</h2>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 sm:gap-3">
-                {amountOptions.map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    className={`relative group transition-all duration-200 rounded-xl p-1.5 sm:p-3 text-center font-bold ${selectedAmount === amt
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 hover:border-blue-300 hover:shadow-md'
-                      }`}
-                    onClick={() => handleAmountSelect(amt)}
-                  >
-                    <div className="text-xs sm:text-base font-bold">{amt}</div>
-                    {selectedAmount === amt && (
-                      <div className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-2.5 h-2.5 sm:w-4 sm:h-4 bg-green-500 rounded-full flex items-center justify-center">
-                        <svg className="w-1 h-1 sm:w-2 sm:h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Compact Total Display */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg p-3 sm:p-4 text-white flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-xs sm:text-sm opacity-90 mb-1">Total Amount</div>
-                <div className="text-xl sm:text-2xl font-bold">₹{total.toLocaleString()}</div>
-              </div>
-            </div>
-          </div>
+        <FormLayout onSubmit={handleSubmit}>
+          {/* Amount and Total Section */}
+          <AmountAndTotalSection
+            selectedAmount={selectedAmount}
+            onAmountSelect={handleAmountSelect}
+            total={total}
+            amountOptions={amountOptions}
+          />
 
           {/* Compact Digits Selection */}
           <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 border border-gray-100">
@@ -442,7 +375,6 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-800">Select Digits</h2>
               </div>
-
             </div>
 
             {/* Even/Odd Quick Selection */}
@@ -522,49 +454,14 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
             </div>
           </div>
 
-          {/* Compact Action Buttons */}
-          <div className="flex gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={isSubmitting}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 border border-gray-200 text-xs sm:text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Reset
-              </div>
-            </button>
-
-            <button
-              type="submit"
-              disabled={total === 0 || isSubmitting}
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 sm:py-3 px-2 sm:px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
-            >
-              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-1.5 sm:mr-3 h-3 w-3 sm:h-4 sm:w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="hidden sm:inline">Placing Bet...</span>
-                    <span className="sm:hidden">Placing...</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    Submit
-                  </>
-                )}
-              </div>
-            </button>
-          </div>
-        </form>
+          {/* Action Buttons */}
+          <ActionButtons
+            onReset={handleReset}
+            onSubmit={() => { }}
+            isSubmitting={isSubmitting}
+            isSubmitDisabled={total === 0}
+          />
+        </FormLayout>
       </div>
     </div>
   );
