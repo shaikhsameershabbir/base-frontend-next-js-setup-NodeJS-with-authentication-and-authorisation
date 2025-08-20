@@ -11,7 +11,7 @@ function getCombinations(str: string, size: number): string[] {
     if (size === 1) return str.split('');
     if (size > str.length) return [];
 
-    const results = [];
+    const results: string[] = [];
     const used = new Set<number>();
 
     function backtrack(start: number, current: string[]) {
