@@ -35,7 +35,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
 
     // Convert market name to URL-friendly format and navigate
     const gameId = market._id.toLowerCase().replace(/\s+/g, '-');
-    router.push(`/games/${gameId}`);
+    router.push(`/games/${gameId}/single`);
   };
 
   // Format time for display
@@ -138,28 +138,26 @@ const MarketCard: React.FC<MarketCardProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2 ml-4">
-          <div className="flex flex-col items-center">
-            <button
-              onClick={handlePlayClick}
-              disabled={!marketStatus?.isOpen}
-              className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
-                ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
-                : 'border-gray-300 bg-gray-100 cursor-not-allowed'
+        <div className="flex flex-col items-center justify-center ml-4 self-stretch">
+          <button
+            onClick={handlePlayClick}
+            disabled={!marketStatus?.isOpen}
+            className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
+              ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
+              : 'border-gray-300 bg-gray-100 cursor-not-allowed'
+              }`}
+          >
+            <PlayCircle
+              className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
+                ? 'bg-primary text-white'
+                : 'text-gray-400 bg-gray-200'
                 }`}
-            >
-              <PlayCircle
-                className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
-                  ? 'bg-primary text-white'
-                  : 'text-gray-400 bg-gray-200'
-                  }`}
-              />
-            </button>
-            <span className={`text-sm font-medium mt-1 ${marketStatus?.isOpen ? 'text-black' : 'text-gray-400'
-              }`}>
-              {marketStatus?.isOpen ? 'Play Now' : 'Not Available'}
-            </span>
-          </div>
+            />
+          </button>
+          <span className={`text-sm font-medium mt-2 ${marketStatus?.isOpen ? 'text-black' : 'text-gray-400'
+            }`}>
+            {marketStatus?.isOpen ? 'Play Now' : 'Not Available'}
+          </span>
         </div>
       </div>
     </div>
