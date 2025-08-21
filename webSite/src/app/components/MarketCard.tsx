@@ -35,7 +35,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
 
     // Convert market name to URL-friendly format and navigate
     const gameId = market._id.toLowerCase().replace(/\s+/g, '-');
-    router.push(`/games/${gameId}/single`);
+    router.push(`/games/${gameId}`);
   };
 
   // Format time for display
