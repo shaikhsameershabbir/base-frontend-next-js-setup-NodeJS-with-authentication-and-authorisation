@@ -55,18 +55,84 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
     getStatus();
   }, [marketId, fetchMarketStatus]);
 
-  // Family Panel data
-  const familyPanelData: { [key: string]: number[] } = {
-    "0": [0, 100, 200, 300, 400, 500, 600, 700, 800, 900],
-    "1": [111, 211, 311, 411, 511, 611, 711, 811, 911],
-    "2": [222, 322, 422, 522, 622, 722, 822, 922],
-    "3": [333, 433, 533, 633, 733, 833, 933],
-    "4": [444, 544, 644, 744, 844, 944],
-    "5": [555, 655, 755, 855, 955],
-    "6": [666, 766, 866, 966],
-    "7": [777, 877, 977],
-    "8": [888, 988],
-    "9": [999],
+
+
+  let newFamily = [
+    [111, 116, 166, 666],
+    [112, 117, 126, 167, 266, 667],
+    [113, 118, 136, 168, 366, 668],
+    [114, 119, 146, 169, 466, 669],
+    [110, 115, 156, 160, 566, 660],
+    [122, 127, 177, 226, 267, 677],
+    [123, 128, 137, 178, 236, 268, 367, 678],
+    [124, 129, 147, 179, 246, 269, 467, 679],
+    [120, 125, 157, 170, 256, 260, 567, 670],
+    [133, 138, 188, 336, 368, 688],
+    [134, 139, 148, 189, 346, 369, 468, 689
+    ],
+    [130, 135, 158, 180, 356, 360, 568, 680
+    ],
+    [144, 149, 199, 446, 469, 699
+    ],
+    [140, 145, 159, 190, 456, 460, 569, 690
+    ],
+    [100, 150, 155, 556, 560, 600
+    ],
+    [222, 227, 277, 777
+    ],
+    [223, 228, 237, 278, 377, 778
+    ],
+    [224, 229, 247, 279, 477, 779
+    ],
+    [220, 225, 257, 270, 577, 770
+    ],
+    [233, 238, 288, 337, 378, 788
+    ],
+    [234, 239, 248, 289, 347, 379, 478, 789
+    ],
+    [230, 235, 258, 280, 357, 370, 578, 780
+    ],
+    [244, 249, 299, 447, 479, 799
+    ],
+    [240, 245, 259, 290, 457, 470, 579, 790
+    ],
+    [200, 250, 255, 557, 570, 700
+    ],
+    [333, 338, 388, 888
+    ],
+    [334, 339, 348, 389, 488, 889
+    ],
+    [330, 335, 358, 380, 588, 880
+    ],
+    [344, 349, 399, 448, 489, 899
+    ],
+    [340, 345, 359, 390, 458, 480, 589, 890
+    ],
+    [300, 350, 355, 558, 580, 800
+    ],
+    [444, 449, 499, 999
+    ],
+    [440, 445, 459, 490, 599, 990
+    ],
+    [400, 450, 455, 559, 590, 900
+    ],
+    [0, 500, 550, 555
+    ],
+
+  ]
+
+  // Helper function to find family numbers from newFamily array
+  const findFamilyNumbers = (input: string): number[] => {
+    const inputNum = parseInt(input);
+    if (isNaN(inputNum)) return [];
+
+    // Find the array that contains the input number
+    for (const familyArray of newFamily) {
+      if (familyArray.includes(inputNum)) {
+        return familyArray;
+      }
+    }
+    return [];
   };
 
   // Check if a specific bet type is allowed
@@ -129,22 +195,28 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
 
   const handleInputNumberChange = (value: string) => {
     setInputNumber(value);
-    if (value && familyPanelData[value]) {
-      setFamilyNumbers(familyPanelData[value]);
-      // Auto-place selected amount on all family numbers
-      if (selectedAmount !== null) {
-        const newAmounts: { [key: number]: number } = {};
-        familyPanelData[value].forEach(num => {
-          newAmounts[num] = selectedAmount;
-        });
-        setAmounts(newAmounts);
+    if (value && value.length === 3) {
+      const foundFamily = findFamilyNumbers(value);
+      if (foundFamily.length > 0) {
+        setFamilyNumbers(foundFamily);
+        // Auto-place selected amount on all family numbers
+        if (selectedAmount !== null) {
+          const newAmounts: { [key: number]: number } = {};
+          foundFamily.forEach(num => {
+            newAmounts[num] = selectedAmount;
+          });
+          setAmounts(newAmounts);
+        } else {
+          // Reset amounts for new family numbers if no amount is selected
+          const newAmounts: { [key: number]: number } = {};
+          foundFamily.forEach(num => {
+            newAmounts[num] = 0;
+          });
+          setAmounts(newAmounts);
+        }
       } else {
-        // Reset amounts for new family numbers if no amount is selected
-        const newAmounts: { [key: number]: number } = {};
-        familyPanelData[value].forEach(num => {
-          newAmounts[num] = 0;
-        });
-        setAmounts(newAmounts);
+        setFamilyNumbers([]);
+        setAmounts({});
       }
     } else {
       setFamilyNumbers([]);
@@ -154,8 +226,8 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
 
   const handleInputBlur = () => {
     // Validate input number
-    if (inputNumber && !familyPanelData[inputNumber]) {
-      showError('Invalid Input', 'Please enter a valid family number (0-9)');
+    if (inputNumber && inputNumber.length === 3 && !findFamilyNumbers(inputNumber).length) {
+      showError('Invalid Input', 'Please enter a valid three-digit family number');
       setInputNumber('');
       setFamilyNumbers([]);
       setAmounts({});
@@ -186,8 +258,8 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
       return;
     }
 
-    if (!inputNumber || !familyPanelData[inputNumber]) {
-      showError('Invalid Input', 'Please enter a valid family number.');
+    if (!inputNumber || inputNumber.length !== 3 || !findFamilyNumbers(inputNumber).length) {
+      showError('Invalid Input', 'Please enter a valid three-digit family number.');
       return;
     }
 
@@ -365,7 +437,7 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
           <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
             <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
               <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full"></div>
-              <h2 className="text-sm sm:text-base font-bold text-gray-800">Enter Family Number (0-9)</h2>
+              <h2 className="text-sm sm:text-base font-bold text-gray-800">Enter Family Number (Three digits)</h2>
             </div>
 
             <div className="flex gap-2 sm:gap-3">
@@ -374,13 +446,13 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
                 value={inputNumber}
                 onChange={(e) => handleInputNumberChange(e.target.value.replace(/\D/g, ''))}
                 onBlur={handleInputBlur}
-                placeholder="Enter family number (e.g., 5)"
+                placeholder="Enter three digit number (e.g., 111)"
                 className="flex-1 p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black text-sm sm:text-base"
-                maxLength={1}
+                maxLength={3}
               />
               <div className="flex items-center">
                 <span className="text-xs sm:text-sm text-gray-600">
-                  {familyNumbers.length > 0 ? `${familyNumbers.length} numbers found` : 'Enter 0-9'}
+                  {familyNumbers.length > 0 ? `${familyNumbers.length} numbers found` : 'Enter 3 digits'}
                 </span>
               </div>
             </div>
@@ -391,7 +463,7 @@ const FamilyPanel: React.FC<FamilyPanelProps> = ({ marketId, marketName = 'Marke
             <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-800">Family Numbers (Auto-placed)</h2>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">Family Numbers (Auto-placed from {inputNumber})</h2>
               </div>
 
               <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">

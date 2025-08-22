@@ -13,7 +13,7 @@ const gameTypes = [
   { id: "double-panna", name: "Double Panna", icon: "/Game/sp_dp_tp.png" },
   { id: "triple-panna", name: "Triple Panna", icon: "/Game/sp_dp_tp.png" },
   { id: "sp-motor", name: "SP Motor", icon: "/Game/sp-motor.png" },
-  { id: "dp-motor", name: "DP Motor", icon: "/Game/sp-motor.png" },
+  // { id: "dp-motor", name: "DP Motor", icon: "/Game/sp-motor.png" },
   { id: "SP_DP", name: "Common SP, DP, SPDP", icon: "/Game/sp_dp_tp.png" },
   { id: "red-bracket", name: "Red Bracket", icon: "/Game/odd_even.png" },
   { id: "cycle-panna", name: "Cycle Panna", icon: "/Game/cycly_panna.png" },
@@ -35,17 +35,17 @@ const GamePageContent = () => {
 
   return (
     <>
-      <div className="flex flex-col h-screen pt-16 bg-gray-100">
+      <div className="flex flex-col h-screen rounded-2xl pt-16 bg-gray-100">
         <div className="flex-1 overflow-y-auto p-4">
           {/* Game Types Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20 rounded-2xl">
             {gameTypes.map((type) => (
               <button
                 key={type.id}
                 onClick={() => handleGameTypeClick(type.id)}
-                className="bg-white hover:bg-orange-50 rounded-lg p-4 flex flex-col items-center justify-center transition-all shadow-md hover:shadow-lg"
+                className="bg-white hover:bg-orange-50 hover:shadow-lg hover:scale-105 transition-all duration-300 border hover:border-text-orange-500 rounded-2xl p-4 flex flex-col items-center justify-center "
               >
-                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-2 ">
                   <Image
                     src={type.icon}
                     alt={type.name}
