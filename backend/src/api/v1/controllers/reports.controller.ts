@@ -17,8 +17,8 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
 // Define proper types for date filter
 interface DateFilter {
     createdAt?: {
-        $gte: Date;
-        $lte: Date;
+        $gte?: Date;
+        $lte?: Date;
     };
 }
 
@@ -79,83 +79,106 @@ export class ReportsController {
                 });
             }
 
-            const { startDate, endDate, adminId } = req.query;
+            const { startDate, endDate } = req.query;
 
             // Build date filter
             const dateFilter: DateFilter = {};
             if (startDate && endDate) {
+                const start = new Date(startDate as string);
+                const end = new Date(endDate as string);
+
+                // Set start time to beginning of day (00:00:00)
+                start.setHours(0, 0, 0, 0);
+
+                // Set end time to end of day (23:59:59.999)
+                end.setHours(23, 59, 59, 999);
+
                 dateFilter.createdAt = {
-                    $gte: new Date(startDate as string),
-                    $lte: new Date(endDate as string)
+                    $gte: start,
+                    $lte: end
                 };
+
+                console.log(`Date filter applied: ${start.toISOString()} to ${end.toISOString()}`);
+            } else if (startDate) {
+                // If only start date is provided, filter from start date to now
+                const start = new Date(startDate as string);
+                start.setHours(0, 0, 0, 0);
+                dateFilter.createdAt = {
+                    $gte: start
+                };
+
+                console.log(`Start date filter applied: from ${start.toISOString()}`);
+            } else if (endDate) {
+                // If only end date is provided, filter from beginning to end date
+                const end = new Date(endDate as string);
+                end.setHours(23, 59, 59, 999);
+                dateFilter.createdAt = {
+                    $lte: end
+                };
+
+                console.log(`End date filter applied: until ${end.toISOString()}`);
+            } else {
+                console.log('No date filters applied - showing all-time data');
             }
 
             let reports: AdminReport[] = [];
 
             if (currentUser.role === 'superadmin') {
                 // Superadmin sees all admins
-                if (adminId) {
-                    // Get specific admin report
-                    const adminReport = await this.getAdminReport(adminId as string, dateFilter);
-                    if (adminReport) {
-                        reports = [adminReport];
-                    }
-                } else {
-                    // Get all admins reports
-                    const admins = await User.find({ role: 'admin', isActive: true });
-                    const adminReports = await Promise.all(
-                        admins.map(admin => this.getAdminReport((admin._id as string).toString(), dateFilter))
-                    );
-                    reports = adminReports.filter((report): report is AdminReport => report !== null);
-                }
+                const admins = await User.find({ role: 'admin', isActive: true });
+                const adminReports = await Promise.all(
+                    admins.map(async (admin) => {
+                        try {
+                            return await this.getAdminReport((admin._id as string).toString(), dateFilter);
+                        } catch (error) {
+                            console.error(`Error getting report for admin ${admin.username}:`, error);
+                            return null;
+                        }
+                    })
+                );
+                reports = adminReports.filter((report): report is AdminReport => report !== null);
             } else if (currentUser.role === 'admin') {
                 // Admin sees all distributors
-                if (adminId) {
-                    // Get specific distributor report
-                    const distributorReport = await this.getDistributorReport(adminId as string, dateFilter);
-                    if (distributorReport) {
-                        reports = [distributorReport];
-                    }
-                } else {
-                    // Get all distributors reports
-                    const distributors = await User.find({ role: 'distributor', isActive: true });
-                    const distributorReports = await Promise.all(
-                        distributors.map(distributor => this.getDistributorReport((distributor._id as string).toString(), dateFilter))
-                    );
-                    reports = distributorReports.filter((report): report is AdminReport => report !== null);
-                }
+                const distributors = await User.find({ role: 'distributor', isActive: true });
+                const distributorReports = await Promise.all(
+                    distributors.map(async (distributor) => {
+                        try {
+                            return await this.getDistributorReport((distributor._id as string).toString(), dateFilter);
+                        } catch (error) {
+                            console.error(`Error getting report for distributor ${distributor.username}:`, error);
+                            return null;
+                        }
+                    })
+                );
+                reports = distributorReports.filter((report): report is AdminReport => report !== null);
             } else if (currentUser.role === 'distributor') {
                 // Distributor sees all agents
-                if (adminId) {
-                    // Get specific agent report
-                    const agentReport = await this.getAgentReport(adminId as string, dateFilter);
-                    if (agentReport) {
-                        reports = [agentReport];
-                    }
-                } else {
-                    // Get all agents reports
-                    const agents = await User.find({ role: 'agent', isActive: true });
-                    const agentReports = await Promise.all(
-                        agents.map(agent => this.getAgentReport((agent._id as string).toString(), dateFilter))
-                    );
-                    reports = agentReports.filter((report): report is AdminReport => report !== null);
-                }
+                const agents = await User.find({ role: 'agent', isActive: true });
+                const agentReports = await Promise.all(
+                    agents.map(async (agent) => {
+                        try {
+                            return await this.getAgentReport((agent._id as string).toString(), dateFilter);
+                        } catch (error) {
+                            console.error(`Error getting report for agent ${agent.username}:`, error);
+                            return null;
+                        }
+                    })
+                );
+                reports = agentReports.filter((report): report is AdminReport => report !== null);
             } else if (currentUser.role === 'agent') {
                 // Agent sees all players
-                if (adminId) {
-                    // Get specific player report
-                    const playerReport = await this.getPlayerReport(adminId as string, dateFilter);
-                    if (playerReport) {
-                        reports = [playerReport];
-                    }
-                } else {
-                    // Get all players reports
-                    const players = await User.find({ role: 'player', isActive: true });
-                    const playerReports = await Promise.all(
-                        players.map(player => this.getPlayerReport((player._id as string).toString(), dateFilter))
-                    );
-                    reports = playerReports.filter((report): report is AdminReport => report !== null);
-                }
+                const players = await User.find({ role: 'player', isActive: true });
+                const playerReports = await Promise.all(
+                    players.map(async (player) => {
+                        try {
+                            return await this.getPlayerReport((player._id as string).toString(), dateFilter);
+                        } catch (error) {
+                            console.error(`Error getting report for player ${player.username}:`, error);
+                            return null;
+                        }
+                    })
+                );
+                reports = playerReports.filter((report): report is AdminReport => report !== null);
             } else {
                 // Player can only see their own report
                 const userReport = await this.getUserReport(currentUser.userId, dateFilter);
@@ -175,6 +198,17 @@ export class ReportsController {
                     }];
                 }
             }
+
+            // Log if no reports were found
+            if (reports.length === 0) {
+                console.log(`No reports found for user ${currentUser.username} (${currentUser.role}) with filters:`, {
+                    startDate: startDate || 'none',
+                    endDate: endDate || 'none'
+                });
+            } else {
+                console.log(`Found ${reports.length} reports for user ${currentUser.username} (${currentUser.role})`);
+            }
+
             return res.json({
                 success: true,
                 data: {
@@ -182,8 +216,7 @@ export class ReportsController {
                     summary: this.calculateSummary(reports),
                     filters: {
                         startDate: startDate || null,
-                        endDate: endDate || null,
-                        adminId: adminId || null
+                        endDate: endDate || null
                     }
                 }
             });
@@ -209,11 +242,25 @@ export class ReportsController {
             // Get all downline user IDs for this admin
             const downlineUserIds = await HierarchyService.getAllDownlineUserIds(adminId, true);
 
+            console.log(`Found ${downlineUserIds.length} downline users for admin ${admin.username}`);
+
+            if (downlineUserIds.length === 0) {
+                console.warn(`No downline users found for admin ${admin.username}`);
+            }
+
             // Get all bets for downline users
             const bets = await Bet.find({
                 userId: { $in: downlineUserIds },
                 ...dateFilter
             }).populate('userId', 'username role');
+
+            console.log(`Found ${bets.length} bets for admin ${admin.username} with date filter:`, dateFilter);
+
+            // Log any bets with null userId for debugging
+            const nullUserIdBets = bets.filter(bet => !bet.userId);
+            if (nullUserIdBets.length > 0) {
+                console.warn(`Found ${nullUserIdBets.length} bets with null userId for admin ${admin.username}`);
+            }
 
             // Calculate admin totals
             const adminTotals = this.calculateBetTotals(bets);
@@ -224,7 +271,19 @@ export class ReportsController {
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
+                // Add null checks for bet.userId
+                if (!bet.userId) {
+                    console.log('------------------------------->>', bet)
+                    console.warn('Bet has no userId:', bet._id);
+                    return; // Skip this bet
+                }
+
+                const userId = (bet.userId as { _id: unknown })._id?.toString();
+                if (!userId) {
+                    console.warn('Bet userId has no _id:', bet.userId);
+                    return; // Skip this bet
+                }
+
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
@@ -270,11 +329,25 @@ export class ReportsController {
             // Get all downline user IDs for this distributor
             const downlineUserIds = await HierarchyService.getAllDownlineUserIds(distributorId, true);
 
+            console.log(`Found ${downlineUserIds.length} downline users for distributor ${distributor.username}`);
+
+            if (downlineUserIds.length === 0) {
+                console.warn(`No downline users found for distributor ${distributor.username}`);
+            }
+
             // Get all bets for downline users
             const bets = await Bet.find({
                 userId: { $in: downlineUserIds },
                 ...dateFilter
             }).populate('userId', 'username role');
+
+            console.log(`Found ${bets.length} bets for distributor ${distributor.username} with date filter:`, dateFilter);
+
+            // Log any bets with null userId for debugging
+            const nullUserIdBets = bets.filter(bet => !bet.userId);
+            if (nullUserIdBets.length > 0) {
+                console.warn(`Found ${nullUserIdBets.length} bets with null userId for distributor ${distributor.username}`);
+            }
 
             // Calculate distributor totals
             const distributorTotals = this.calculateBetTotals(bets);
@@ -285,7 +358,18 @@ export class ReportsController {
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
+                // Add null checks for bet.userId
+                if (!bet.userId) {
+                    console.warn('Bet has no userId:', bet._id);
+                    return; // Skip this bet
+                }
+
+                const userId = (bet.userId as { _id: unknown })._id?.toString();
+                if (!userId) {
+                    console.warn('Bet userId has no _id:', bet.userId);
+                    return; // Skip this bet
+                }
+
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
@@ -331,11 +415,25 @@ export class ReportsController {
             // Get all downline user IDs for this agent
             const downlineUserIds = await HierarchyService.getAllDownlineUserIds(agentId, true);
 
+            console.log(`Found ${downlineUserIds.length} downline users for agent ${agent.username}`);
+
+            if (downlineUserIds.length === 0) {
+                console.warn(`No downline users found for agent ${agent.username}`);
+            }
+
             // Get all bets for downline users
             const bets = await Bet.find({
                 userId: { $in: downlineUserIds },
                 ...dateFilter
             }).populate('userId', 'username role');
+
+            console.log(`Found ${bets.length} bets for agent ${agent.username} with date filter:`, dateFilter);
+
+            // Log any bets with null userId for debugging
+            const nullUserIdBets = bets.filter(bet => !bet.userId);
+            if (nullUserIdBets.length > 0) {
+                console.warn(`Found ${nullUserIdBets.length} bets with null userId for agent ${agent.username}`);
+            }
 
             // Calculate agent totals
             const agentTotals = this.calculateBetTotals(bets);
@@ -346,7 +444,18 @@ export class ReportsController {
 
             // Group bets by user
             bets.forEach(bet => {
-                const userId = (bet.userId as { _id: unknown })._id?.toString() || '';
+                // Add null checks for bet.userId
+                if (!bet.userId) {
+                    console.warn('Bet has no userId:', bet._id);
+                    return; // Skip this bet
+                }
+
+                const userId = (bet.userId as { _id: unknown })._id?.toString();
+                if (!userId) {
+                    console.warn('Bet userId has no _id:', bet.userId);
+                    return; // Skip this bet
+                }
+
                 if (!userBetsMap.has(userId)) {
                     userBetsMap.set(userId, []);
                 }
@@ -463,12 +572,22 @@ export class ReportsController {
         };
 
         bets.forEach(bet => {
-            totals.totalBet += bet.amount || 0;
+            // Add null checks for bet data
+            if (!bet) {
+                console.warn('Null bet encountered in calculateBetTotals');
+                return;
+            }
 
+            // Safely add bet amount
+            const betAmount = bet.amount || 0;
+            totals.totalBet += betAmount;
+
+            // Safely handle win amount
             if (bet.winAmount && bet.winAmount > 0) {
                 totals.totalWin += bet.winAmount;
                 totals.winningBets++;
 
+                // Safely handle claim status
                 if (bet.claimStatus) {
                     totals.claimedAmount += bet.winAmount;
                     totals.claimStatus.claimed++;

@@ -66,12 +66,10 @@ export class ReportsApi {
     static async getBetReports(params?: {
         startDate?: string;
         endDate?: string;
-        adminId?: string;
     }): Promise<ReportsResponse> {
         const queryParams = new URLSearchParams();
         if (params?.startDate) queryParams.append('startDate', params.startDate);
         if (params?.endDate) queryParams.append('endDate', params.endDate);
-        if (params?.adminId) queryParams.append('adminId', params.adminId);
 
         const url = `/reports/bet-reports?${queryParams.toString()}`;
 

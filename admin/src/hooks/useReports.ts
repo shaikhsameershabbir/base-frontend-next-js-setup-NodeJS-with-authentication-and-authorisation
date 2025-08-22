@@ -6,17 +6,24 @@ export function useReports() {
     const [stats, setStats] = useState<BetStats | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [currentFilters, setCurrentFilters] = useState<{
+        startDate?: string;
+        endDate?: string;
+    }>({});
 
     const fetchReports = useCallback(async (params?: {
         startDate?: string;
         endDate?: string;
-        adminId?: string;
     }) => {
         try {
             setLoading(true);
             setError(null);
             const data = await ReportsApi.getBetReports(params);
             setReports(data);
+            // Store current filters for refresh functionality
+            if (params) {
+                setCurrentFilters(params);
+            }
         } catch (err) {
             console.error('Error fetching reports:', err);
             setError(err instanceof Error ? err.message : 'Failed to fetch reports');
@@ -36,14 +43,18 @@ export function useReports() {
         }
     }, []);
 
-    const refreshReports = useCallback(() => {
-        fetchReports();
-    }, [fetchReports]);
+    const refreshReports = useCallback((params?: {
+        startDate?: string;
+        endDate?: string;
+    }) => {
+        // Use provided params or fall back to stored current filters
+        const filtersToUse = params || currentFilters;
+        fetchReports(filtersToUse);
+    }, [fetchReports, currentFilters]);
 
     const refreshStats = useCallback(() => {
         fetchStats();
     }, [fetchStats]);
-
 
     return {
         reports,
@@ -54,5 +65,6 @@ export function useReports() {
         fetchStats,
         refreshReports,
         refreshStats,
+        currentFilters,
     };
 }

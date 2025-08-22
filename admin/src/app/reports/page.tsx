@@ -8,10 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
-    Calendar,
     Filter,
     RefreshCw,
     TrendingUp,
@@ -31,9 +28,15 @@ import apiClient from '@/lib/api-client';
 export default function ReportsPage() {
     const { user, loading: authLoading, isAuthenticated } = useAuth();
     const { reports, stats, loading, error, fetchReports, fetchStats, refreshReports } = useReports();
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [selectedAdminId, setSelectedAdminId] = useState('');
+
+    // Set default dates to today
+    const getTodayDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
+
+    const [startDate, setStartDate] = useState(getTodayDate());
+    const [endDate, setEndDate] = useState(getTodayDate());
     const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
 
     // New state for drill-down functionality
@@ -41,10 +44,25 @@ export default function ReportsPage() {
     const [drillDownData, setDrillDownData] = useState<any[]>([]);
     const [drillDownParent, setDrillDownParent] = useState<{ id: string, username: string, role: string } | null>(null);
 
+    // Auto-apply filters when dates change
+    useEffect(() => {
+        if (isAuthenticated && user && (startDate || endDate)) {
+            const params: any = {};
+            if (startDate) params.startDate = startDate;
+            if (endDate) params.endDate = endDate;
+
+            // Only fetch if we have at least one date
+            if (startDate || endDate) {
+                fetchReports(params);
+            }
+        }
+    }, [startDate, endDate, isAuthenticated, user, fetchReports]);
+
     // Fetch data when component mounts and user is authenticated
     useEffect(() => {
         if (isAuthenticated && user) {
-            fetchReports();
+            // Fetch with today's date by default
+            fetchReports({ startDate: getTodayDate(), endDate: getTodayDate() });
             fetchStats();
         }
     }, [isAuthenticated, user, fetchReports, fetchStats]);
@@ -53,7 +71,15 @@ export default function ReportsPage() {
         const params: any = {};
         if (startDate) params.startDate = startDate;
         if (endDate) params.endDate = endDate;
-        if (selectedAdminId) params.adminId = selectedAdminId;
+
+        // Validate that we have at least one date filter
+        if (!startDate && !endDate) {
+            // If no dates, default to today
+            params.startDate = getTodayDate();
+            params.endDate = getTodayDate();
+            setStartDate(getTodayDate());
+            setEndDate(getTodayDate());
+        }
 
         if (drillDownLevel === 'main') {
             fetchReports(params);
@@ -65,12 +91,12 @@ export default function ReportsPage() {
     };
 
     const handleReset = () => {
-        setStartDate('');
-        setEndDate('');
-        setSelectedAdminId('');
+        const today = getTodayDate();
+        setStartDate(today);
+        setEndDate(today);
 
         if (drillDownLevel === 'main') {
-            fetchReports();
+            fetchReports({ startDate: today, endDate: today });
         } else {
             // Reset filters for drill-down data
         }
@@ -118,10 +144,10 @@ export default function ReportsPage() {
                 const data = response.data;
                 const nextLevelUsers = data.data || [];
 
-                // For each user at the next level, get their bet data
+                // For each user at the next level, get their bet data with current date filters
                 const nextLevelReports = await Promise.all(
                     nextLevelUsers.map(async (nextUser: any) => {
-                        const betResponse = await apiClient.get(`/reports/bet-reports?adminId=${nextUser._id}`);
+                        const betResponse = await apiClient.get(`/reports/bet-reports?startDate=${startDate}&endDate=${endDate}`);
 
                         if (betResponse.status === 200) {
                             const betData = betResponse.data;
@@ -220,7 +246,13 @@ export default function ReportsPage() {
                         <p className="text-secondary">Comprehensive bet calculations and analytics based on user hierarchy</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button onClick={drillDownLevel === 'main' ? refreshReports : () => {
+                        <Button onClick={drillDownLevel === 'main' ? () => {
+                            // Refresh with current filters
+                            const params: any = {};
+                            if (startDate) params.startDate = startDate;
+                            if (endDate) params.endDate = endDate;
+                            fetchReports(params);
+                        } : () => {
                             // Refresh drill-down data
                             if (drillDownParent) {
                                 drillDownToNextLevel(drillDownParent.id, drillDownParent.username, drillDownParent.role);
@@ -249,7 +281,81 @@ export default function ReportsPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        {/* Quick Date Presets */}
+                        <div className="mb-4">
+                            <Label className="text-sm text-secondary mb-2 block">Quick Date Presets:</Label>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const today = getTodayDate();
+                                        setStartDate(today);
+                                        setEndDate(today);
+                                    }}
+                                    className="text-xs"
+                                >
+                                    Today
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const yesterday = new Date();
+                                        yesterday.setDate(yesterday.getDate() - 1);
+                                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                                        setStartDate(yesterdayStr);
+                                        setEndDate(yesterdayStr);
+                                    }}
+                                    className="text-xs"
+                                >
+                                    Yesterday
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const end = new Date();
+                                        const start = new Date();
+                                        start.setDate(start.getDate() - 7);
+                                        setStartDate(start.toISOString().split('T')[0]);
+                                        setEndDate(end.toISOString().split('T')[0]);
+                                    }}
+                                    className="text-xs"
+                                >
+                                    Last 7 Days
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const end = new Date();
+                                        const start = new Date();
+                                        start.setDate(start.getDate() - 30);
+                                        setStartDate(start.toISOString().split('T')[0]);
+                                        setEndDate(end.toISOString().split('T')[0]);
+                                    }}
+                                    className="text-xs"
+                                >
+                                    Last 30 Days
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const now = new Date();
+                                        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                                        setStartDate(startOfMonth.toISOString().split('T')[0]);
+                                        setEndDate(now.toISOString().split('T')[0]);
+                                    }}
+                                    className="text-xs"
+                                >
+                                    This Month
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <Label htmlFor="startDate">Start Date</Label>
                                 <Input
@@ -268,24 +374,43 @@ export default function ReportsPage() {
                                     onChange={(e) => setEndDate(e.target.value)}
                                 />
                             </div>
-                            <div>
-                                <Label htmlFor="adminId">User ID (Optional)</Label>
-                                <Input
-                                    id="adminId"
-                                    placeholder="User ID to filter"
-                                    value={selectedAdminId}
-                                    onChange={(e) => setSelectedAdminId(e.target.value)}
-                                />
-                            </div>
                             <div className="flex items-end gap-2">
-                                <Button onClick={handleFilter} className="flex-1">
-                                    Apply Filters
+                                <Button onClick={handleFilter} className="flex-1" disabled={loading}>
+                                    {loading ? (
+                                        <>
+                                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                            Applying...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Filter className="h-4 w-4 mr-2" />
+                                            Apply Filters
+                                        </>
+                                    )}
                                 </Button>
-                                <Button onClick={handleReset} variant="outline">
+                                <Button onClick={handleReset} variant="outline" disabled={loading}>
                                     Reset
                                 </Button>
                             </div>
                         </div>
+                        {/* Current Filter Display */}
+                        {(startDate || endDate) && (
+                            <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                                <p className="text-sm text-secondary mb-2">Current Filters:</p>
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    {startDate && (
+                                        <span className="px-2 py-1 bg-primary/20 text-primary rounded">
+                                            From: {new Date(startDate).toLocaleDateString()}
+                                        </span>
+                                    )}
+                                    {endDate && (
+                                        <span className="px-2 py-1 bg-primary/20 text-primary rounded">
+                                            To: {new Date(endDate).toLocaleDateString()}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -458,7 +583,7 @@ export default function ReportsPage() {
                                                     <td className="py-3 px-4 text-right font-medium text-secondary">
                                                         {formatCurrency(admin.totalWin)}
                                                     </td>
-                                                    <td className="py-3 px-4 text-right">
+                                                    <td className="py-4 text-right">
                                                         <span className="text-green-600 dark:text-green-400 font-medium">
                                                             {formatCurrency(admin.claimedAmount)}
                                                         </span>
@@ -496,8 +621,28 @@ export default function ReportsPage() {
                         <CardContent className="pt-6">
                             <div className="text-center py-8">
                                 <Users className="h-12 w-12 mx-auto mb-4 text-white" />
-                                <p className="text-secondary">No reports available</p>
-                                <p className="text-sm text-secondary">Try adjusting your filters or check back later</p>
+                                <p className="text-secondary">No reports available for the selected date range</p>
+                                <p className="text-sm text-secondary mb-4">
+                                    {startDate && endDate ?
+                                        `No data found between ${new Date(startDate).toLocaleDateString()} and ${new Date(endDate).toLocaleDateString()}` :
+                                        'No data found for the current filters'
+                                    }
+                                </p>
+                                <div className="flex gap-2 justify-center">
+                                    <Button onClick={handleReset} variant="outline" size="sm">
+                                        Reset to Today
+                                    </Button>
+                                    <Button onClick={() => {
+                                        // Set to last 7 days
+                                        const end = new Date();
+                                        const start = new Date();
+                                        start.setDate(start.getDate() - 7);
+                                        setStartDate(start.toISOString().split('T')[0]);
+                                        setEndDate(end.toISOString().split('T')[0]);
+                                    }} variant="outline" size="sm">
+                                        Last 7 Days
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
