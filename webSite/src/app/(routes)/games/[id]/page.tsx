@@ -13,7 +13,7 @@ const gameTypes = [
   { id: "double-panna", name: "Double Panna", icon: "/Game/sp_dp_tp.png" },
   { id: "triple-panna", name: "Triple Panna", icon: "/Game/sp_dp_tp.png" },
   { id: "sp-motor", name: "SP Motor", icon: "/Game/sp-motor.png" },
-  // { id: "dp-motor", name: "DP Motor", icon: "/Game/sp-motor.png" },
+  { id: "dp-motor", name: "DP Motor", icon: "/Game/sp-motor.png" },
   { id: "SP_DP", name: "Common SP, DP, SPDP", icon: "/Game/sp_dp_tp.png" },
   { id: "red-bracket", name: "Red Bracket", icon: "/Game/odd_even.png" },
   { id: "cycle-panna", name: "Cycle Panna", icon: "/Game/cycly_panna.png" },

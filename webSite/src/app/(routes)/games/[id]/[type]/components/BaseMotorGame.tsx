@@ -101,7 +101,30 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
   useEffect(() => {
     if (inputDigits && inputDigits.length >= 4) {
       const validNumbers = gameType === 'SP' ? singlePannaNumbers : doublePannaNumbers;
-      const foundPannas = findValidNumbers(inputDigits, validNumbers);
+
+      let foundPannas: string[];
+
+      if (gameType === 'DP') {
+        // For DP games: find numbers where at least 2 digits from input appear
+        foundPannas = validNumbers.filter(panna => {
+          const pannaStr = panna.toString();
+          const inputDigitsArray = inputDigits.split('');
+
+          // Count how many digits from input appear in this panna
+          let matchingDigits = 0;
+          for (const digit of inputDigitsArray) {
+            if (pannaStr.includes(digit)) {
+              matchingDigits++;
+            }
+          }
+
+          // Return true if at least 2 digits match
+          return matchingDigits >= 2;
+        }).map(panna => panna.toString());
+      } else {
+        // For SP games: use the existing logic
+        foundPannas = findValidNumbers(inputDigits, validNumbers);
+      }
 
       setValidPannas(foundPannas);
 
@@ -394,7 +417,10 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
                 type="text"
                 value={inputDigits}
                 onChange={(e) => setInputDigits(e.target.value.replace(/\D/g, ''))}
-                placeholder="Enter digits (e.g., 12345) - Min 4 digits"
+                placeholder={gameType === 'DP'
+                  ? "Enter digits (e.g., 1234) - Min 4 digits, finds pannas with 2+ matching digits"
+                  : "Enter digits (e.g., 12345) - Min 4 digits"
+                }
                 className="flex-1 p-2 sm:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-black text-sm sm:text-base"
                 maxLength={10}
               />
@@ -411,7 +437,10 @@ const BaseMotorGame: React.FC<BaseMotorGameProps> = ({ marketId, marketName = 'M
             <div className="bg-white rounded-2xl shadow-lg p-2 sm:p-4 border border-gray-100">
               <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-4">
                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-purple-500 rounded-full"></div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-800">{gameType === 'SP' ? 'Single' : 'Double'} Pannas (Auto-placed)</h2>
+                <h2 className="text-sm sm:text-base font-bold text-gray-800">
+                  {gameType === 'SP' ? 'Single' : 'Double'} Pannas
+                  {gameType === 'DP' ? ' (2+ digits match)' : ' (Auto-placed)'}
+                </h2>
               </div>
 
               <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1 sm:gap-1.5 lg:gap-2">
