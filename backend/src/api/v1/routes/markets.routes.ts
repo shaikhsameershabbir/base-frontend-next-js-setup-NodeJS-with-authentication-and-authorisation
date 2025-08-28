@@ -59,6 +59,13 @@ router.put('/:id/golden',
     marketsController.toggleGoldenStatus
 );
 
+// Market auto result routes
+router.put('/:id/auto-result',
+    authMiddleware.authenticateToken,
+    authMiddleware.requireRole(['superadmin']),
+    marketsController.toggleAutoResult
+);
+
 // Market ranking routes
 router.get('/ranks/admins',
     authMiddleware.authenticateToken,

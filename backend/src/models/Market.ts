@@ -6,6 +6,7 @@ export interface IMarket extends Document {
     closeTime: string;
     isActive: boolean;
     isGolden: boolean;
+    autoResult: boolean;
     weekDays: number;
     createdAt: Date;
     updatedAt: Date;
@@ -31,6 +32,10 @@ const marketSchema = new Schema<IMarket>({
         default: true
     },
     isGolden: {
+        type: Boolean,
+        default: false
+    },
+    autoResult: {
         type: Boolean,
         default: false
     },

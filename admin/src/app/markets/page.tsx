@@ -164,6 +164,22 @@ export default function MarketPage() {
         }
     };
 
+    const handleToggleAutoResult = async (id: string) => {
+        setActionLoadingId(id);
+        try {
+            // Find the current market to get its current autoResult status
+            const currentMarket = markets.find(m => m._id === id);
+            if (currentMarket) {
+                await marketsAPI.toggleAutoResult(id, !currentMarket.autoResult);
+                await fetchMarkets();
+            }
+        } catch (error) {
+            console.error('Error toggling auto result status:', error);
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
     const handleSyncMarkets = async () => {
         setSyncLoading(true);
         try {
@@ -475,6 +491,7 @@ export default function MarketPage() {
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base hidden lg:table-cell">Week Days</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Status</th>
                                             <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Golden</th>
+                                            <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Auto Result</th>
                                             {isSuperadmin && (
                                                 <th className="text-left py-3 sm:py-4 px-2 sm:px-4 font-semibold text-primary text-sm sm:text-base">Actions</th>
                                             )}
@@ -563,6 +580,38 @@ export default function MarketPage() {
                                                         ) : (
                                                             <span className="ml-1 sm:ml-2 text-xs text-muted-foreground">
                                                                 {market.isGolden ? 'Golden' : 'Regular'}
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 sm:py-4 px-2 sm:px-4">
+                                                    <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${market.autoResult
+                                                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
+                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                                                        }`}>
+                                                        {market.autoResult ? <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" /> : <Clock className="h-3 w-3 sm:h-4 sm:w-4" />}
+                                                        <span className="hidden sm:inline">{market.autoResult ? 'Auto' : 'Manual'}</span>
+                                                        <span className="sm:hidden">{market.autoResult ? 'Auto' : 'Man'}</span>
+                                                        {isSuperadmin ? (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="ml-1 sm:ml-2 p-1 h-5 w-5 sm:h-6 sm:w-6"
+                                                                onClick={() => handleToggleAutoResult(market._id)}
+                                                                disabled={actionLoadingId === market._id}
+                                                                title={market.autoResult ? 'Disable Auto Result' : 'Enable Auto Result'}
+                                                            >
+                                                                {actionLoadingId === market._id ? (
+                                                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-muted" />
+                                                                ) : market.autoResult ? (
+                                                                    <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
+                                                                ) : (
+                                                                    <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 text-purple-500" />
+                                                                )}
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="ml-1 sm:ml-2 text-xs text-muted-foreground">
+                                                                {market.autoResult ? 'Auto' : 'Manual'}
                                                             </span>
                                                         )}
                                                     </span>

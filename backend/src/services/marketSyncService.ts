@@ -141,7 +141,8 @@ export class MarketSyncService {
                 closeTime: close_time,
                 weekDays,
                 isActive: true,
-                isGolden: false
+                isGolden: false,
+                autoResult: false
             });
 
             await newMarket.save();
@@ -159,12 +160,14 @@ export class MarketSyncService {
         activeMarkets: number;
         inactiveMarkets: number;
         goldenMarkets: number;
+        autoResultMarkets: number;
     }> {
         try {
             const totalMarkets = await Market.countDocuments();
             const activeMarkets = await Market.countDocuments({ isActive: true });
             const inactiveMarkets = await Market.countDocuments({ isActive: false });
             const goldenMarkets = await Market.countDocuments({ isGolden: true });
+            const autoResultMarkets = await Market.countDocuments({ autoResult: true });
 
             // Note: In a real implementation, you might want to store last sync time in a separate collection
             // For now, we'll return the current time as a placeholder
@@ -175,7 +178,8 @@ export class MarketSyncService {
                 totalMarkets,
                 activeMarkets,
                 inactiveMarkets,
-                goldenMarkets
+                goldenMarkets,
+                autoResultMarkets
             };
         } catch (error) {
             logger.error('Failed to get sync status:', error);

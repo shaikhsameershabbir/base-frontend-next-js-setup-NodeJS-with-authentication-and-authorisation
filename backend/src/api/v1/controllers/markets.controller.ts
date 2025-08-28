@@ -21,7 +21,7 @@ export class MarketsController {
                 return;
             }
 
-            let query: { isActive?: boolean; _id?: { $in: any[] } } = {};
+            const query: { isActive?: boolean; _id?: { $in: string[] } } = {};
 
             let markets;
 
@@ -37,8 +37,8 @@ export class MarketsController {
 
                 const assignedMarketIds = userAssignments
                     .map(assignment => assignment.marketId)
-                    .filter(marketId => marketId !== null)
-                    .map(marketId => (marketId as any)._id);
+                    .filter((marketId): marketId is NonNullable<typeof marketId> => marketId !== null)
+                    .map(marketId => marketId._id.toString());
 
                 if (assignedMarketIds.length === 0) {
                     res.json({
@@ -86,7 +86,7 @@ export class MarketsController {
                 return;
             }
 
-            let query: { isActive?: boolean; _id?: { $in: any[] }; marketName?: any } = {};
+            const query: { isActive?: boolean; _id?: { $in: unknown[] }; marketName?: unknown } = {};
             if (status) {
                 if (status === 'active') {
                     query.isActive = true;
@@ -120,8 +120,8 @@ export class MarketsController {
 
                 const assignedMarketIds = userAssignments
                     .map(assignment => assignment.marketId)
-                    .filter(marketId => marketId !== null)
-                    .map(marketId => (marketId as any)._id);
+                    .filter((marketId): marketId is NonNullable<typeof marketId> => marketId !== null)
+                    .map(marketId => marketId._id.toString());
 
                 if (assignedMarketIds.length === 0) {
                     // No assigned markets
@@ -225,7 +225,8 @@ export class MarketsController {
                 openTime,
                 closeTime,
                 weekDays: weekDays || 7, // Default to 7 days if not provided
-                isActive: true
+                isActive: true,
+                autoResult: false
             });
 
             await newMarket.save();
@@ -372,6 +373,47 @@ export class MarketsController {
             });
         } catch (error) {
             logger.error('Toggle golden status error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async toggleAutoResult(req: Request, res: Response): Promise<void> {
+        try {
+            const { id } = req.params;
+            const { autoResult } = req.body;
+
+            if (typeof autoResult !== 'boolean') {
+                res.status(400).json({
+                    success: false,
+                    message: 'autoResult must be a boolean value'
+                });
+                return;
+            }
+
+            const updatedMarket = await Market.findByIdAndUpdate(
+                id,
+                { autoResult },
+                { new: true, runValidators: true }
+            );
+
+            if (!updatedMarket) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Market not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: `Market auto result ${autoResult ? 'enabled' : 'disabled'} successfully`,
+                data: { market: updatedMarket }
+            });
+        } catch (error) {
+            logger.error('Toggle auto result error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Internal server error'

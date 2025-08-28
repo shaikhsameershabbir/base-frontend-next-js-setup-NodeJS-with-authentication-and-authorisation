@@ -25,6 +25,7 @@ export interface Market {
     closeTime: string;
     isActive: boolean;
     isGolden: boolean;
+    autoResult: boolean;
     weekDays: number;
     createdBy?: string;
     createdAt: string;
@@ -355,6 +356,11 @@ export const marketsAPI = {
 
     toggleGoldenStatus: async (marketId: string, isGolden: boolean): Promise<ApiResponse<{ market: Market }>> => {
         const response = await apiClient.put(`/markets/${marketId}/golden`, { isGolden });
+        return response.data;
+    },
+
+    toggleAutoResult: async (marketId: string, autoResult: boolean): Promise<ApiResponse<{ market: Market }>> => {
+        const response = await apiClient.put(`/markets/${marketId}/auto-result`, { autoResult });
         return response.data;
     },
 
