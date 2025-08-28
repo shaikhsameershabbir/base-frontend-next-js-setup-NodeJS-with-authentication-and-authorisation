@@ -186,12 +186,17 @@ export default function MarketPage() {
     const formatTime = (timeString: string) => {
         if (!timeString) return 'N/A';
 
-        // If it's already in HH:MM format, return as is
+        // If it's already in HH:MM format, convert to AM/PM
         if (typeof timeString === 'string' && timeString.includes(':')) {
             // Validate time format (HH:MM)
             const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
             if (timeRegex.test(timeString)) {
-                return timeString;
+                // Convert HH:MM to AM/PM format
+                const [hours, minutes] = timeString.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                return `${displayHour}:${minutes} ${ampm}`;
             }
         }
 
