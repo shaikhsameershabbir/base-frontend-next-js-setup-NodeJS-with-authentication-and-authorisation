@@ -7,10 +7,72 @@ import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 
 export class MarketsController {
+    async getAllMarketsWithoutPagination(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            const userRole = authReq.user?.role;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            let query: { isActive?: boolean; _id?: { $in: any[] } } = {};
+
+            let markets;
+
+            // If user is superadmin, show all markets
+            if (userRole === 'superadmin') {
+                markets = await Market.find(query).sort({ createdAt: -1 });
+            } else {
+                // For other roles, get only assigned markets
+                const userAssignments = await UserMarketAssignment.find({
+                    assignedTo: userId,
+                    isActive: true
+                }).populate('marketId');
+
+                const assignedMarketIds = userAssignments
+                    .map(assignment => assignment.marketId)
+                    .filter(marketId => marketId !== null)
+                    .map(marketId => (marketId as any)._id);
+
+                if (assignedMarketIds.length === 0) {
+                    res.json({
+                        success: true,
+                        message: 'No markets assigned to user',
+                        data: []
+                    });
+                    return;
+                }
+
+                // Add assigned market filter to query
+                query._id = { $in: assignedMarketIds };
+
+                markets = await Market.find(query).sort({ createdAt: -1 });
+            }
+
+            res.json({
+                success: true,
+                message: 'All markets retrieved successfully',
+                data: markets
+            });
+        } catch (error) {
+            logger.error('Get all markets error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
     async getAllMarkets(req: Request, res: Response): Promise<void> {
         try {
             const authReq = req as AuthenticatedRequest;
-            const { page = 1, limit = 10, status } = req.query;
+            const { page = 1, limit = 10, status, search } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
             const userId = authReq.user?.userId;
@@ -24,9 +86,18 @@ export class MarketsController {
                 return;
             }
 
-            let query: { status?: string; _id?: { $in: any[] } } = {};
+            let query: { isActive?: boolean; _id?: { $in: any[] }; marketName?: any } = {};
             if (status) {
-                query.status = status as string;
+                if (status === 'active') {
+                    query.isActive = true;
+                } else if (status === 'inactive') {
+                    query.isActive = false;
+                }
+            }
+
+            // Add search functionality
+            if (search && typeof search === 'string' && search.trim() !== '') {
+                query.marketName = { $regex: search.trim(), $options: 'i' }; // Case-insensitive search
             }
 
             let markets;

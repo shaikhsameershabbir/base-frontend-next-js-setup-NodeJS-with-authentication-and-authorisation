@@ -60,7 +60,3 @@ export async function hitApiAndLog(): Promise<ApiResponse | string> {
     }
 }
 
-
-/**
- * 
- */

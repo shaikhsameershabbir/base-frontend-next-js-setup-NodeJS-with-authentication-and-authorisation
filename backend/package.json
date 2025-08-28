@@ -13,6 +13,8 @@
     "cleanup-assignments": "ts-node scripts/cleanupMarketAssignments.ts",
     "cleanup-duplicates": "ts-node scripts/cleanupDuplicateRanks.ts",
     "cleanup-all": "ts-node scripts/cleanupAll.ts",
+    "test-sync": "ts-node scripts/testMarketSync.ts",
+    "test-basic": "ts-node scripts/testSimple.ts",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "postinstall": "husky install",
@@ -37,16 +39,17 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.4.3",
     "nodemon": "^3.1.9",
+    "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.22.0",
-    "rimraf": "^6.0.1"
+    "typescript-eslint": "^8.22.0"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",
     "@types/express-rate-limit": "^5.1.3",
     "@types/helmet": "^0.0.48",
     "@types/mongoose": "^5.11.96",
+    "@types/node-cron": "^3.0.11",
     "axios": "^1.10.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -58,6 +61,7 @@
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.6.0",
     "mongoose": "^8.16.2",
+    "node-cron": "^4.2.1",
     "winston": "^3.17.0"
   },
   "lint-staged": {

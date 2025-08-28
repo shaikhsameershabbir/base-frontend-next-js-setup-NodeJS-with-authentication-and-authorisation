@@ -14,6 +14,11 @@ router.get('/',
     marketsController.getAllMarkets
 );
 
+router.get('/all',
+    authMiddleware.authenticateToken,
+    marketsController.getAllMarketsWithoutPagination
+);
+
 router.get('/:id',
     authMiddleware.authenticateToken,
     marketsController.getMarketById

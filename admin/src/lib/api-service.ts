@@ -140,6 +140,12 @@ export interface ApiResponse<T = any> {
         field: string;
         message: string;
     }>;
+    pagination?: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
 }
 
 export interface LoginResponse {
@@ -305,11 +311,18 @@ export const usersAPI = {
 // ============================================================================
 
 export const marketsAPI = {
-    getMarkets: async (page = 1, limit = 10, status = ''): Promise<ApiResponse<Market[]>> => {
+    // Get all markets without pagination (for client-side handling)
+    getAllMarkets: async (): Promise<ApiResponse<Market[]>> => {
+        const response = await apiClient.get('/markets/all');
+        return response.data;
+    },
+
+    getMarkets: async (page = 1, limit = 10, status = '', search = ''): Promise<ApiResponse<Market[]>> => {
         const params = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
-            ...(status && { status })
+            ...(status && { status }),
+            ...(search && { search })
         });
         const response = await apiClient.get(`/markets?${params}`);
         return response.data;
@@ -342,6 +355,35 @@ export const marketsAPI = {
 
     toggleGoldenStatus: async (marketId: string, isGolden: boolean): Promise<ApiResponse<{ market: Market }>> => {
         const response = await apiClient.put(`/markets/${marketId}/golden`, { isGolden });
+        return response.data;
+    },
+
+    // Market sync methods
+    syncMarkets: async (): Promise<ApiResponse<{
+        created: number;
+        updated: number;
+        errors: string[];
+        timestamp: string;
+    }>> => {
+        const response = await apiClient.post('/market-sync/sync');
+        return response.data;
+    },
+
+    getSyncStatus: async (): Promise<ApiResponse<{
+        sync: {
+            lastSync: string | null;
+            totalMarkets: number;
+            activeMarkets: number;
+            inactiveMarkets: number;
+            goldenMarkets: number;
+        };
+        cron: {
+            marketSyncScheduled: boolean;
+            nextMarketSync: string | null;
+        };
+        timestamp: string;
+    }>> => {
+        const response = await apiClient.get('/market-sync/status');
         return response.data;
     },
 

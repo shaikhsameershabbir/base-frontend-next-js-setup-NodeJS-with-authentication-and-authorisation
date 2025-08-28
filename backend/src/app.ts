@@ -7,6 +7,8 @@ import apiRoutes from './api/v1/routes';
 import { ErrorHandlerMiddleware } from './api/v1/middlewares/errorHandler.middleware';
 import { RateLimiterMiddleware } from './api/v1/middlewares/rateLimiter.middleware';
 import { ValidationMiddleware } from './api/v1/middlewares/validation.middleware';
+import { cronService } from './services/cronService';
+import { logger } from './config/logger';
 
 const app = express();
 const errorHandler = new ErrorHandlerMiddleware();
@@ -77,6 +79,15 @@ const calculateAverageHitsPerMinute = (stats: EndpointStats) => {
 
 // Connect to MongoDB
 connectDB();
+
+// Initialize cron service
+logger.info('Initializing cron service...');
+try {
+    // The cron service will be initialized automatically when imported
+    logger.info('Cron service initialized successfully');
+} catch (error) {
+    logger.error('Failed to initialize cron service:', error);
+}
 
 // Security middleware
 app.use(helmet({
