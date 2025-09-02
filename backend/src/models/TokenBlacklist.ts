@@ -11,13 +11,13 @@ const tokenBlacklistSchema = new Schema<ITokenBlacklist>({
     tokenId: {
         type: String,
         required: true,
-        unique: true,
-        index: true
+        unique: true
+        // Remove index: true since we have compound indexes below
     },
     userId: {
         type: String,
-        required: true,
-        index: true
+        required: true
+        // Remove index: true since we have compound indexes below
     },
     expiresAt: {
         type: Date,
@@ -31,4 +31,5 @@ const tokenBlacklistSchema = new Schema<ITokenBlacklist>({
 // Compound index for efficient queries
 tokenBlacklistSchema.index({ tokenId: 1, userId: 1 });
 
-export const TokenBlacklist = mongoose.model<ITokenBlacklist>('TokenBlacklist', tokenBlacklistSchema); 
+export const TokenBlacklist = mongoose.model<ITokenBlacklist>('TokenBlacklist', tokenBlacklistSchema);
+

@@ -22,6 +22,7 @@ interface DayResult {
 
 interface WeeklyResultData {
     marketId: string;
+    marketName: string; // Include market name for readability
     declaredBy: string;
     weekStartDate: Date;
     weekEndDate: Date;
@@ -218,6 +219,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
             const resultData: WeeklyResultData = {
                 marketId,
+                marketName: market.marketName, // Include market name for readability
                 declaredBy: currentUser.userId,
                 weekStartDate: startDate,
                 weekEndDate: endDate,

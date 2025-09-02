@@ -66,7 +66,6 @@ const userSchema = new Schema<IUser>({
 // Index for efficient queries
 userSchema.index({ parentId: 1, role: 1 });
 userSchema.index({ role: 1 });
-userSchema.index({ username: 1 });
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {

@@ -580,4 +580,89 @@ export const getMarketResults = async (marketId: string): Promise<{ success: boo
 export const getAllResults = async (): Promise<{ success: boolean; message: string; data: Result[] }> => {
     const response = await apiClient.get('/result/all');
     return response.data;
+};
+
+// ============================================================================
+// AUTO RESULT INTERFACES
+// ============================================================================
+
+export interface AutoResultStatus {
+    isRunning: boolean;
+    activeMarkets: number;
+    markets: Array<{
+        _id: string;
+        marketName: string;
+        openTime: string;
+        closeTime: string;
+        weekDays: number;
+    }>;
+}
+
+export interface AutoResultLog {
+    marketId: string;
+    marketName: string;
+    date: string;
+    dayName: string;
+    result: DayResult | null;
+    weekStartDate: string;
+    weekEndDate: string;
+}
+
+// ============================================================================
+// AUTO RESULT API FUNCTIONS
+// ============================================================================
+
+export const getAutoResultStatus = async (): Promise<{ success: boolean; message: string; data: AutoResultStatus }> => {
+    const response = await apiClient.get('/auto-result/status');
+    return response.data;
+};
+
+export const startAutoResultService = async (): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post('/auto-result/start');
+    return response.data;
+};
+
+export const stopAutoResultService = async (): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post('/auto-result/stop');
+    return response.data;
+};
+
+export const restartAutoResultService = async (): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post('/auto-result/restart');
+    return response.data;
+};
+
+export const addMarketToAutoResult = async (marketId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post(`/auto-result/market/${marketId}/add`);
+    return response.data;
+};
+
+export const removeMarketFromAutoResult = async (marketId: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.delete(`/auto-result/market/${marketId}/remove`);
+    return response.data;
+};
+
+export const getMarketAutoResultLogs = async (marketId: string, date?: string): Promise<{ success: boolean; message: string; data: AutoResultLog }> => {
+    const params = date ? { date } : {};
+    const response = await apiClient.get(`/auto-result/market/${marketId}/logs`, { params });
+    return response.data;
+};
+
+export const getAllAutoResultLogs = async (page = 1, limit = 10, marketId?: string, date?: string): Promise<{
+    success: boolean;
+    message: string;
+    data: AutoResultLog[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}> => {
+    const params: any = { page, limit };
+    if (marketId) params.marketId = marketId;
+    if (date) params.date = date;
+
+    const response = await apiClient.get('/auto-result/logs', { params });
+    return response.data;
 }; 

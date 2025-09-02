@@ -13,6 +13,7 @@ import dashboardRoutes from './dashboard.routes';
 import reportsRoutes from './reports.routes';
 import claimRoutes from './claim.routes';
 import marketSyncRoutes from './marketSync.routes';
+import autoResultRoutes from './autoResult.routes';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use(`/dashboard`, dashboardRoutes);
 router.use(`/reports`, reportsRoutes);
 router.use(`/claim`, claimRoutes);
 router.use(`/market-sync`, marketSyncRoutes);
+router.use(`/auto-result`, autoResultRoutes);
 
 export default router; 

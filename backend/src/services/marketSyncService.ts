@@ -142,7 +142,6 @@ export class MarketSyncService {
                 weekDays,
                 isActive: true,
                 isGolden: false,
-                autoResult: false
             });
 
             await newMarket.save();

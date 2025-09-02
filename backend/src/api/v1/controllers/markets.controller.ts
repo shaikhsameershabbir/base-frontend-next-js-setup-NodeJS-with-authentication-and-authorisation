@@ -5,6 +5,7 @@ import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { User } from '../../../models/User';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
+import { autoResultService } from '../../../services/autoResultService';
 
 export class MarketsController {
     async getAllMarketsWithoutPagination(req: Request, res: Response): Promise<void> {
@@ -405,6 +406,17 @@ export class MarketsController {
                     message: 'Market not found'
                 });
                 return;
+            }
+
+            // Integrate with auto result service
+            if (autoResult) {
+                // Add market to auto result service
+                await autoResultService.addMarketToAutoResult(id);
+                logger.info(`Market ${updatedMarket.marketName} added to auto result service`);
+            } else {
+                // Remove market from auto result service
+                await autoResultService.removeMarketFromAutoResult();
+                logger.info(`Market ${updatedMarket.marketName} removed from auto result service`);
             }
 
             res.json({

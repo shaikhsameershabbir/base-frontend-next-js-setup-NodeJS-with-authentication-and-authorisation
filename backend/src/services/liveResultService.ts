@@ -37,25 +37,22 @@ export async function hitApiAndLog(): Promise<ApiResponse | string> {
             headers,
         });
 
-        console.log(response);
+     
         return response.data;
     } catch (error) {
         // Only log actual errors, not expected conditions
         if (axios.isAxiosError(error)) {
             if (error.response?.status !== 404) {
-                console.log(
-                    "[LiveApiWorker]",
-                    error.response?.data || error.message
-                );
+        
                 return error.response?.data || error.message;
             }
         } else if (error instanceof Error) {
-            console.log("[LiveApiWorker]", error.message);
+
             return error.message;
         }
 
         // Handle unknown error types
-        console.log("[LiveApiWorker]", "Unknown error occurred");
+
         return "Unknown error occurred";
     }
 }

@@ -14,7 +14,7 @@ export class UsersController {
             const { page = 1, limit = 10, search, role, parentId } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             const query: any = {};
 
             // Filter by accessible users

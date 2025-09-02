@@ -23,8 +23,8 @@ const activitySchema = new Schema<IActivity>({
     userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
-        index: true
+        required: true
+        // Remove index: true since we have compound indexes below
     },
     activity: {
         type: String,
@@ -34,15 +34,13 @@ const activitySchema = new Schema<IActivity>({
         type: String,
         enum: ['login', 'logout', 'bid', 'win', 'transfer', 'registration', 'balance_update', 'game_play', 'market_action', 'commission', 'other'],
         required: true,
-        default: 'other',
-        index: true
+        default: 'other'
     },
     status: {
         type: String,
         enum: ['success', 'pending', 'failed'],
         required: true,
-        default: 'success',
-        index: true
+        default: 'success'
     },
     otherInfo: {
         type: String,

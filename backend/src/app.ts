@@ -1,14 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { connectDB } from './config/database';
+import mongoose from 'mongoose';
 
 import apiRoutes from './api/v1/routes';
 import { ErrorHandlerMiddleware } from './api/v1/middlewares/errorHandler.middleware';
 import { RateLimiterMiddleware } from './api/v1/middlewares/rateLimiter.middleware';
 import { ValidationMiddleware } from './api/v1/middlewares/validation.middleware';
-import { cronService } from './services/cronService';
 import { logger } from './config/logger';
+import { autoResultService } from './services/autoResultService';
 
 const app = express();
 const errorHandler = new ErrorHandlerMiddleware();
@@ -77,17 +77,33 @@ const calculateAverageHitsPerMinute = (stats: EndpointStats) => {
     return timeDiffInMinutes > 0 ? stats.count / timeDiffInMinutes : stats.count;
 };
 
-// Connect to MongoDB
-connectDB();
+// Database connection is handled in server.ts
 
-// Initialize cron service
-logger.info('Initializing cron service...');
-try {
-    // The cron service will be initialized automatically when imported
-    logger.info('Cron service initialized successfully');
-} catch (error) {
-    logger.error('Failed to initialize cron service:', error);
-}
+// Initialize services after database connection
+export const initializeServices = async (): Promise<void> => {
+    try {
+        // Initialize cron service
+        logger.info('Initializing cron service...');
+        try {
+            // The cron service will be initialized automatically when imported
+            logger.info('Cron service initialized successfully');
+        } catch (error) {
+            logger.error('Failed to initialize cron service:', error);
+        }
+
+        // Initialize auto result service
+        logger.info('Initializing auto result service...');
+        try {
+            await autoResultService.initializeAutoResultMarkets();
+            logger.info('Auto result service initialized successfully');
+        } catch (error) {
+            logger.error('Failed to initialize auto result service:', error);
+        }
+    } catch (error) {
+        logger.error('Failed to initialize services:', error);
+        throw error;
+    }
+};
 
 // Security middleware
 app.use(helmet({
@@ -160,12 +176,18 @@ app.use((req, res, next) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
     res.json({
-        status: 'OK',
+        status: dbStatus === 'connected' ? 'OK' : 'WARNING',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0'
+        version: '1.0.0',
+        database: {
+            status: dbStatus,
+            readyState: mongoose.connection.readyState
+        }
     });
 });
 

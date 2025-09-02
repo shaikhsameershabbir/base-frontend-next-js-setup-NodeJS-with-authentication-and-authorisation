@@ -3,7 +3,8 @@ import { marketSyncService } from '../src/services/marketSyncService';
 import { logger } from '../src/config/logger';
 
 // Load environment variables
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
 async function testMarketSync() {
     try {

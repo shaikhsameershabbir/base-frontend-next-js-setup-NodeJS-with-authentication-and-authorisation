@@ -8,7 +8,7 @@ export class ActivitiesController {
             const { page = 1, limit = 10, user, action } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            let query: any = {};
+            const query: any = {};
 
             // Filter by user if provided
             if (user) {
@@ -83,7 +83,7 @@ export class ActivitiesController {
             const { page = 1, limit = 10, action } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
 
-            let query: any = { user: userId };
+            const query: any = { user: userId };
 
             // Filter by action if provided
             if (action) {

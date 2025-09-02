@@ -18,11 +18,13 @@ interface WeeklyResult {
     friday?: DayResult;
     saturday?: DayResult;
     sunday?: DayResult;
+    [key: string]: DayResult | undefined;
 }
 
 export interface IResult extends Document {
     marketId: object;
-    declaredBy: object;
+    marketName: string; // Human-readable market name for easier identification
+    declaredBy: object | null;
     weekStartDate: Date;
     weekEndDate: Date;
     weekDays: number; // Number of days in the week (5, 6, or 7)
@@ -75,10 +77,15 @@ const resultSchema = new Schema<IResult>({
         required: true,
         ref: 'Market',
     },
+    marketName: {
+        type: String,
+        required: true,
+        trim: true
+    },
     declaredBy: {
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
     },
     weekStartDate: {
         type: Date,
