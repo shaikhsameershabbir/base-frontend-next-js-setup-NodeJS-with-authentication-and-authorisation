@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { PlayCircle, Clock, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import WinningNumbers from "./WinningNumbers";
@@ -20,14 +20,14 @@ interface MarketCardProps {
   marketResult?: any;
 }
 
-const MarketCard: React.FC<MarketCardProps> = ({
+const MarketCard: React.FC<MarketCardProps> = React.memo(({
   market,
   marketResult,
 }) => {
   const router = useRouter();
   const marketStatus = useMarketStatus(market);
 
-  const handlePlayClick = () => {
+  const handlePlayClick = useCallback(() => {
     // Only allow navigation if market is open
     if (!marketStatus?.isOpen) {
       return;
@@ -36,10 +36,10 @@ const MarketCard: React.FC<MarketCardProps> = ({
     // Convert market name to URL-friendly format and navigate
     const gameId = market._id.toLowerCase().replace(/\s+/g, '-');
     router.push(`/games/${gameId}`);
-  };
+  }, [marketStatus?.isOpen, market._id, router]);
 
-  // Format time for display
-  const formatTimeDisplay = (timeStr: string): string => {
+  // Format time for display - memoized to prevent recalculation
+  const formatTimeDisplay = useCallback((timeStr: string): string => {
     try {
       if (!timeStr || typeof timeStr !== 'string') {
         return 'Invalid Time';
@@ -74,10 +74,10 @@ const MarketCard: React.FC<MarketCardProps> = ({
       console.error('Error parsing time:', timeStr, error);
       return timeStr || 'Invalid Time';
     }
-  };
+  }, []);
 
-  // Get status icon based on market status
-  const getStatusIcon = () => {
+  // Get status icon based on market status - memoized
+  const statusIcon = useMemo(() => {
     if (!marketStatus) return null;
 
     switch (marketStatus.status) {
@@ -93,7 +93,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
       default:
         return <span className="text-gray-500">●</span>;
     }
-  };
+  }, [marketStatus?.status]);
 
   return (
     <div className={`rounded-2xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
@@ -101,7 +101,7 @@ const MarketCard: React.FC<MarketCardProps> = ({
         <div className="rounded-2xl flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-            {getStatusIcon()}
+            {statusIcon}
           </div>
 
           {/* Market Status - Only show when closed today */}
@@ -154,14 +154,16 @@ const MarketCard: React.FC<MarketCardProps> = ({
                 }`}
             />
           </button>
-          <span className={`text-sm font-medium mt-2 ${marketStatus?.isOpen ? 'text-black' : 'text-gray-400'
+          <span className={`text-sm font-medium mt-2 ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
             }`}>
-            {marketStatus?.isOpen ? 'Play Now' : 'Not Available'}
+            {marketStatus?.isOpen ? 'Play Now' : 'Market Closed'}
           </span>
         </div>
       </div>
     </div>
   );
-};
+});
+
+MarketCard.displayName = 'MarketCard';
 
 export default MarketCard;

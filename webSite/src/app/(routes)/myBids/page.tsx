@@ -157,7 +157,7 @@ function Page() {
     return claimStatus ? (
       <Badge variant="success">Claimed</Badge>
     ) : (
-      <Badge variant="warning">Not Claimed</Badge>
+      <Badge variant="warning" className="bg-red-500 text-white">Unclaimed</Badge>
     );
   };
 

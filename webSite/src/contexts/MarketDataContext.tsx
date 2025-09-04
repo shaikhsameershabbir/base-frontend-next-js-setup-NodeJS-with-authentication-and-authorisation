@@ -25,9 +25,9 @@ interface MarketResult {
   weekDays: number;
   results: {
     [key: string]: {
-      open: number | null;
-      main: number | null;
-      close: number | null;
+      open: string | null;
+      main: string | null;
+      close: string | null;
       openDeclationTime: string | null;
       closeDeclationTime: string | null;
     };

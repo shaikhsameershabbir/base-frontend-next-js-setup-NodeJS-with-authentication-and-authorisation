@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trophy, Clock, Calendar, AlertCircle } from 'lucide-react';
 
 interface WinningNumbersProps {
@@ -20,16 +20,16 @@ interface MarketResult {
     weekDays: number;
     results: {
         [key: string]: {
-            open: number | null;
-            main: number | null;
-            close: number | null;
+            open: string | null;
+            main: string | null;
+            close: string | null;
             openDeclationTime: string | null;
             closeDeclationTime: string | null;
         };
     };
 }
 
-const WinningNumbers: React.FC<WinningNumbersProps> = ({
+const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
     marketId,
     marketName,
     openTime,
@@ -130,14 +130,14 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
         }
     };
 
-    const getTodayResult = (): { open: number | null; main: number | null; close: number | null } | null => {
+    const getTodayResult = (): { open: string | null; main: string | null; close: string | null } | null => {
         if (!result) return null;
 
         const today = getDayName(currentTime);
         return result.results[today] || null;
     };
 
-    const getPreviousDayResult = (): { open: number | null; main: number | null; close: number | null } | null => {
+    const getPreviousDayResult = (): { open: string | null; main: string | null; close: string | null } | null => {
         if (!result) return null;
 
         // Get yesterday's result
@@ -148,8 +148,8 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
         return result.results[yesterdayName] || null;
     };
 
-    const formatResult = (result: { open: number | null; main: number | null; close: number | null }): string => {
-        if (!result.open && !result.close) return 'No result declared';
+    const formatResult = (result: { open: string | null; main: string | null; close: string | null }): string => {
+        if (!result.open && !result.close) return '***-**-***';
 
         let formatted = '';
         if (result.open) {
@@ -167,18 +167,17 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
         return formatted;
     };
 
-    // Determine what to display
-    const getDisplayContent = () => {
+    // Determine what to display - memoized for performance
+    const displayContent = useMemo(() => {
         const isClosedToday = !isMarketOpenToday();
         const inLoadingWindow = isInLoadingWindow();
         const openTimePassed = hasOpenTimePassed();
 
-        // Check if market is closed today
+        // Check if market is closed today - show ***-**-*** instead of previous result
         if (isClosedToday) {
-            const previousResult = getPreviousDayResult();
             return {
                 type: 'closed',
-                content: previousResult ? formatResult(previousResult) : 'No previous result',
+                content: '***-**-***',
                 icon: <Calendar className="w-4 h-4" />
             };
         }
@@ -204,22 +203,19 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
             } else {
                 return {
                     type: 'no-result',
-                    content: "Result not declared",
+                    content: "***-**-***",
                     icon: <AlertCircle className="w-4 h-4" />
                 };
             }
         }
 
-        // Before open time - show previous day result
-        const previousResult = getPreviousDayResult();
+        // Before open time - show ***-**-*** instead of previous day result
         return {
             type: 'previous',
-            content: previousResult ? formatResult(previousResult) : 'No previous result',
+            content: '***-**-***',
             icon: <Calendar className="w-4 h-4" />
         };
-    };
-
-    const display = getDisplayContent();
+    }, [currentTime, result, openTime, closeTime, weekDays]);
 
     return (
         <div>
@@ -231,19 +227,21 @@ const WinningNumbers: React.FC<WinningNumbersProps> = ({
             ) : (
                 <div className="flex items-center gap-2">
                     <span className="text-green-700 font-bold text-lg">
-                        {display.content}
+                        {displayContent.content}
                     </span>
                 </div>
             )}
 
             {/* Only show "Market closed today" message */}
-            {display.type === 'closed' && (
+            {displayContent.type === 'closed' && (
                 <div className="text-xs text-gray-600 mt-1">
-                    Market closed today • Showing previous result
+                    Market closed today
                 </div>
             )}
         </div>
     );
-};
+});
+
+WinningNumbers.displayName = 'WinningNumbers';
 
 export default WinningNumbers;
