@@ -458,12 +458,14 @@ export class AutoResultService {
                 return;
             }
 
-            // Check if result is for today
+            // Check if result is for today or future (not yesterday or older)
             const resultDate = this.parseResultDate(marketResult.updated_date);
-            if (!this.isSameDay(resultDate, date)) {
-
+            if (!this.isResultForTodayOrFuture(resultDate, date)) {
+                logger.info(`Skipping open result for ${market.marketName}: result date ${marketResult.updated_date} (${resultDate.toDateString()}) is in the past`);
                 return;
             }
+
+            logger.info(`Processing open result for ${market.marketName}: ${marketResult.result} on ${marketResult.updated_date}`);
 
             // Declare the result
             await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
@@ -513,12 +515,14 @@ export class AutoResultService {
                 return;
             }
 
-            // Check if result is for today
+            // Check if result is for today or future (not yesterday or older)
             const resultDate = this.parseResultDate(marketResult.updated_date);
-            if (!this.isSameDay(resultDate, date)) {
-
+            if (!this.isResultForTodayOrFuture(resultDate, date)) {
+                logger.info(`Skipping close result for ${market.marketName}: result date ${marketResult.updated_date} (${resultDate.toDateString()}) is in the past`);
                 return;
             }
+
+            logger.info(`Processing close result for ${market.marketName}: ${marketResult.result} on ${marketResult.updated_date}`);
 
             // Update the existing result with close
             if (existingResult) {
@@ -571,6 +575,9 @@ export class AutoResultService {
         const [day, month, year] = dateString.split('-').map(Number);
         const parsedDate = new Date(year, month - 1, day); // month is 0-indexed
 
+        // Set time to start of day to avoid timezone issues
+        parsedDate.setHours(0, 0, 0, 0);
+
         return parsedDate;
     }
 
@@ -578,11 +585,41 @@ export class AutoResultService {
      * Check if two dates are the same day
      */
     private isSameDay(date1: Date, date2: Date): boolean {
-        const isSame = date1.getDate() === date2.getDate() &&
-            date1.getMonth() === date2.getMonth() &&
-            date1.getFullYear() === date2.getFullYear();
+        // Normalize both dates to start of day
+        const d1 = new Date(date1);
+        const d2 = new Date(date2);
+        d1.setHours(0, 0, 0, 0);
+        d2.setHours(0, 0, 0, 0);
+
+        const isSame = d1.getTime() === d2.getTime();
+
+        // Add logging for debugging
+        if (!isSame) {
+            logger.info(`Date mismatch: ${date1.toDateString()} vs ${date2.toDateString()}`);
+        }
 
         return isSame;
+    }
+
+    /**
+     * Check if result date is today or in the future (not yesterday or older)
+     */
+    private isResultForTodayOrFuture(resultDate: Date, currentDate: Date): boolean {
+        const result = new Date(resultDate);
+        const current = new Date(currentDate);
+
+        // Normalize to start of day
+        result.setHours(0, 0, 0, 0);
+        current.setHours(0, 0, 0, 0);
+
+        // Result should be today or in the future, not yesterday or older
+        const isTodayOrFuture = result.getTime() >= current.getTime();
+
+        if (!isTodayOrFuture) {
+            logger.info(`Result date ${resultDate.toDateString()} is in the past, skipping`);
+        }
+
+        return isTodayOrFuture;
     }
 
     /**
