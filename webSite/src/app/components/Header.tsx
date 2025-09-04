@@ -132,8 +132,8 @@ const Header = () => {
             onClick={openClaimModal}
             className="bg-yellow-600  hover:bg-yellow-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-2xl flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
           >
-            <Gift size={16} className="sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Claim</span>
+            {/* <p className="sm:w-5 sm:h-5 font-bold" >Claim</p> */}
+        Claim
             {claimData && claimData.totalWinning > 0 && (
               <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center font-bold">
                 {claimData.totalWinning}
