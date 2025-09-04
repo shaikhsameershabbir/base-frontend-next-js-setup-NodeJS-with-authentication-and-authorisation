@@ -149,7 +149,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
     };
 
     const formatResult = (result: { open: string | null; main: string | null; close: string | null }): string => {
-        if (!result.open && !result.close) return '***-**-***';
+        if (!result.open && !result.close) return '*** ** ***';
 
         let formatted = '';
         if (result.open) {
@@ -177,7 +177,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
         if (isClosedToday) {
             return {
                 type: 'closed',
-                content: '***-**-***',
+                content: '*** ** ***',
                 icon: <Calendar className="w-4 h-4" />
             };
         }
@@ -203,7 +203,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
             } else {
                 return {
                     type: 'no-result',
-                    content: "***-**-***",
+                    content: "*** ** ***",
                     icon: <AlertCircle className="w-4 h-4" />
                 };
             }
@@ -212,7 +212,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
         // Before open time - show ***-**-*** instead of previous day result
         return {
             type: 'previous',
-            content: '***-**-***',
+            content: '*** ** ***',
             icon: <Calendar className="w-4 h-4" />
         };
     }, [currentTime, result, openTime, closeTime, weekDays]);

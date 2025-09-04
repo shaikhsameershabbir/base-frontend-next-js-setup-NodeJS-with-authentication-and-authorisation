@@ -26,9 +26,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
 }) => {
   const router = useRouter();
   const marketStatus = useMarketStatus(market);
-
   const handlePlayClick = useCallback(() => {
-    // Only allow navigation if market is open
     if (!marketStatus?.isOpen) {
       return;
     }
@@ -97,12 +95,11 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
 
   return (
     <div className={`rounded-2xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
-      <div className="rounded-2xl flex justify-between items-start">
-        <div className="rounded-2xl flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-            {statusIcon}
           </div>
+      <div className="rounded-2xl flex justify-between items-start">
+        <div className="rounded-2xl flex-1">
 
           {/* Market Status - Only show when closed today */}
           {marketStatus?.status === 'closed_today' && (
@@ -125,13 +122,13 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
 
           <div className="flex gap-4 mt-2">
             <div>
-              <p className="text-sm text-gray-600 font-bold">Time Open:</p>
+              <p className="text-sm text-gray-600 font-bold"> Open:</p>
               <p className="text-orange-500 font-semibold">
                 {formatTimeDisplay(market.openTime)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600 font-bold">Time Close:</p>
+              <p className="text-sm text-gray-600 font-bold"> Close:</p>
               <p className="text-orange-500 font-semibold">
                 {formatTimeDisplay(market.closeTime)}
               </p>

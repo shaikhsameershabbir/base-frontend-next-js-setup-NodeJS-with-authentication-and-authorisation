@@ -9,39 +9,11 @@ import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMarketData } from "@/contexts/MarketDataContext";
 
-interface Market {
-    _id: string;
-    marketName: string;
-    openTime: string;
-    closeTime: string;
-    isActive: boolean;
-    isGolden?: boolean;
-    rank?: number;
-    weekDays?: number;
-    isAssigned: boolean;
-    assignmentId: string;
-}
 
-interface MarketResult {
-    _id: string;
-    marketId: string;
-    weekStartDate: string;
-    weekEndDate: string;
-    weekDays: number;
-    results: {
-        [key: string]: {
-            open: string | null;
-            main: string | null;
-            close: string | null;
-            openDeclationTime: string | null;
-            closeDeclationTime: string | null;
-        };
-    };
-}
+
 
 const HomeContent = React.memo(() => {
     const { markets, marketResults, loading, error, fetchData } = useMarketData();
-
     // Memoize sorted markets to prevent unnecessary re-sorting
     const sortedMarkets = useMemo(() => {
         return [...markets].sort((a, b) => {
@@ -52,15 +24,12 @@ const HomeContent = React.memo(() => {
             return a.rank - b.rank;
         });
     }, [markets]);
-
     // Memoize the refresh handler
     const handleRefresh = useCallback(() => {
         fetchData();
     }, [fetchData]);
-
     // Determine if we should use virtualization (for 40+ markets)
     const shouldUseVirtualization = sortedMarkets.length >= 40;
-
     return (
         <main className="min-h-screen bg-gray-100">
             <div className="pt-16">
