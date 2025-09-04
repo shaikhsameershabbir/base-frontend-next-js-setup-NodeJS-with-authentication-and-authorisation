@@ -128,7 +128,7 @@ export const parseSangamBet = (betKey: string): { parts: string[]; type: 'halfSa
 export class WinningCalculationService {
 
     // Calculate winnings for open result declaration
-    static async calculateOpenWinnings(marketId: string, targetDate: Date, openResult: number, openMain: number): Promise<void> {
+    static async calculateOpenWinnings(marketId: string, targetDate: Date, openResult: string, openMain: number): Promise<void> {
         try {
 
             // Create date range for the target date
@@ -169,7 +169,7 @@ export class WinningCalculationService {
                     const { type, rate } = getNumberTypeAndRate(number);
 
                     // Check if bet number matches open result
-                    if (checkBetMatch(number, openResult)) {
+                    if (checkBetMatch(number, parseInt(openResult))) {
                         const winAmount = amount * rate;
                         totalWinAmount += winAmount;
                     }
@@ -206,7 +206,7 @@ export class WinningCalculationService {
     }
 
     // Calculate winnings for close result declaration
-    static async calculateCloseWinnings(marketId: string, targetDate: Date, openResult: number, openMain: number, closeResult: number, closeMain: number): Promise<void> {
+    static async calculateCloseWinnings(marketId: string, targetDate: Date, openResult: string, openMain: number, closeResult: string, closeMain: number): Promise<void> {
         try {
 
             // Create date range for the target date
@@ -258,7 +258,7 @@ export class WinningCalculationService {
                     const { type, rate } = getNumberTypeAndRate(number);
 
                     // Check if bet number matches close result
-                    if (checkBetMatch(number, closeResult)) {
+                    if (checkBetMatch(number, parseInt(closeResult))) {
                         const winAmount = amount * rate;
                         totalWinAmount += winAmount;
                     }
@@ -301,9 +301,9 @@ export class WinningCalculationService {
     static calculateSangamWinnings(
         betKey: string,
         betAmount: number,
-        openResult: number,
+        openResult: string,
         openMain: number,
-        closeResult: number,
+        closeResult: string,
         closeMain: number
     ): number {
         const { type } = parseSangamBet(betKey);
@@ -323,8 +323,8 @@ export class WinningCalculationService {
             }
         } else if (type === 'fullSangam') {
             // Calculate digit sums for open and close results
-            const openDigitSum = calculateDigitSum(openResult);
-            const closeDigitSum = calculateDigitSum(closeResult);
+            const openDigitSum = calculateDigitSum(parseInt(openResult));
+            const closeDigitSum = calculateDigitSum(parseInt(closeResult));
             const combinedDigitSums = `${openDigitSum}${closeDigitSum}`;
 
             // Check for openResult X combinedDigitSums X closeResult pattern

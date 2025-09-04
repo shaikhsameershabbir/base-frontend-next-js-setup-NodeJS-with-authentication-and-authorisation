@@ -8,9 +8,9 @@ import mongoose from 'mongoose';
 import { User } from '../models/User';
 
 interface DayResultData {
-    open: number | null;
-    main: number | null;
-    close: number | null;
+    open: string | null;
+    main: string | null;
+    close: string | null;
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
 }
@@ -68,9 +68,9 @@ export class AutoResultService {
      */
     private analyzeResultFormat(result: string): {
         isCloseResult: boolean;
-        number?: number;
+        number?: string;
         main?: number;
-        closeNumber?: number;
+        closeNumber?: string;
         reason: string;
     } {
         const parts = result.split('-');
@@ -79,10 +79,10 @@ export class AutoResultService {
             // Full close result format: "880-56-152" (number-main-close)
             const number = parseInt(parts[0]);
             const main = parseInt(parts[1]);
-            const closeNumber = parseInt(parts[2]);
+            const closeNumber = parts[2];
 
             // Validate all parts
-            if (number < 100 || number > 999 || main < 0 || main > 99 || closeNumber < 100 || closeNumber > 999) {
+            if (number < 100 || number > 999 || main < 0 || main > 99 || parseInt(closeNumber) < 100 || parseInt(closeNumber) > 999) {
                 return {
                     isCloseResult: false,
                     reason: `Invalid number ranges in 3-part format: ${result}`
@@ -91,10 +91,10 @@ export class AutoResultService {
 
             return {
                 isCloseResult: true,
-                number,
+                number: parts[0],
                 main,
                 closeNumber,
-                reason: `Valid 3-part close result format: ${number}-${main}-${closeNumber}`
+                reason: `Valid 3-part close result format: ${parts[0]}-${main}-${closeNumber}`
             };
         } else if (parts.length === 2) {
             // Open result format: "880-6" (number-main)
@@ -111,9 +111,9 @@ export class AutoResultService {
 
             return {
                 isCloseResult: false,
-                number,
+                number: parts[0],
                 main,
-                reason: `Valid 2-part open result format: ${number}-${main}`
+                reason: `Valid 2-part open result format: ${parts[0]}-${main}`
             };
         } else {
             return {
@@ -380,6 +380,31 @@ export class AutoResultService {
     }
 
     /**
+     * Create or find result document with duplicate key error handling
+     */
+    private async createOrFindResult(resultData: any): Promise<IResult> {
+        try {
+            const newResult = new Result(resultData);
+            await newResult.save();
+            return newResult;
+        } catch (error: any) {
+            // Handle duplicate key error (E11000)
+            if (error.code === 11000) {
+                // Try to find the existing document
+                const existingResult = await Result.findOne({
+                    marketId: resultData.marketId,
+                    weekStartDate: resultData.weekStartDate,
+                    weekEndDate: resultData.weekEndDate
+                });
+                if (existingResult) {
+                    return existingResult;
+                }
+            }
+            throw error;
+        }
+    }
+
+    /**
      * Get week start and end dates
      */
     private getWeekDates(date: Date): { startDate: Date; endDate: Date } {
@@ -424,11 +449,11 @@ export class AutoResultService {
                 return;
             }
 
-            const openNumber = parseInt(openResultParts[0]);
+            const openNumber = openResultParts[0];
             const openMain = parseInt(openResultParts[1]);
 
             // Validate result number
-            if (openNumber < 100 || openNumber > 999) {
+            if (parseInt(openNumber) < 100 || parseInt(openNumber) > 999) {
 
                 return;
             }
@@ -441,7 +466,7 @@ export class AutoResultService {
             }
 
             // Declare the result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
 
 
 
@@ -483,7 +508,7 @@ export class AutoResultService {
             const closeMain = formatAnalysis.main!;
 
             // Validate result number
-            if (closeNumber < 100 || closeNumber > 999) {
+            if (parseInt(closeNumber) < 100 || parseInt(closeNumber) > 999) {
 
                 return;
             }
@@ -563,19 +588,23 @@ export class AutoResultService {
     /**
      * Save open result to database
      */
-    private async saveOpenResult(marketId: string, dayName: string, openNumber: number, openMain: number, date: Date): Promise<void> {
+    private async saveOpenResult(marketId: string, dayName: string, openNumber: string, openMain: number, date: Date, existingResult?: IResult | null): Promise<void> {
         const { startDate, endDate } = this.getWeekDates(date);
 
-        const existingResult = await Result.findOne({
-            marketId,
-            weekStartDate: startDate,
-            weekEndDate: endDate
-        });
+        let resultRecord = existingResult;
 
-        if (existingResult) {
+        if (!resultRecord) {
+            resultRecord = await Result.findOne({
+                marketId,
+                weekStartDate: startDate,
+                weekEndDate: endDate
+            });
+        }
+
+        if (resultRecord) {
             // Update existing result
-            if (!(existingResult.results as Record<string, DayResultData>)[dayName]) {
-                (existingResult.results as Record<string, DayResultData>)[dayName] = {
+            if (!(resultRecord.results as Record<string, DayResultData>)[dayName]) {
+                (resultRecord.results as Record<string, DayResultData>)[dayName] = {
                     open: null,
                     main: null,
                     close: null,
@@ -584,11 +613,11 @@ export class AutoResultService {
                 };
             }
 
-            (existingResult.results as Record<string, DayResultData>)[dayName].open = openNumber;
-            (existingResult.results as Record<string, DayResultData>)[dayName].main = openMain;
-            (existingResult.results as Record<string, DayResultData>)[dayName].openDeclationTime = new Date();
+            (resultRecord.results as Record<string, DayResultData>)[dayName].open = openNumber;
+            (resultRecord.results as Record<string, DayResultData>)[dayName].main = openMain.toString().padStart(2, '0');
+            (resultRecord.results as Record<string, DayResultData>)[dayName].openDeclationTime = new Date();
 
-            await existingResult.save();
+            await resultRecord.save();
 
             // Calculate open winnings
             await WinningCalculationService.calculateOpenWinnings(
@@ -601,7 +630,7 @@ export class AutoResultService {
             // Create new result
             const newDayResult = {
                 open: openNumber,
-                main: openMain,
+                main: openMain.toString().padStart(2, '0'),
                 close: null,
                 openDeclationTime: new Date(),
                 closeDeclationTime: null
@@ -626,8 +655,7 @@ export class AutoResultService {
                 }
             };
 
-            const newResult = new Result(resultData);
-            await newResult.save();
+            resultRecord = await this.createOrFindResult(resultData);
 
             // Calculate open winnings
             await WinningCalculationService.calculateOpenWinnings(
@@ -642,7 +670,7 @@ export class AutoResultService {
     /**
      * Save close result to database
      */
-    private async saveCloseResult(existingResult: IResult, dayName: string, closeNumber: number, closeMain: number, date: Date): Promise<void> {
+    private async saveCloseResult(existingResult: IResult, dayName: string, closeNumber: string, closeMain: number, date: Date): Promise<void> {
         const dayResult = (existingResult.results as Record<string, DayResultData>)[dayName];
 
         if (!dayResult || !dayResult.open) {
@@ -653,11 +681,11 @@ export class AutoResultService {
         dayResult.close = closeNumber;
 
         // Combine main values: open main + close main
-        const openMain = dayResult.main || 0;
+        const openMain = parseInt(dayResult.main || '00');
         const combinedMain = parseInt(openMain.toString() + closeMain.toString());
         const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
 
-        dayResult.main = finalMain;
+        dayResult.main = finalMain.toString().padStart(2, '0');
         dayResult.closeDeclationTime = new Date();
 
         await existingResult.save();
@@ -872,11 +900,11 @@ export class AutoResultService {
                 return;
             }
 
-            const openNumber = parseInt(openResultParts[0]);
+            const openNumber = openResultParts[0];
             const openMain = parseInt(openResultParts[1]);
 
             // Validate result number
-            if (openNumber < 100 || openNumber > 999) {
+            if (parseInt(openNumber) < 100 || parseInt(openNumber) > 999) {
 
                 return;
             }
@@ -889,7 +917,7 @@ export class AutoResultService {
             }
 
             // Declare the missed open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
 
 
 
@@ -931,7 +959,7 @@ export class AutoResultService {
             const closeMain = formatAnalysis.main!;
 
             // Validate result number
-            if (closeNumber < 100 || closeNumber > 999) {
+            if (parseInt(closeNumber) < 100 || parseInt(closeNumber) > 999) {
 
                 return;
             }
@@ -969,8 +997,7 @@ export class AutoResultService {
                     }
                 };
 
-                existingResult = new Result(resultData);
-                await existingResult.save();
+                existingResult = await this.createOrFindResult(resultData);
             }
 
             // Update the existing result with close
@@ -1058,12 +1085,11 @@ export class AutoResultService {
                     }
                 };
 
-                resultRecord = new Result(resultData);
-                await resultRecord.save();
+                resultRecord = await this.createOrFindResult(resultData);
             }
 
             // First declare open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, resultRecord);
 
             // Then declare close result
             if (resultRecord) {
@@ -1200,11 +1226,11 @@ export class AutoResultService {
                 return;
             }
 
-            const openNumber = parseInt(openResultParts[0]);
+            const openNumber = openResultParts[0];
             const openMain = parseInt(openResultParts[1]);
 
             // Validate result number
-            if (openNumber < 100 || openNumber > 999) {
+            if (parseInt(openNumber) < 100 || parseInt(openNumber) > 999) {
 
                 return;
             }
@@ -1217,7 +1243,7 @@ export class AutoResultService {
             }
 
             // Declare the missed open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
 
 
 
@@ -1253,7 +1279,7 @@ export class AutoResultService {
             const closeMain = formatAnalysis.main!;
 
             // Validate result number
-            if (closeNumber < 100 || closeNumber > 999) {
+            if (parseInt(closeNumber) < 100 || parseInt(closeNumber) > 999) {
 
                 return;
             }
@@ -1291,8 +1317,7 @@ export class AutoResultService {
                     }
                 };
 
-                existingResult = new Result(resultData);
-                await existingResult.save();
+                existingResult = await this.createOrFindResult(resultData);
             }
 
             // Update the existing result with close
@@ -1368,12 +1393,11 @@ export class AutoResultService {
                     }
                 };
 
-                resultRecord = new Result(resultData);
-                await resultRecord.save();
+                resultRecord = await this.createOrFindResult(resultData);
             }
 
             // First declare open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, resultRecord);
 
             // Then declare close result
             if (resultRecord) {

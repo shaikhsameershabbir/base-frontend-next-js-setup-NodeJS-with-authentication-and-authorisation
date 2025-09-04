@@ -2,9 +2,9 @@ import { Schema, model, Document } from 'mongoose';
 
 // Interface for individual day result
 interface DayResult {
-    open: number | null;
-    main: number | null;
-    close: number | null;
+    open: string | null;
+    main: string | null;
+    close: string | null;
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
 }
@@ -35,17 +35,17 @@ export interface IResult extends Document {
 
 const dayResultSchema = new Schema<DayResult>({
     open: {
-        type: Number,
+        type: String,
         default: null,
         required: false
     },
     main: {
-        type: Number,
+        type: String,
         default: null,
         required: false
     },
     close: {
-        type: Number,
+        type: String,
         default: null,
         required: false
     },
@@ -106,5 +106,8 @@ const resultSchema = new Schema<IResult>({
         default: {}
     }
 }, { timestamps: true });
+
+// Add unique compound index to prevent duplicate results for the same market and week
+resultSchema.index({ marketId: 1, weekStartDate: 1, weekEndDate: 1 }, { unique: true });
 
 export const Result = model<IResult>('Result', resultSchema); 

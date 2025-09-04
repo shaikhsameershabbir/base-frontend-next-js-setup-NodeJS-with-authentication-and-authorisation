@@ -8,14 +8,14 @@ import { WinningCalculationService } from '../../../services/winningCalculation.
 interface DeclareResultRequest {
     marketId: string;
     resultType: 'open' | 'close';
-    resultNumber: number;
+    resultNumber: string;
     targetDate: string;
 }
 
 interface DayResult {
-    open: number | null;
-    main: number | null;
-    close: number | null;
+    open: string | null;
+    main: string | null;
+    close: string | null;
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
 }
@@ -67,7 +67,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
         const { marketId, resultType, resultNumber, targetDate }: DeclareResultRequest = req.body;
 
         // Validate required fields
-        if (!marketId || !resultType || resultNumber === undefined || resultNumber === null || !targetDate) {
+        if (!marketId || !resultType || !resultNumber || !targetDate) {
             res.status(400).json({
                 success: false,
                 message: 'Market ID, result type, result number, and target date are required'
@@ -84,21 +84,19 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Validate result number (should be a 3-digit panna number)
-        if (resultNumber > 999 || !Number.isInteger(resultNumber)) {
+        // Validate result number (should be a 3-digit panna number as string)
+        if (!/^\d{3}$/.test(resultNumber)) {
             res.status(400).json({
                 success: false,
-                message: 'Result number must be a 3-digit number (100-999)'
+                message: 'Result number must be a 3-digit string (000-999)'
             });
             return;
         }
 
-        // Convert to string for digit manipulation
-        const resultString = resultNumber.toString();
-
         // Calculate main value (sum of digits, if > 9, take last digit)
-        const digitSum = resultString.split('').reduce((sum: number, digit: string) => sum + parseInt(digit), 0);
+        const digitSum = resultNumber.split('').reduce((sum: number, digit: string) => sum + parseInt(digit), 0);
         const mainValue = digitSum > 9 ? digitSum % 10 : digitSum;
+        const mainValueString = mainValue.toString().padStart(2, '0');
 
 
         // Check if market exists
@@ -156,7 +154,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
             if (resultType === 'open') {
                 dayResult.open = resultNumber;
-                dayResult.main = mainValue;
+                dayResult.main = mainValueString;
                 dayResult.openDeclationTime = new Date();
 
                 // Calculate open winnings
@@ -178,12 +176,12 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
                 dayResult.close = resultNumber;
                 // For close, main becomes the combination of open main and close main
-                const openMain = dayResult.main || 0;
+                const openMain = parseInt(dayResult.main || '00');
                 const closeMain = mainValue;
                 const combinedMain = parseInt(openMain.toString() + closeMain.toString());
                 // Ensure main is never more than 2 digits
                 const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
-                dayResult.main = finalMain;
+                dayResult.main = finalMain.toString().padStart(2, '0');
                 dayResult.closeDeclationTime = new Date();
 
 
@@ -211,7 +209,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
             const newDayResult: DayResult = {
                 open: resultNumber,
-                main: mainValue,
+                main: mainValueString,
                 close: null,
                 openDeclationTime: new Date(),
                 closeDeclationTime: null
@@ -229,8 +227,25 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 }
             };
 
-            existingResult = new Result(resultData);
-            await existingResult.save();
+            try {
+                existingResult = new Result(resultData);
+                await existingResult.save();
+            } catch (error: any) {
+                // Handle duplicate key error (E11000)
+                if (error.code === 11000) {
+                    // Try to find the existing document
+                    existingResult = await Result.findOne({
+                        marketId,
+                        weekStartDate: startDate,
+                        weekEndDate: endDate
+                    });
+                    if (!existingResult) {
+                        throw error; // Re-throw if we still can't find it
+                    }
+                } else {
+                    throw error;
+                }
+            }
 
             // Calculate open winnings for new result
             await WinningCalculationService.calculateOpenWinnings(

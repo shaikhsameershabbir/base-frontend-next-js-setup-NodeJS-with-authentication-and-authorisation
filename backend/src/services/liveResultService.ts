@@ -43,7 +43,6 @@ export async function hitApiAndLog(): Promise<ApiResponse | string> {
         // Only log actual errors, not expected conditions
         if (axios.isAxiosError(error)) {
             if (error.response?.status !== 404) {
-        
                 return error.response?.data || error.message;
             }
         } else if (error instanceof Error) {
