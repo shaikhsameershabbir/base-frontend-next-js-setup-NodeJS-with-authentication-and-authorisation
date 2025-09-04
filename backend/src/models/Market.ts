@@ -37,7 +37,7 @@ const marketSchema = new Schema<IMarket>({
     },
     autoResult: {
         type: Boolean,
-        default: false
+        default: true
     },
     weekDays: {
         type: Number,
