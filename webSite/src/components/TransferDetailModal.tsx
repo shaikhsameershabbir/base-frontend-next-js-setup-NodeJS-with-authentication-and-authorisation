@@ -141,19 +141,7 @@ const TransferDetailModal: React.FC<TransferDetailModalProps> = ({ isOpen, onClo
                     <div className="bg-gray-50 rounded-xl p-4">
                         <h4 className="text-sm font-semibold text-gray-800 mb-3">Balance Information</h4>
                         <div className="space-y-4">
-                            <div>
-                                <h5 className="text-sm font-medium text-gray-700 mb-2">From User Balance</h5>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <span className="text-sm text-gray-600">Before:</span>
-                                        <div className="font-semibold text-gray-900">₹{transfer.fromUserBalanceBefore}</div>
-                                    </div>
-                                    <div>
-                                        <span className="text-sm text-gray-600">After:</span>
-                                        <div className="font-semibold text-gray-900">₹{transfer.fromUserBalanceAfter}</div>
-                                    </div>
-                                </div>
-                            </div>
+                           
 
                             <div>
                                 <h5 className="text-sm font-medium text-gray-700 mb-2">To User Balance</h5>

@@ -30,6 +30,7 @@ interface BetData {
   result?: string;
   createdAt: string;
   claimStatus?: boolean;
+  winAmount?: number;
 }
 
 function Page() {
