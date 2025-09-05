@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 interface GameType {
@@ -38,6 +38,8 @@ const GameTypeNavigation: React.FC<GameTypeNavigationProps> = ({
     const router = useRouter();
     const params = useParams();
     const currentMarketId = marketId || params.id;
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const activeButtonRef = useRef<HTMLButtonElement>(null);
 
     const handleGameTypeClick = (gameTypeId: string) => {
         if (currentMarketId) {
@@ -45,20 +47,46 @@ const GameTypeNavigation: React.FC<GameTypeNavigationProps> = ({
         }
     };
 
+    // Scroll active button into view
+    useEffect(() => {
+        if (activeButtonRef.current && scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            const button = activeButtonRef.current;
+
+            const containerRect = container.getBoundingClientRect();
+            const buttonRect = button.getBoundingClientRect();
+
+            // Check if button is outside the visible area
+            const isButtonLeftOfView = buttonRect.left < containerRect.left;
+            const isButtonRightOfView = buttonRect.right > containerRect.right;
+
+            if (isButtonLeftOfView || isButtonRightOfView) {
+                // Calculate the scroll position to center the button
+                const scrollLeft = button.offsetLeft - (container.offsetWidth / 2) + (button.offsetWidth / 2);
+
+                container.scrollTo({
+                    left: scrollLeft,
+                    behavior: 'smooth'
+                });
+            }
+        }
+    }, [currentGameType]);
+
     return (
         <div className={`bg-white rounded-xl shadow-lg p-2 border border-gray-100 ${className}`}>
-            {/* Responsive grid layout */}
-            <div className="grid grid-cols-6 md:grid-cols-12 gap-1">
+            {/* Horizontal scroll layout */}
+            <div ref={scrollContainerRef} className="flex gap-1 overflow-x-auto scrollbar-hide">
                 {gameTypes.map((gameType) => {
                     const isActive = currentGameType === gameType.id;
                     return (
                         <button
                             key={gameType.id}
+                            ref={isActive ? activeButtonRef : null}
                             onClick={() => handleGameTypeClick(gameType.id)}
                             className={`
                                 flex items-center justify-center
-                                px-1 py-1 rounded-2xl border-2 transition-all duration-200
-                                text-[10px] md:text-xs font-medium truncate 
+                                px-2 py-1 rounded-2xl border-2 transition-all duration-200
+                                text-xs font-medium whitespace-nowrap flex-shrink-0
                                 ${isActive
                                     ? `bg-gradient-to-r ${gameType.color} text-white border-transparent shadow-lg scale-105`
                                     : 'bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-100 hover:shadow-md'

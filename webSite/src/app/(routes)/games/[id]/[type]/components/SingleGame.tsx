@@ -45,24 +45,7 @@ const SingleGame: React.FC<SingleGameProps> = ({ marketId, marketName = 'Market'
     return gameTypeNames[type] || 'Single Game';
   };
 
-  // Helper function to get game type description
-  const getGameTypeDescription = (type: string): string => {
-    const gameTypeDescriptions: { [key: string]: string } = {
-      'single': 'Select individual digits to bet on',
-      'jodi-digits': 'Select two digits combination',
-      'single-panna': 'Select single panna numbers',
-      'double-panna': 'Select double panna numbers',
-      'triple-panna': 'Select triple panna numbers',
-      'sp-motor': 'SP Motor game selection',
-      'dp-motor': 'DP Motor game selection',
-      'SP_DP': 'SP/DP combination game',
-      'red-bracket': 'Red bracket game selection',
-      'cycle-panna': 'Cycle panna game selection',
-      'family-panel': 'Family panel game selection',
-      'sangam': 'Sangam game selection'
-    };
-    return gameTypeDescriptions[type] || 'Select individual digits to bet on';
-  };
+
 
   // Store each digit's value as a number (sum of all clicks/inputs)
   const [amounts, setAmounts] = useState<{ [key: number]: number }>({
