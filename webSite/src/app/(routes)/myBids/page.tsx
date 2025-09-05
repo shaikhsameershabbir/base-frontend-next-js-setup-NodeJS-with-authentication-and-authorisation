@@ -276,45 +276,55 @@ function Page() {
               ) : (
                 <div className="space-y-3 p-4">
                   {bets.map((bet) => (
-                    <div key={bet._id} className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900">{bet.marketId.marketName}</h3>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(bet.status, bet.result)}
-                          {getClaimStatusBadge(bet.claimStatus)}
+                    <div key={bet._id} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+                      {/* Header with Market Name and Status Badges */}
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-gray-900 text-base">{bet.marketId.marketName}</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(bet.status, bet.result)}
+                        {getClaimStatusBadge(bet.claimStatus)}
+                        <div className="flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(bet)}
+                            className="flex items-center gap-2 p0 rounded-xl border-gray-300 hover:bg-gray-50"
+                          >
+                            <Eye className="" />
+                            View
+                          </Button>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                      {/* Game Information Grid */}
+                      <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                          <span className="text-gray-600 font-medium">Game Type:</span>
-                          <span className="ml-1 font-semibold capitalize text-gray-900">{bet.type}</span>
+                          <span className="text-gray-600 font-medium text-sm">Game Type:</span>
+                          <div className="font-semibold capitalize text-gray-900 text-sm mt-1">{bet.type}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 font-medium">Bet Type:</span>
-                          <span className="ml-1 font-semibold capitalize text-gray-900">{bet.betType}</span>
+                          <span className="text-gray-600 font-medium text-sm">Bet Type:</span>
+                          <div className="font-semibold capitalize text-gray-900 text-sm mt-1">{bet.betType}</div>
                         </div>
                         <div>
-                          <span className="text-gray-600 font-medium">Amount:</span>
-                          <span className="ml-1 font-bold text-green-600">₹{bet.amount}</span>
+                          <span className="text-gray-600 font-medium text-sm">Amount:</span>
+                          <div className="font-bold text-green-600 text-sm mt-1">₹{bet.amount}</div>
                         </div>
+                        {bet.winAmount && (
+                          <div>
+                            <span className="text-gray-600 font-medium text-sm">Win Amount:</span>
+                            <div className="font-bold text-black text-sm mt-1">₹{bet.winAmount}</div>
+                          </div>
+                        )}
                         <div>
-                          <span className="text-gray-600 font-medium">Date:</span>
-                          <span className="ml-1 text-gray-800">{formatDate(bet.createdAt)}</span>
+                          <span className="text-gray-600 font-medium text-sm">Date:</span>
+                          <div className="text-gray-800 text-sm mt-1">{formatDate(bet.createdAt)}</div>
                         </div>
                       </div>
 
-                      <div className="flex justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(bet)}
-                          className="flex items-center gap-1 rounded-xl"
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Button>
-                      </div>
+                      {/* View Details Button */}
+
                     </div>
                   ))}
                 </div>
@@ -343,6 +353,7 @@ function Page() {
                         <TableHead className="font-semibold text-gray-700">Bet Type</TableHead>
                         <TableHead className="font-semibold text-gray-700">Amount</TableHead>
                         <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700">Win Amount</TableHead>
                         <TableHead className="font-semibold text-gray-700">Claim Status</TableHead>
                         <TableHead className="font-semibold text-gray-700">Date & Time</TableHead>
                         <TableHead className="font-semibold text-gray-700">Actions</TableHead>
@@ -358,6 +369,7 @@ function Page() {
                           <TableCell className="capitalize text-gray-800 font-medium">{bet.betType}</TableCell>
                           <TableCell className="font-semibold text-green-600">₹{bet.amount}</TableCell>
                           <TableCell>{getStatusBadge(bet.status, bet.result)}</TableCell>
+                          <TableCell className="text-xs sm:text-sm text-black">{bet.winAmount ? `₹${bet.winAmount}` : '-'}</TableCell>
                           <TableCell>{getClaimStatusBadge(bet.claimStatus)}</TableCell>
                           <TableCell className="text-sm text-gray-800">
                             {formatDate(bet.createdAt)}
