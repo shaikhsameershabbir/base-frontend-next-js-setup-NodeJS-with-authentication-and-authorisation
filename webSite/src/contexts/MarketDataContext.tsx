@@ -20,17 +20,13 @@ interface Market {
 interface MarketResult {
   _id: string;
   marketId: string;
-  weekStartDate: string;
-  weekEndDate: string;
-  weekDays: number;
+  resultDate: string;
   results: {
-    [key: string]: {
-      open: string | null;
-      main: string | null;
-      close: string | null;
-      openDeclationTime: string | null;
-      closeDeclationTime: string | null;
-    };
+    open: string | null;
+    main: string | null;
+    close: string | null;
+    openDeclationTime: string | null;
+    closeDeclationTime: string | null;
   };
 }
 

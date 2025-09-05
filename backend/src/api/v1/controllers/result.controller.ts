@@ -11,26 +11,14 @@ interface MarketResultItem {
     data?: unknown;
 }
 
-// Helper function to get week start and end dates
-const getWeekDates = (weekDays: number): { startDate: Date; endDate: Date } => {
-    const today = new Date();
-    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    // Calculate Monday of current week
-    const monday = new Date(today);
-    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1; // Monday is 1
-    monday.setDate(today.getDate() - daysToMonday);
-    monday.setHours(0, 0, 0, 0);
-
-    // Calculate end date based on weekDays
-    const endDate = new Date(monday);
-    endDate.setDate(monday.getDate() + weekDays - 1);
-    endDate.setHours(23, 59, 59, 999);
-
-    return { startDate: monday, endDate };
+// Helper function to normalize date to start of day
+const normalizeDate = (date: Date): Date => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
 };
 
-// Get weekly results for a specific market
+// Get results for a specific market and date
 export const getMarketResults = async (req: Request, res: Response): Promise<void> => {
     try {
         const currentUser = (req as AuthenticatedRequest).user;
@@ -40,37 +28,43 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
         }
 
         const { marketId } = req.params;
+        const { date } = req.query; // Optional date parameter, defaults to today
 
         if (!marketId) {
             res.status(400).json({ success: false, message: 'Market ID is required' });
             return;
         }
 
-        // Get market to determine week days
+        // Get market
         const market = await Market.findById(marketId);
         if (!market) {
             res.status(404).json({ success: false, message: 'Market not found' });
             return;
         }
 
-        const { startDate, endDate } = getWeekDates(market.weekDays || 7);
+        // Use provided date or default to today
+        const targetDate = date ? new Date(date as string) : new Date();
+        const normalizedDate = normalizeDate(targetDate);
 
         const result = await Result.findOne({
             marketId,
-            weekStartDate: startDate,
-            weekEndDate: endDate
+            resultDate: normalizedDate
         }).populate('marketId', 'marketName weekDays').populate('declaredBy', 'username');
 
         if (!result) {
             res.json({
                 success: true,
-                message: 'No results found for this week',
+                message: 'No results found for this date',
                 data: {
                     marketId: marketId,
-                    weekStartDate: startDate,
-                    weekEndDate: endDate,
-                    weekDays: market.weekDays || 7,
-                    results: {}
+                    resultDate: normalizedDate,
+                    results: {
+                        open: null,
+                        main: null,
+                        close: null,
+                        openDeclationTime: null,
+                        closeDeclationTime: null
+                    }
                 }
             });
             return;
@@ -78,16 +72,15 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
 
         res.json({
             success: true,
-            message: 'Weekly results retrieved successfully',
+            message: 'Results retrieved successfully',
             data: result
         });
-    } catch (error) {
-        console.error('Get market results error:', error);
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
 
-// Get all weekly results
+// Get all results
 export const getAllResults = async (req: Request, res: Response): Promise<void> => {
     try {
         const currentUser = (req as AuthenticatedRequest).user;
@@ -99,15 +92,14 @@ export const getAllResults = async (req: Request, res: Response): Promise<void> 
         const results = await Result.find()
             .populate('marketId', 'marketName weekDays')
             .populate('declaredBy', 'username')
-            .sort({ weekStartDate: -1 });
+            .sort({ resultDate: -1 });
 
         res.json({
             success: true,
-            message: 'All weekly results retrieved successfully',
+            message: 'All results retrieved successfully',
             data: results
         });
-    } catch (error) {
-        console.error('Get all results error:', error);
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
@@ -116,14 +108,17 @@ export const getAllResults = async (req: Request, res: Response): Promise<void> 
 export const getAllMarketResults = async (req: Request, res: Response): Promise<void> => {
     try {
         const { marketIds } = req.body;
+        const { date } = req.query; // Optional date parameter, defaults to today
 
         // Validate marketIds
         if (!marketIds || !Array.isArray(marketIds) || marketIds.length === 0) {
-            res.status(400).json({ success: false, message: 'Market IDs array is required' });
+            res.status(400).json({ success: false, message: 'No Markets Available!' });
             return;
         }
 
         const results: MarketResultItem[] = [];
+        const targetDate = date ? new Date(date as string) : new Date();
+        const normalizedDate = normalizeDate(targetDate);
 
         // Process each market
         for (const marketId of marketIds) {
@@ -139,14 +134,10 @@ export const getAllMarketResults = async (req: Request, res: Response): Promise<
                     continue;
                 }
 
-                // Get current week dates based on market's weekDays
-                const { startDate, endDate } = getWeekDates(market.weekDays || 7);
-
-                // Find result for the current week
+                // Find result for the specific date
                 const result = await Result.findOne({
                     marketId: marketId,
-                    weekStartDate: startDate,
-                    weekEndDate: endDate
+                    resultDate: normalizedDate
                 });
 
                 if (result) {
@@ -162,15 +153,18 @@ export const getAllMarketResults = async (req: Request, res: Response): Promise<
                         data: {
                             _id: null,
                             marketId: marketId,
-                            weekStartDate: startDate,
-                            weekEndDate: endDate,
-                            weekDays: market.weekDays || 7,
-                            results: {}
+                            resultDate: normalizedDate,
+                            results: {
+                                open: null,
+                                main: null,
+                                close: null,
+                                openDeclationTime: null,
+                                closeDeclationTime: null
+                            }
                         }
                     });
                 }
-            } catch (error) {
-                console.error(`Error fetching results for market ${marketId}:`, error);
+            } catch {
                 results.push({
                     marketId: marketId,
                     success: false,
@@ -183,8 +177,7 @@ export const getAllMarketResults = async (req: Request, res: Response): Promise<
             success: true,
             data: results
         });
-    } catch (error) {
-        console.error('Error fetching all market results:', error);
+    } catch {
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };

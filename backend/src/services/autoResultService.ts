@@ -7,13 +7,6 @@ import * as cron from 'node-cron';
 import mongoose from 'mongoose';
 import { User } from '../models/User';
 
-interface DayResultData {
-    open: string | null;
-    main: string | null;
-    close: string | null;
-    openDeclationTime: Date | null;
-    closeDeclationTime: Date | null;
-}
 
 interface LiveResultItem {
     name: string;
@@ -242,15 +235,13 @@ export class AutoResultService {
             }
 
             if (existingResult) {
-                const dayResult = existingResult.results[dayName];
-
                 // If both open and close are declared, skip
-                if (dayResult?.open && dayResult?.close) {
+                if (existingResult.results.open && existingResult.results.close) {
                     return;
                 }
 
                 // If only open is declared, check for close
-                if (dayResult?.open && !dayResult?.close) {
+                if (existingResult.results.open && !existingResult.results.close) {
                     if (this.isCloseTime(market, currentTime)) {
                         await this.declareCloseResult(market, today, dayName, existingResult);
                     }
@@ -365,15 +356,23 @@ export class AutoResultService {
     }
 
     /**
+     * Normalize date to start of day
+     */
+    private normalizeDate(date: Date): Date {
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+        return normalized;
+    }
+
+    /**
      * Get today's result for a market
      */
     private async getTodayResult(marketId: string, date: Date): Promise<IResult | null> {
-        const { startDate, endDate } = this.getWeekDates(date);
+        const normalizedDate = this.normalizeDate(date);
 
         const result = await Result.findOne({
             marketId,
-            weekStartDate: startDate,
-            weekEndDate: endDate
+            resultDate: normalizedDate
         });
 
         return result;
@@ -382,19 +381,30 @@ export class AutoResultService {
     /**
      * Create or find result document with duplicate key error handling
      */
-    private async createOrFindResult(resultData: any): Promise<IResult> {
+    private async createOrFindResult(resultData: {
+        marketId: string;
+        marketName: string;
+        declaredBy: string | null;
+        resultDate: Date;
+        results: {
+            open: string | null;
+            main: string | null;
+            close: string | null;
+            openDeclationTime: Date | null;
+            closeDeclationTime: Date | null;
+        };
+    }): Promise<IResult> {
         try {
             const newResult = new Result(resultData);
             await newResult.save();
             return newResult;
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Handle duplicate key error (E11000)
-            if (error.code === 11000) {
+            if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
                 // Try to find the existing document
                 const existingResult = await Result.findOne({
                     marketId: resultData.marketId,
-                    weekStartDate: resultData.weekStartDate,
-                    weekEndDate: resultData.weekEndDate
+                    resultDate: resultData.resultDate
                 });
                 if (existingResult) {
                     return existingResult;
@@ -404,22 +414,6 @@ export class AutoResultService {
         }
     }
 
-    /**
-     * Get week start and end dates
-     */
-    private getWeekDates(date: Date): { startDate: Date; endDate: Date } {
-        const currentDay = date.getDay();
-        const monday = new Date(date);
-        const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-        monday.setDate(date.getDate() - daysToMonday);
-        monday.setHours(0, 0, 0, 0);
-
-        const endDate = new Date(monday);
-        endDate.setDate(monday.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-
-        return { startDate: monday, endDate };
-    }
 
     /**
      * Declare open result for a market
@@ -626,33 +620,22 @@ export class AutoResultService {
      * Save open result to database
      */
     private async saveOpenResult(marketId: string, dayName: string, openNumber: string, openMain: number, date: Date, existingResult?: IResult | null): Promise<void> {
-        const { startDate, endDate } = this.getWeekDates(date);
+        const normalizedDate = this.normalizeDate(date);
 
         let resultRecord = existingResult;
 
         if (!resultRecord) {
             resultRecord = await Result.findOne({
                 marketId,
-                weekStartDate: startDate,
-                weekEndDate: endDate
+                resultDate: normalizedDate
             });
         }
 
         if (resultRecord) {
             // Update existing result
-            if (!(resultRecord.results as Record<string, DayResultData>)[dayName]) {
-                (resultRecord.results as Record<string, DayResultData>)[dayName] = {
-                    open: null,
-                    main: null,
-                    close: null,
-                    openDeclationTime: null,
-                    closeDeclationTime: null
-                };
-            }
-
-            (resultRecord.results as Record<string, DayResultData>)[dayName].open = openNumber;
-            (resultRecord.results as Record<string, DayResultData>)[dayName].main = openMain.toString().padStart(2, '0');
-            (resultRecord.results as Record<string, DayResultData>)[dayName].openDeclationTime = new Date();
+            resultRecord.results.open = openNumber;
+            resultRecord.results.main = openMain.toString();
+            resultRecord.results.openDeclationTime = new Date();
 
             await resultRecord.save();
 
@@ -667,7 +650,7 @@ export class AutoResultService {
             // Create new result
             const newDayResult = {
                 open: openNumber,
-                main: openMain.toString().padStart(2, '0'),
+                main: openMain.toString(),
                 close: null,
                 openDeclationTime: new Date(),
                 closeDeclationTime: null
@@ -684,12 +667,8 @@ export class AutoResultService {
                 marketId,
                 marketName, // Include market name for readability
                 declaredBy: superAdminId, // Use superAdmin ID for auto-generated results
-                weekStartDate: startDate,
-                weekEndDate: endDate,
-                weekDays: 7,
-                results: {
-                    [dayName]: newDayResult
-                }
+                resultDate: normalizedDate,
+                results: newDayResult
             };
 
             resultRecord = await this.createOrFindResult(resultData);
@@ -708,22 +687,19 @@ export class AutoResultService {
      * Save close result to database
      */
     private async saveCloseResult(existingResult: IResult, dayName: string, closeNumber: string, closeMain: number, date: Date): Promise<void> {
-        const dayResult = (existingResult.results as Record<string, DayResultData>)[dayName];
-
-        if (!dayResult || !dayResult.open) {
-
+        if (!existingResult.results.open) {
             return;
         }
 
-        dayResult.close = closeNumber;
+        existingResult.results.close = closeNumber;
 
         // Combine main values: open main + close main
-        const openMain = parseInt(dayResult.main || '00');
+        const openMain = parseInt(existingResult.results.main || '0');
         const combinedMain = parseInt(openMain.toString() + closeMain.toString());
         const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
 
-        dayResult.main = finalMain.toString().padStart(2, '0');
-        dayResult.closeDeclationTime = new Date();
+        existingResult.results.main = finalMain.toString();
+        existingResult.results.closeDeclationTime = new Date();
 
         await existingResult.save();
 
@@ -731,7 +707,7 @@ export class AutoResultService {
         await WinningCalculationService.calculateCloseWinnings(
             existingResult.marketId.toString(),
             date,
-            dayResult.open,
+            existingResult.results.open,
             openMain,
             closeNumber,
             closeMain
@@ -837,13 +813,11 @@ export class AutoResultService {
 
 
 
-            if (openTimePassed && (!existingResult || !existingResult.results[dayName]?.open)) {
-
+            if (openTimePassed && (!existingResult || !existingResult.results.open)) {
                 await this.declareMissedOpenResult(market, today, dayName);
             }
 
-            if (closeTimePassed && (!existingResult || !existingResult.results[dayName]?.close)) {
-
+            if (closeTimePassed && (!existingResult || !existingResult.results.close)) {
                 await this.declareMissedCloseResult(market, today, dayName, existingResult);
             }
 
@@ -868,11 +842,8 @@ export class AutoResultService {
             }
 
             // Check if no results exist at all for this day
-            if (existingResult && existingResult.results[dayName]) {
-                const dayResult = existingResult.results[dayName];
-                if (dayResult.open && dayResult.close) {
-                    return;
-                }
+            if (existingResult && existingResult.results.open && existingResult.results.close) {
+                return;
             }
 
             await this.declareCompletelyMissedResults(market, today, dayName, existingResult);
@@ -980,7 +951,6 @@ export class AutoResultService {
             );
 
             if (!marketResult) {
-
                 return;
             }
 
@@ -997,20 +967,18 @@ export class AutoResultService {
 
             // Validate result number
             if (parseInt(closeNumber) < 100 || parseInt(closeNumber) > 999) {
-
                 return;
             }
 
             // Check if result is for today
             const resultDate = this.parseResultDate(marketResult.updated_date);
             if (!this.isSameDay(resultDate, date)) {
-
                 return;
             }
 
             // If no existing result, create one first
             if (!existingResult) {
-                const { startDate, endDate } = this.getWeekDates(date);
+                const normalizedDate = this.normalizeDate(date);
                 const newDayResult = {
                     open: null,
                     main: null,
@@ -1026,12 +994,8 @@ export class AutoResultService {
                     marketId: market._id,
                     marketName: market.marketName, // Include market name for readability
                     declaredBy: superAdminId, // Use superAdmin ID for auto-generated results
-                    weekStartDate: startDate,
-                    weekEndDate: endDate,
-                    weekDays: 7,
-                    results: {
-                        [dayName]: newDayResult
-                    }
+                    resultDate: normalizedDate,
+                    results: newDayResult
                 };
 
                 existingResult = await this.createOrFindResult(resultData);
@@ -1041,8 +1005,6 @@ export class AutoResultService {
             if (existingResult) {
                 await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, date);
             }
-
-
 
         } catch (error) {
             logger.error(`Error declaring missed close result for ${market.marketName}:`, error);
@@ -1072,7 +1034,6 @@ export class AutoResultService {
             );
 
             if (!marketResult) {
-
                 return;
             }
 
@@ -1091,14 +1052,13 @@ export class AutoResultService {
             // Check if result is for today
             const resultDate = this.parseResultDate(marketResult.updated_date);
             if (!this.isSameDay(resultDate, date)) {
-
                 return;
             }
 
             // Create or get existing result record
             let resultRecord = existingResult;
             if (!resultRecord) {
-                const { startDate, endDate } = this.getWeekDates(date);
+                const normalizedDate = this.normalizeDate(date);
                 const newDayResult = {
                     open: null,
                     main: null,
@@ -1114,12 +1074,8 @@ export class AutoResultService {
                     marketId: market._id,
                     marketName: market.marketName, // Include market name for readability
                     declaredBy: superAdminId, // Use superAdmin ID for auto-generated results
-                    weekStartDate: startDate,
-                    weekEndDate: endDate,
-                    weekDays: 7,
-                    results: {
-                        [dayName]: newDayResult
-                    }
+                    resultDate: normalizedDate,
+                    results: newDayResult
                 };
 
                 resultRecord = await this.createOrFindResult(resultData);
@@ -1132,8 +1088,6 @@ export class AutoResultService {
             if (resultRecord) {
                 await this.saveCloseResult(resultRecord, dayName, closeNumber, openMain, date);
             }
-
-
 
         } catch (error) {
             logger.error(`Error declaring completely missed results for ${market.marketName}:`, error);
@@ -1197,13 +1151,11 @@ export class AutoResultService {
             // Check if close time has passed (with 10 minute buffer)
             const closeTimePassed = this.hasTimePassed(market.closeTime, 10);
 
-            if (openTimePassed && (!existingResult || !existingResult.results[dayName]?.open)) {
-
+            if (openTimePassed && (!existingResult || !existingResult.results.open)) {
                 await this.declareMissedOpenResultWithData(market, today, dayName, liveResults);
             }
 
-            if (closeTimePassed && (!existingResult || !existingResult.results[dayName]?.close)) {
-
+            if (closeTimePassed && (!existingResult || !existingResult.results.close)) {
                 await this.declareMissedCloseResultWithData(market, today, dayName, existingResult, liveResults);
             }
 
@@ -1227,11 +1179,8 @@ export class AutoResultService {
             }
 
             // Check if no results exist at all for this day
-            if (existingResult && existingResult.results[dayName]) {
-                const dayResult = existingResult.results[dayName];
-                if (dayResult.open && dayResult.close) {
-                    return;
-                }
+            if (existingResult && existingResult.results.open && existingResult.results.close) {
+                return;
             }
 
             await this.declareCompletelyMissedResultsWithData(market, today, dayName, existingResult, liveResults);
@@ -1330,7 +1279,7 @@ export class AutoResultService {
 
             // If no existing result, create one first
             if (!existingResult) {
-                const { startDate, endDate } = this.getWeekDates(date);
+                const normalizedDate = this.normalizeDate(date);
                 const newDayResult = {
                     open: null,
                     main: null,
@@ -1346,12 +1295,8 @@ export class AutoResultService {
                     marketId: market._id,
                     marketName: market.marketName, // Include market name for readability
                     declaredBy: superAdminId, // Use superAdmin ID for auto-generated results
-                    weekStartDate: startDate,
-                    weekEndDate: endDate,
-                    weekDays: 7,
-                    results: {
-                        [dayName]: newDayResult
-                    }
+                    resultDate: normalizedDate,
+                    results: newDayResult
                 };
 
                 existingResult = await this.createOrFindResult(resultData);
@@ -1406,7 +1351,7 @@ export class AutoResultService {
             // Create or get existing result record
             let resultRecord = existingResult;
             if (!resultRecord) {
-                const { startDate, endDate } = this.getWeekDates(date);
+                const normalizedDate = this.normalizeDate(date);
                 const newDayResult = {
                     open: null,
                     main: null,
@@ -1422,12 +1367,8 @@ export class AutoResultService {
                     marketId: market._id,
                     marketName: market.marketName, // Include market name for readability
                     declaredBy: superAdminId, // Use superAdmin ID for auto-generated results
-                    weekStartDate: startDate,
-                    weekEndDate: endDate,
-                    weekDays: 7,
-                    results: {
-                        [dayName]: newDayResult
-                    }
+                    resultDate: normalizedDate,
+                    results: newDayResult
                 };
 
                 resultRecord = await this.createOrFindResult(resultData);

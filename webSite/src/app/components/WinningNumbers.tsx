@@ -15,17 +15,13 @@ interface WinningNumbersProps {
 interface MarketResult {
     _id: string;
     marketId: string;
-    weekStartDate: string;
-    weekEndDate: string;
-    weekDays: number;
+    resultDate: string;
     results: {
-        [key: string]: {
-            open: string | null;
-            main: string | null;
-            close: string | null;
-            openDeclationTime: string | null;
-            closeDeclationTime: string | null;
-        };
+        open: string | null;
+        main: string | null;
+        close: string | null;
+        openDeclationTime: string | null;
+        closeDeclationTime: string | null;
     };
 }
 
@@ -133,19 +129,38 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
     const getTodayResult = (): { open: string | null; main: string | null; close: string | null } | null => {
         if (!result) return null;
 
-        const today = getDayName(currentTime);
-        return result.results[today] || null;
+        // Check if the result is for today
+        const resultDate = new Date(result.resultDate);
+        const today = new Date();
+
+        // Normalize both dates to start of day for comparison
+        const normalizedResultDate = new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate());
+        const normalizedToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+        if (normalizedResultDate.getTime() === normalizedToday.getTime()) {
+            return result.results;
+        }
+
+        return null;
     };
 
     const getPreviousDayResult = (): { open: string | null; main: string | null; close: string | null } | null => {
         if (!result) return null;
 
-        // Get yesterday's result
+        // Check if the result is for yesterday
+        const resultDate = new Date(result.resultDate);
         const yesterday = new Date(currentTime);
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayName = getDayName(yesterday);
 
-        return result.results[yesterdayName] || null;
+        // Normalize both dates to start of day for comparison
+        const normalizedResultDate = new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate());
+        const normalizedYesterday = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+        if (normalizedResultDate.getTime() === normalizedYesterday.getTime()) {
+            return result.results;
+        }
+
+        return null;
     };
 
     const formatResult = (result: { open: string | null; main: string | null; close: string | null }): string => {

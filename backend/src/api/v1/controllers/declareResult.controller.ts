@@ -20,44 +20,25 @@ interface DayResult {
     closeDeclationTime: Date | null;
 }
 
-interface WeeklyResultData {
+interface ResultData {
     marketId: string;
     marketName: string; // Include market name for readability
     declaredBy: string;
-    weekStartDate: Date;
-    weekEndDate: Date;
-    weekDays: number;
-    results: Record<string, DayResult>;
+    resultDate: Date;
+    results: DayResult;
 }
 
-// Helper function to get week start and end dates
-const getWeekDates = (weekDays: number): { startDate: Date; endDate: Date } => {
-    const today = new Date();
-    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-    // Calculate Monday of current week
-    const monday = new Date(today);
-    const daysToMonday = currentDay === 0 ? 6 : currentDay - 1; // Monday is 1
-    monday.setDate(today.getDate() - daysToMonday);
-    monday.setHours(0, 0, 0, 0);
-
-    // Calculate end date based on weekDays
-    const endDate = new Date(monday);
-    endDate.setDate(monday.getDate() + weekDays - 1);
-    endDate.setHours(23, 59, 59, 999);
-
-    return { startDate: monday, endDate };
-};
-
-// Helper function to get day name from date
-const getDayName = (date: Date): string => {
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    return days[date.getDay()];
+// Helper function to normalize date to start of day
+const normalizeDate = (date: Date): Date => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
 };
 
 // Declare result for a specific market and day
 export const declareResult = async (req: Request, res: Response): Promise<void> => {
     try {
+        console.log(req.body, 'req.body');
         const currentUser = (req as AuthenticatedRequest).user;
         if (!currentUser) {
             res.status(401).json({ success: false, message: 'Authentication required' });
@@ -84,8 +65,11 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             return;
         }
 
-        // Validate result number (should be a 3-digit panna number as string)
-        if (!/^\d{3}$/.test(resultNumber)) {
+        // Ensure resultNumber is a string and validate it (should be a 3-digit panna number)
+        const resultNumberStr = String(resultNumber);
+        console.log('resultNumberStr:', resultNumberStr, 'type:', typeof resultNumberStr);
+
+        if (!/^\d{3}$/.test(resultNumberStr)) {
             res.status(400).json({
                 success: false,
                 message: 'Result number must be a 3-digit string (000-999)'
@@ -94,79 +78,46 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
         }
 
         // Calculate main value (sum of digits, if > 9, take last digit)
-        const digitSum = resultNumber.split('').reduce((sum: number, digit: string) => sum + parseInt(digit), 0);
+
+        const digitSum = resultNumberStr.split('').reduce((sum: number, digit: string) => sum + parseInt(digit), 0);
         const mainValue = digitSum > 9 ? digitSum % 10 : digitSum;
-        const mainValueString = mainValue.toString().padStart(2, '0');
+        const mainValueString = mainValue.toString();
 
 
         // Check if market exists
         const market = await Market.findById(marketId);
+        console.log(market, 'market');
         if (!market) {
             res.status(404).json({ success: false, message: 'Market not found' });
             return;
         }
 
-        // Parse target date
-        const targetDateObj = new Date(targetDate);
-        const dayName = getDayName(targetDateObj);
+        // Parse target date and normalize to start of day
+        const targetDateObj = normalizeDate(new Date(targetDate));
 
-        // Get week dates based on market's week days
-        const { startDate, endDate } = getWeekDates(market.weekDays || 7);
-
-        // Check if target date is within the current week
-        if (targetDateObj < startDate || targetDateObj > endDate) {
-            res.status(400).json({
-                success: false,
-                message: 'Target date must be within the current week'
-            });
-            return;
-        }
-
-        // Find or create weekly result
+        // Find or create result for the specific date
         let existingResult = await Result.findOne({
             marketId,
-            weekStartDate: startDate,
-            weekEndDate: endDate
+            resultDate: targetDateObj
         });
 
         if (existingResult) {
-            // Update existing weekly result
-            if (!existingResult.results) {
-                existingResult.results = {};
-            }
-
-            if (!existingResult.results[dayName as keyof typeof existingResult.results]) {
-                existingResult.results[dayName as keyof typeof existingResult.results] = {
-                    open: null,
-                    main: null,
-                    close: null,
-                    openDeclationTime: null,
-                    closeDeclationTime: null
-                };
-            }
-
-            const dayResult = existingResult.results[dayName as keyof typeof existingResult.results];
-
-            if (!dayResult) {
-                res.status(500).json({ success: false, message: 'Failed to get day result' });
-                return;
-            }
-
+            // Update existing result
             if (resultType === 'open') {
-                dayResult.open = resultNumber;
-                dayResult.main = mainValueString;
-                dayResult.openDeclationTime = new Date();
+                existingResult.results.open = resultNumberStr;
+                existingResult.results.main = mainValueString;
+                existingResult.results.openDeclationTime = new Date();
 
                 // Calculate open winnings
                 await WinningCalculationService.calculateOpenWinnings(
                     marketId,
                     targetDateObj,
-                    resultNumber,
+                    resultNumberStr,
                     mainValue
                 );
             } else {
                 // For close, check if open is already declared
-                if (!dayResult.open || dayResult.open === null) {
+                if (!existingResult.results.open || existingResult.results.open === null) {
                     res.status(400).json({
                         success: false,
                         message: 'Open result must be declared before declaring close result'
@@ -174,31 +125,30 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     return;
                 }
 
-                dayResult.close = resultNumber;
+                existingResult.results.close = resultNumberStr;
                 // For close, main becomes the combination of open main and close main
-                const openMain = parseInt(dayResult.main || '00');
+                const openMain = parseInt(existingResult.results.main || '0');
                 const closeMain = mainValue;
                 const combinedMain = parseInt(openMain.toString() + closeMain.toString());
                 // Ensure main is never more than 2 digits
                 const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
-                dayResult.main = finalMain.toString().padStart(2, '0');
-                dayResult.closeDeclationTime = new Date();
-
+                existingResult.results.main = finalMain.toString();
+                existingResult.results.closeDeclationTime = new Date();
 
                 // Calculate close winnings
                 await WinningCalculationService.calculateCloseWinnings(
                     marketId,
                     targetDateObj,
-                    dayResult.open,
+                    existingResult.results.open,
                     openMain,
-                    resultNumber,
+                    resultNumberStr,
                     closeMain
                 );
             }
 
             await existingResult.save();
         } else {
-            // Create new weekly result
+            // Create new result
             if (resultType === 'close') {
                 res.status(400).json({
                     success: false,
@@ -208,36 +158,31 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             }
 
             const newDayResult: DayResult = {
-                open: resultNumber,
+                open: resultNumberStr,
                 main: mainValueString,
                 close: null,
                 openDeclationTime: new Date(),
                 closeDeclationTime: null
             };
 
-            const resultData: WeeklyResultData = {
+            const resultData: ResultData = {
                 marketId,
                 marketName: market.marketName, // Include market name for readability
                 declaredBy: currentUser.userId,
-                weekStartDate: startDate,
-                weekEndDate: endDate,
-                weekDays: market.weekDays || 7,
-                results: {
-                    [dayName]: newDayResult
-                }
+                resultDate: targetDateObj,
+                results: newDayResult
             };
 
             try {
                 existingResult = new Result(resultData);
                 await existingResult.save();
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Handle duplicate key error (E11000)
-                if (error.code === 11000) {
+                if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
                     // Try to find the existing document
                     existingResult = await Result.findOne({
                         marketId,
-                        weekStartDate: startDate,
-                        weekEndDate: endDate
+                        resultDate: targetDateObj
                     });
                     if (!existingResult) {
                         throw error; // Re-throw if we still can't find it
@@ -251,27 +196,27 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             await WinningCalculationService.calculateOpenWinnings(
                 marketId,
                 targetDateObj,
-                resultNumber,
+                resultNumberStr,
                 mainValue
             );
         }
-
+        console.log(existingResult, 'existingResult');
         res.json({
             success: true,
-            message: `${resultType.charAt(0).toUpperCase() + resultType.slice(1)} result declared successfully for ${dayName}`,
+            message: `${resultType.charAt(0).toUpperCase() + resultType.slice(1)} result declared successfully for ${targetDateObj.toDateString()}`,
             data: {
                 marketId,
-                dayName,
+                resultDate: targetDateObj,
                 resultType,
-                resultNumber,
+                resultNumberStr,
                 declaredBy: currentUser.userId,
                 declarationTime: resultType === 'open' ?
-                    existingResult.results[dayName as keyof typeof existingResult.results]?.openDeclationTime :
-                    existingResult.results[dayName as keyof typeof existingResult.results]?.closeDeclationTime
+                    existingResult.results.openDeclationTime :
+                    existingResult.results.closeDeclationTime
             }
         });
     } catch (error) {
-        console.error('Declare result error:', error);
+        console.log(error, 'error');
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
