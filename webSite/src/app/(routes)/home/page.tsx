@@ -4,7 +4,7 @@ import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
 import VirtualizedMarketGrid from "@/app/components/VirtualizedMarketGrid";
 import Message from "@/app/components/Message";
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMarketData } from "@/contexts/MarketDataContext";
@@ -14,6 +14,18 @@ import { useMarketData } from "@/contexts/MarketDataContext";
 
 const HomeContent = React.memo(() => {
     const { markets, marketResults, loading, error, fetchData } = useMarketData();
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Check if device is mobile
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     // Memoize sorted markets to prevent unnecessary re-sorting
     const sortedMarkets = useMemo(() => {
         return [...markets].sort((a, b) => {
@@ -24,12 +36,14 @@ const HomeContent = React.memo(() => {
             return a.rank - b.rank;
         });
     }, [markets]);
+
     // Memoize the refresh handler
     const handleRefresh = useCallback(() => {
         fetchData();
     }, [fetchData]);
-    // Determine if we should use virtualization (for 40+ markets)
-    const shouldUseVirtualization = sortedMarkets.length >= 40;
+
+    // Determine if we should use virtualization (for 40+ markets and desktop only)
+    const shouldUseVirtualization = sortedMarkets.length >= 40 && !isMobile;
     return (
         <main className="min-h-screen bg-gray-100">
             <div className="pt-16">
@@ -63,11 +77,11 @@ const HomeContent = React.memo(() => {
                             marketResults={marketResults}
                             itemsPerRow={3}
                             itemHeight={200}
-                            containerHeight={600}
+                            containerHeight="calc(100vh - 200px)"
                         />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 pb-20">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 pb-20 scrollbar-hide">
                         {sortedMarkets.map((market) => {
                             const marketResult = marketResults[market._id];
 

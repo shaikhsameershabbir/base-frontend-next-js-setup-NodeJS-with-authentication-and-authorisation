@@ -34,7 +34,7 @@ interface VirtualizedMarketGridProps {
     marketResults: Record<string, MarketResult>;
     itemsPerRow?: number;
     itemHeight?: number;
-    containerHeight?: number;
+    containerHeight?: number | string;
 }
 
 const VirtualizedMarketGrid: React.FC<VirtualizedMarketGridProps> = ({
@@ -42,7 +42,7 @@ const VirtualizedMarketGrid: React.FC<VirtualizedMarketGridProps> = ({
     marketResults,
     itemsPerRow = 3,
     itemHeight = 200,
-    containerHeight = 600
+    containerHeight = "calc(100vh - 200px)"
 }) => {
     const [scrollTop, setScrollTop] = useState(0);
     const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
@@ -50,8 +50,10 @@ const VirtualizedMarketGrid: React.FC<VirtualizedMarketGridProps> = ({
     // Calculate visible range
     const visibleRange = useMemo(() => {
         const startIndex = Math.floor(scrollTop / itemHeight) * itemsPerRow;
+        // For string heights (like calc), use a reasonable estimate for mobile
+        const heightValue = typeof containerHeight === 'string' ? 400 : containerHeight;
         const endIndex = Math.min(
-            startIndex + Math.ceil(containerHeight / itemHeight) * itemsPerRow + itemsPerRow,
+            startIndex + Math.ceil(heightValue / itemHeight) * itemsPerRow + itemsPerRow,
             markets.length
         );
         return { startIndex, endIndex };
@@ -76,8 +78,13 @@ const VirtualizedMarketGrid: React.FC<VirtualizedMarketGridProps> = ({
     return (
         <div
             ref={setContainerRef}
-            className="overflow-auto"
-            style={{ height: containerHeight }}
+            className="overflow-auto overscroll-contain scrollbar-hide"
+            style={{
+                height: containerHeight,
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none', // Firefox
+                msOverflowStyle: 'none' // IE/Edge
+            }}
             onScroll={handleScroll}
         >
             <div style={{ height: totalHeight, position: 'relative' }}>

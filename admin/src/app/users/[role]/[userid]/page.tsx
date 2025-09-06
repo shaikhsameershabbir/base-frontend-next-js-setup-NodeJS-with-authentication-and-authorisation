@@ -162,9 +162,20 @@ export default function UsersPage() {
 
     const handleDeleteUser = async (userId: string) => {
         setDeleteLoadingId(userId);
+        setError(null); // Clear any previous errors
         try {
-            await usersAPI.deleteUser(userId);
-            fetchUsers();
+            const response = await usersAPI.deleteUser(userId);
+            if (response.success) {
+                // Show success message or notification
+                console.log('User deleted successfully');
+                // Refresh the users list
+                fetchUsers();
+            } else {
+                setError(response.message || 'Failed to delete user');
+            }
+        } catch (err) {
+            console.error('Error deleting user:', err);
+            setError('Failed to delete user. Please try again.');
         } finally {
             setDeleteLoadingId(null);
             setConfirmDeleteId(null);
@@ -230,7 +241,7 @@ export default function UsersPage() {
         if (userId === "all") {
             return directParentChild[currentUser.role] === role
         }
-
+        console.log('==-------------------------------->>', currentUser.role)
         // Case 2: userId is a specific user ID - always show button, backend will validate
         return true
     }
@@ -392,9 +403,26 @@ export default function UsersPage() {
                                                     style={{ animationDelay: `${index * 50}ms` }}
                                                 >
                                                     <td className="py-4 px-4">
-                                                        <div className="font-medium text-primary">
-                                                            {user.username}
-                                                        </div>
+
+                                                        {
+                                                            user.role !== 'player' && (
+                                                                <div className="font-medium text-primary"
+                                                                    onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
+                                                                >
+                                                                    {user.username}
+                                                                </div>
+                                                            )
+                                                        }
+                                                        {
+                                                            user.role == 'player' && (
+                                                                <div className="font-medium text-primary"
+
+                                                                >
+                                                                    {user.username}
+                                                                </div>
+                                                            )
+                                                        }
+
                                                     </td>
                                                     <td className="py-4 px-4">
                                                         <Badge className={`text-xs ${getRoleColor(user.role)}`}>
@@ -440,14 +468,21 @@ export default function UsersPage() {
                                                     </td>
                                                     <td className="py-4 px-4">
                                                         <div className="flex items-center gap-2">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
-                                                                onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </Button>
+
+                                                            {
+                                                                user.role !== 'player' && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
+                                                                        onClick={() => router.push(`/users/${getChildRole(role)}/${user._id}`)}
+                                                                    >
+                                                                        <Eye className="h-4 w-4" />
+                                                                    </Button>
+                                                                )
+                                                            }
+
+
                                                             <Button
                                                                 variant="ghost"
                                                                 size="sm"
@@ -465,28 +500,56 @@ export default function UsersPage() {
                                                             >
                                                                 <Building2 className="h-4 w-4" />
                                                             </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="hover:bg-destructive/10 hover:text-destructive text-primary"
-                                                                onClick={() => setConfirmDeleteId(user._id)}
-                                                                disabled={deleteLoadingId === user._id}
-                                                            >
-                                                                {deleteLoadingId === user._id ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                ) : (
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                )}
-                                                            </Button>
+                                                            {/* Only show delete button for superadmin and admin */}
+                                                            {(currentUser?.role === 'superadmin' || currentUser?.role === 'admin') && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="hover:bg-destructive/10 hover:text-destructive text-primary"
+                                                                    onClick={() => setConfirmDeleteId(user._id)}
+                                                                    disabled={deleteLoadingId === user._id}
+                                                                >
+                                                                    {deleteLoadingId === user._id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+                                                            )}
                                                             {/* Confirm Delete Dialog */}
                                                             {confirmDeleteId === user._id && (
-                                                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                                                                    <div className="bg-card rounded-lg p-6 w-full max-w-sm shadow-lg">
+                                                                <div
+                                                                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+                                                                    onClick={() => setConfirmDeleteId(null)}
+                                                                >
+                                                                    <div
+                                                                        className="bg-card rounded-lg p-6 w-full max-w-sm shadow-lg"
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    >
                                                                         <h2 className="text-lg font-bold mb-4">Delete User</h2>
                                                                         <p className="mb-4">Are you sure you want to delete <span className="font-semibold">{user.username}</span> and all their downline? This action cannot be undone.</p>
                                                                         <div className="flex gap-2 justify-end">
-                                                                            <Button onClick={() => setConfirmDeleteId(null)} variant="outline" disabled={deleteLoadingId === user._id}>Cancel</Button>
-                                                                            <Button onClick={() => handleDeleteUser(user._id)} variant="destructive" loading={deleteLoadingId === user._id}>Delete</Button>
+                                                                            <Button
+                                                                                onClick={() => setConfirmDeleteId(null)}
+                                                                                variant="outline"
+                                                                                disabled={deleteLoadingId === user._id}
+                                                                            >
+                                                                                Cancel
+                                                                            </Button>
+                                                                            <Button
+                                                                                onClick={() => handleDeleteUser(user._id)}
+                                                                                variant="destructive"
+                                                                                disabled={deleteLoadingId === user._id}
+                                                                            >
+                                                                                {deleteLoadingId === user._id ? (
+                                                                                    <>
+                                                                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                                        Deleting...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    'Delete'
+                                                                                )}
+                                                                            </Button>
                                                                         </div>
                                                                     </div>
                                                                 </div>

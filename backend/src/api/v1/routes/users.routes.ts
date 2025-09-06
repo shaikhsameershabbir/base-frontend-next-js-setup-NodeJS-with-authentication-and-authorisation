@@ -11,7 +11,6 @@ const usersValidator = new UsersValidator();
 // User management routes (with role-based access)
 router.get('/',
     authMiddleware.authenticateToken,
-
     usersController.getUsers
 );
 
@@ -70,7 +69,6 @@ router.put('/:userId/password',
 // Role-specific user route - must come after the /:userId/* routes
 router.get('/:role/:userId',
     authMiddleware.authenticateToken,
-
     usersController.getUsersByRole
 );
 

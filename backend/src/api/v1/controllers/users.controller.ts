@@ -13,25 +13,18 @@ export class UsersController {
             const authReq = req as AuthenticatedRequest;
             const { page = 1, limit = 10, search, role, parentId } = req.query;
             const skip = (Number(page) - 1) * Number(limit);
-
-             
             const query: any = {};
-
             // Filter by accessible users
-            if (authReq.accessibleUserIds && authReq.accessibleUserIds.length > 0) {
-                query._id = { $in: authReq.accessibleUserIds };
-            }
-
             // Filter by role if specified
             if (role && role !== 'all') {
                 query.role = role;
             }
-
             // Filter by parent if specified
             if (parentId && parentId !== 'all') {
                 query.parentId = parentId;
+            } else {
+                query.parentId = authReq.user?.userId;
             }
-
             // Search functionality
             if (search) {
                 query.$or = [
@@ -39,15 +32,12 @@ export class UsersController {
                     { email: { $regex: search, $options: 'i' } }
                 ];
             }
-
             const users = await User.find(query)
                 .select('-password')
                 .skip(skip)
                 .limit(Number(limit))
                 .sort({ createdAt: -1 });
-
             const total = await User.countDocuments(query);
-
             res.json({
                 success: true,
                 message: 'Users retrieved successfully',

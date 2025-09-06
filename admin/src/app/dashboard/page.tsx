@@ -108,7 +108,7 @@ export default function DashboardPage() {
                 {/* Market Overview */}
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-7">
                     {/* Market Status */}
-                    <Card className="col-span-4 glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
+                    <Card className="col-span-12 glass-card  bg-card/80 dark:bg-card/80 backdrop-blur-lg border border-border">
                         <CardHeader className="pb-6">
                             <CardTitle className="flex items-center gap-3 text-xl font-bold">
                                 <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-tertiary flex items-center justify-center">
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                 </div>
                             ) : stats?.markets && stats.markets.length > 0 ? (
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 md:grid-cols-3">
                                     {stats.markets.map((market, index) => {
                                         const colors = [
                                             'from-green-500/10 to-green-600/10 dark:from-green-900/30 dark:to-green-800/30 border-green-500/20',

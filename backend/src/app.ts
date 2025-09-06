@@ -165,12 +165,59 @@ app.use((req, res, next) => {
     }
 });
 
-// Logging middleware
+// Enhanced logging middleware
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
     const method = req.method;
     const endpoint = req.path;
+    const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+
+    // Create request log object
+    const requestLog: Record<string, any> = {
+        timestamp,
+        method,
+        endpoint,
+        fullUrl,
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
+    };
+
+    // Add query parameters if any
+    if (Object.keys(req.query).length > 0) {
+        requestLog.query = req.query;
+    }
+
+    // Add route parameters if any
+    if (Object.keys(req.params).length > 0) {
+        requestLog.params = req.params;
+    }
+
+    // Add request body for POST/PUT/PATCH requests (but exclude sensitive data)
+    if (['POST', 'PUT', 'PATCH'].includes(method) && req.body) {
+        const sanitizedBody = { ...req.body };
+        // Remove sensitive fields from logging
+        delete sanitizedBody.password;
+        delete sanitizedBody.newPassword;
+        delete sanitizedBody.token;
+        delete sanitizedBody.accessToken;
+        delete sanitizedBody.refreshToken;
+
+        if (Object.keys(sanitizedBody).length > 0) {
+            requestLog.body = sanitizedBody;
+        }
+    }
+
+    // Add headers (but exclude sensitive ones)
+    const headers = { ...req.headers };
+    delete headers.authorization;
+    delete headers.cookie;
+    delete headers['x-api-key'];
+    requestLog.headers = headers;
+
+    // Log the complete request
     console.log(`[${timestamp}] ${method} ${endpoint}`);
+    console.log('Request Details:', requestLog.query);
+
     next();
 });
 
