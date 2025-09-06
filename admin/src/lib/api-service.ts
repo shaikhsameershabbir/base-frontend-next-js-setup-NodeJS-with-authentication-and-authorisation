@@ -11,6 +11,7 @@ export interface User {
     balance: number;
     role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: string;
+    percentage: number;
     isActive: boolean;
     loginSource?: string;
     lastLogin?: string;
@@ -111,6 +112,7 @@ export interface RegisterRequest {
     password: string;
     role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: string;
+    percentage?: number;
 }
 
 export interface UpdateProfileRequest {

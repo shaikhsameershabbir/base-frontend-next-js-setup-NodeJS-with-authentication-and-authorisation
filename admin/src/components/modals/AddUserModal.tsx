@@ -23,6 +23,7 @@ interface UserFormData {
     password: string
     confirmPassword: string
     role: string
+    percentage: string
 }
 
 export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, trigger }: AddUserModalProps) {
@@ -35,7 +36,8 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
         username: "",
         password: "",
         confirmPassword: "",
-        role: role
+        role: role,
+        percentage: "0"
     })
 
     // Define role hierarchy for permission checking
@@ -88,6 +90,13 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
             return false
         }
 
+        // Validate percentage
+        const percentage = Number(formData.percentage)
+        if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+            setError("Percentage must be a number between 0 and 100")
+            return false
+        }
+
         // Check if user has permission to create this role
         if (!canCreateRole()) {
             setError(`You don't have permission to create ${getRoleDisplayName(role)}`)
@@ -112,7 +121,8 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                 username: formData.username.trim(),
                 password: formData.password,
                 role: formData.role as 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player',
-                parentId: parentId // Pass the parentId to the backend
+                parentId: parentId, // Pass the parentId to the backend
+                percentage: Number(formData.percentage)
             }
 
             // Use the generic createUser endpoint instead of role-specific ones
@@ -124,7 +134,8 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                     username: "",
                     password: "",
                     confirmPassword: "",
-                    role: role
+                    role: role,
+                    percentage: "0"
                 })
 
                 // Close modal
@@ -150,7 +161,8 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                 username: "",
                 password: "",
                 confirmPassword: "",
-                role: role
+                role: role,
+                percentage: "0"
             })
             setError(null)
         }
@@ -278,6 +290,28 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                                 )}
                             </Button>
                         </div>
+                    </div>
+
+                    {/* Percentage Field */}
+                    <div className="space-y-2">
+                        <Label htmlFor="percentage" className="text-sm font-medium text-primary">
+                            Percentage (%)
+                        </Label>
+                        <Input
+                            id="percentage"
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="Enter percentage (0-100)"
+                            value={formData.percentage}
+                            onChange={(e) => handleInputChange('percentage', e.target.value)}
+                            className="bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
+                            disabled={loading}
+                        />
+                        <p className="text-xs text-muted">
+                            Percentage value between 0 and 100
+                        </p>
                     </div>
 
                     {/* Error Message */}

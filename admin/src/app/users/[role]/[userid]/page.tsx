@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { getChildRole, getRoleColor, getRoleDisplayName, getRoleIcon, getStatusColor, getStatusIcon } from "@/app/helperFunctions/helper"
 import { EditPasswordModal } from '@/components/modals/EditPasswordModal';
+import { EditUserModal } from '@/components/modals/EditUserModal';
 import { AssignMarketModal } from '@/components/modals/AssignMarketModal';
 
 interface UserWithStats extends UserType {
@@ -61,7 +62,9 @@ export default function UsersPage() {
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editUserModalOpen, setEditUserModalOpen] = useState(false);
     const [editUserId, setEditUserId] = useState<string | null>(null);
+    const [editUser, setEditUser] = useState<{ _id: string; username: string; role: string; percentage: number } | null>(null);
     const [editLoading, setEditLoading] = useState(false);
     const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
     const [toggleLoadingId, setToggleLoadingId] = useState<string | null>(null);
@@ -187,6 +190,16 @@ export default function UsersPage() {
         setEditModalOpen(true);
     };
 
+    const handleEditUser = (user: UserWithStats) => {
+        setEditUser({
+            _id: user._id,
+            username: user.username,
+            role: user.role,
+            percentage: user.percentage || 0
+        });
+        setEditUserModalOpen(true);
+    };
+
     const handleSubmitPassword = async (password: string) => {
         if (!editUserId) return;
         setEditLoading(true);
@@ -210,6 +223,11 @@ export default function UsersPage() {
 
     const handleMarketAssignmentSuccess = () => {
         // Optionally refresh the users list or show a success message
+        fetchUsers();
+    };
+
+    const handleUserUpdated = () => {
+        // Refresh the users list when a user is updated
         fetchUsers();
     };
 
@@ -264,6 +282,12 @@ export default function UsersPage() {
                 onClose={() => { setEditModalOpen(false); setEditUserId(null); }}
                 onSubmit={handleSubmitPassword}
                 loading={editLoading}
+            />
+            <EditUserModal
+                open={editUserModalOpen}
+                onClose={() => { setEditUserModalOpen(false); setEditUser(null); }}
+                user={editUser || { _id: '', username: '', role: '', percentage: 0 }}
+                onUserUpdated={handleUserUpdated}
             />
             <AssignMarketModal
                 open={assignMarketModalOpen}
@@ -389,6 +413,7 @@ export default function UsersPage() {
                                             <tr className="border-b border-border">
                                                 <th className="text-left py-4 px-4 font-semibold text-primary">Username</th>
                                                 <th className="text-left py-4 px-4 font-semibold text-primary">Role</th>
+                                                <th className="text-left py-4 px-4 font-semibold text-primary">Percentage</th>
                                                 <th className="text-left py-4 px-4 font-semibold text-primary">Balance</th>
                                                 <th className="text-left py-4 px-4 font-semibold text-primary">Status</th>
                                                 <th className="text-left py-4 px-4 font-semibold text-primary">Joined</th>
@@ -431,6 +456,11 @@ export default function UsersPage() {
                                                                 {getRoleDisplayName(user.role)}
                                                             </div>
                                                         </Badge>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <span className="font-medium text-blue-600 dark:text-blue-400">
+                                                            {user.percentage || 0}%
+                                                        </span>
                                                     </td>
                                                     <td className="py-4 px-4">
                                                         <span className="font-medium text-green-600 dark:text-green-400">
@@ -487,7 +517,8 @@ export default function UsersPage() {
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 className="hover:bg-card/20 dark:hover:bg-card/30 text-primary hover:text-primary"
-                                                                onClick={() => handleEditPassword(user._id)}
+                                                                onClick={() => handleEditUser(user)}
+                                                                title="Edit User"
                                                             >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>

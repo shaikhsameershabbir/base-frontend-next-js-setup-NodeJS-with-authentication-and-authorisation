@@ -7,6 +7,7 @@ export interface IUser extends Document {
     balance: number;
     role: 'superadmin' | 'admin' | 'distributor' | 'agent' | 'player';
     parentId?: mongoose.Types.ObjectId; // Reference to parent user (admin for distributor, distributor for player)
+    percentage: number; // Percentage from 0 to 100
     isActive: boolean;
     loginSource: string;
     lastLogin: Date;
@@ -46,6 +47,13 @@ const userSchema = new Schema<IUser>({
             // parentId is required for all roles except superadmin
             return this.role !== 'superadmin';
         }
+    },
+    percentage: {
+        type: Number,
+        required: true,
+        min: 0,
+        max: 100,
+        default: 0
     },
     isActive: {
         type: Boolean,

@@ -135,7 +135,7 @@ export class UsersController {
     async createUser(req: Request, res: Response): Promise<void> {
         try {
             const authReq = req as AuthenticatedRequest;
-            const { username, password, role, parentId } = req.body;
+            const { username, password, role, parentId, percentage } = req.body;
 
             // Validate that user is authenticated
             if (!authReq.user) {
@@ -161,6 +161,16 @@ export class UsersController {
                 res.status(403).json({
                     success: false,
                     message: `You can only create users with roles: ${allowedRoles.join(', ')}`
+                });
+                return;
+            }
+
+            // Validate percentage
+            const percentageNum = percentage !== undefined ? Number(percentage) : 0;
+            if (isNaN(percentageNum) || percentageNum < 0 || percentageNum > 100) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Percentage must be a number between 0 and 100'
                 });
                 return;
             }
@@ -211,6 +221,7 @@ export class UsersController {
                 password,
                 role,
                 parentId,
+                percentage: percentageNum,
                 balance: 0,
                 isActive: true,
                 createdBy: currentUser.userId
@@ -252,6 +263,7 @@ export class UsersController {
                 username: newUser.username,
                 role: newUser.role,
                 parentId: newUser.parentId,
+                percentage: newUser.percentage,
                 isActive: newUser.isActive,
                 balance: newUser.balance,
                 createdAt: newUser.createdAt
@@ -287,8 +299,19 @@ export class UsersController {
             }
 
             // Remove sensitive fields from update data
-            delete updateData.password;
             delete updateData.role;
+
+            // Validate percentage if provided
+            if (updateData.percentage !== undefined) {
+                const percentageNum = Number(updateData.percentage);
+                if (isNaN(percentageNum) || percentageNum < 0 || percentageNum > 100) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Percentage must be a number between 0 and 100'
+                    });
+                    return;
+                }
+            }
 
             const updatedUser = await User.findByIdAndUpdate(
                 userId,
