@@ -20,6 +20,8 @@ interface DateFilter {
     createdAt?: {
         $gte?: Date;
         $lte?: Date;
+        $gt?: Date;
+        $lt?: Date;
     };
 }
 
@@ -226,35 +228,61 @@ export class ReportsController {
         const reports: HierarchicalReport[] = [];
 
         for (const user of users) {
-            // Get all players under this user's hierarchy
-            const playerIds = await this.getAllPlayersUnderUser(user._id);
+            let betData;
+            let playerIds: string[] = [];
 
-            if (playerIds.length === 0) {
-                // No players under this user, return empty report
-                reports.push({
-                    userId: user._id,
-                    username: user.username,
-                    role: user.role,
-                    percentage: user.percentage,
-                    totalBet: 0,
-                    totalWin: 0,
-                    claimedAmount: 0,
-                    unclaimedAmount: 0,
-                    totalBets: 0,
-                    winningBets: 0,
-                    commission: 0,
-                    hasChildren: await this.userHasChildren(user._id)
-                });
-                continue;
-            }
+            if (user.role === 'player') {
+                // For players, get their own bet data directly
+                console.log(`Getting bet data for player: ${user.username} (${user._id})`);
+                playerIds = [user._id];
 
-            // Get bet data for all players under this user
-            let betData = await this.getBetDataForUsers(playerIds, dateFilter);
+                // Check if this is the specific player from the bet data
+                if (user._id === '68bc165af01db02f42f2c3a7') {
+                    console.log('This is the specific player with bet data!');
+                    console.log('Date filter:', dateFilter);
+                }
 
-            // If no data with date filter, try without date filter for debugging
-            if (betData.totalBets === 0 && playerIds.length > 0) {
-                console.log(`No bets found with date filter for user ${user.username}, trying without date filter...`);
-                betData = await this.getBetDataForUsers(playerIds, {});
+                betData = await this.getBetDataForUsers(playerIds, dateFilter);
+
+                // If no data with date filter, try without date filter for debugging
+                if (betData.totalBets === 0) {
+                    console.log(`No bets found with date filter for player ${user.username}, trying without date filter...`);
+                    betData = await this.getBetDataForUsers(playerIds, {});
+                }
+
+                console.log(`Final bet data for player ${user.username}:`, betData);
+            } else {
+                // For non-players, get all players under this user's hierarchy
+                playerIds = await this.getAllPlayersUnderUser(user._id);
+                console.log(`Found ${playerIds.length} players under ${user.username} (${user.role})`);
+
+                if (playerIds.length === 0) {
+                    // No players under this user, return empty report
+                    reports.push({
+                        userId: user._id,
+                        username: user.username,
+                        role: user.role,
+                        percentage: user.percentage,
+                        totalBet: 0,
+                        totalWin: 0,
+                        claimedAmount: 0,
+                        unclaimedAmount: 0,
+                        totalBets: 0,
+                        winningBets: 0,
+                        commission: 0,
+                        hasChildren: await this.userHasChildren(user._id)
+                    });
+                    continue;
+                }
+
+                // Get bet data for all players under this user
+                betData = await this.getBetDataForUsers(playerIds, dateFilter);
+
+                // If no data with date filter, try without date filter for debugging
+                if (betData.totalBets === 0 && playerIds.length > 0) {
+                    console.log(`No bets found with date filter for user ${user.username}, trying without date filter...`);
+                    betData = await this.getBetDataForUsers(playerIds, {});
+                }
             }
 
             // Calculate commission: (totalBet / 100) * percentage
@@ -733,6 +761,106 @@ export class ReportsController {
 
         } catch (error) {
             logger.error('Error in test hierarchical reports:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }
+
+    /**
+     * Test specific player data
+     */
+    static async testPlayerData(req: AuthenticatedRequest, res: Response) {
+        try {
+            const currentUser = req.user;
+            if (!currentUser) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            const playerId = req.params.playerId;
+            console.log(`Testing player data for: ${playerId}`);
+
+            // Get player info
+            const player = await User.findById(playerId);
+            if (!player) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Player not found'
+                });
+            }
+
+            console.log(`Player found: ${player.username} (${player.role})`);
+
+            // Get all bets for this player (no date filter)
+            const allBets = await Bet.find({ userId: new mongoose.Types.ObjectId(playerId) });
+            console.log(`Found ${allBets.length} total bets for player`);
+
+            // Get bets with today's date filter
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const todayBets = await Bet.find({
+                userId: new mongoose.Types.ObjectId(playerId),
+                createdAt: { $gte: today, $lt: tomorrow }
+            });
+            console.log(`Found ${todayBets.length} bets for today`);
+
+            // Get bet data using our aggregation
+            const betData = await this.getBetDataForUsers([playerId], {});
+            console.log('Aggregated bet data:', betData);
+
+            // Get bet data with today's filter
+            const todayBetData = await this.getBetDataForUsers([playerId], {
+                createdAt: { $gte: today, $lt: tomorrow }
+            });
+            console.log('Today bet data:', todayBetData);
+
+            return res.json({
+                success: true,
+                data: {
+                    player: {
+                        id: player._id,
+                        username: player.username,
+                        role: player.role,
+                        percentage: player.percentage,
+                        isActive: player.isActive
+                    },
+                    bets: {
+                        total: allBets.length,
+                        today: todayBets.length,
+                        allBets: allBets.map(bet => ({
+                            id: bet._id,
+                            amount: bet.amount,
+                            winAmount: bet.winAmount,
+                            claimStatus: bet.claimStatus,
+                            createdAt: bet.createdAt,
+                            result: bet.result
+                        })),
+                        todayBets: todayBets.map(bet => ({
+                            id: bet._id,
+                            amount: bet.amount,
+                            winAmount: bet.winAmount,
+                            claimStatus: bet.claimStatus,
+                            createdAt: bet.createdAt,
+                            result: bet.result
+                        }))
+                    },
+                    aggregatedData: {
+                        allTime: betData,
+                        today: todayBetData
+                    }
+                }
+            });
+
+        } catch (error) {
+            logger.error('Error in test player data:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Internal server error',

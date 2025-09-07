@@ -28,4 +28,9 @@ router.get('/test-hierarchical-reports', async (req, res) => {
     await ReportsController.testHierarchicalReports(req as AuthenticatedRequest, res);
 });
 
+// Test specific player data
+router.get('/test-player-data/:playerId', async (req, res) => {
+    await ReportsController.testPlayerData(req as AuthenticatedRequest, res);
+});
+
 export default router;
