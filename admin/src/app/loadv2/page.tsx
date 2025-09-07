@@ -819,7 +819,7 @@ export default function LoadV2Page() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-white">Load V2 - JSON View</h1>
-                        <p className="text-gray-400 text-sm sm:text-base">View raw load data in JSON format with filters</p>
+                        <p className="text-gray-400 text-sm sm:text-base">View raw load data in JSON format with hierarchical filtering</p>
                     </div>
                 </div>
 
@@ -916,6 +916,14 @@ export default function LoadV2Page() {
                                 Unique Markets: {data.data.summary.uniqueMarkets}
                                 {cuttingAmount && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}`}
                             </div>
+                            {data.data.filters.hierarchicalFilter && (
+                                <div className="text-sm text-blue-400 mt-2 p-2 bg-blue-900/20 rounded border border-blue-700">
+                                    <strong>Hierarchical Filter Applied:</strong>
+                                    <br />• Current User: {data.data.filters.hierarchicalFilter.currentUser} ({data.data.filters.hierarchicalFilter.currentUserRole})
+                                    <br />• Users in Hierarchy: {data.data.filters.hierarchicalFilter.targetUserIds}
+                                    <br />• Showing only bets from your hierarchy
+                                </div>
+                            )}
                         </CardHeader>
                         <CardContent>
                             <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">

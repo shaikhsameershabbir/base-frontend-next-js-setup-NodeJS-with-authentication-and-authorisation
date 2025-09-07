@@ -21,6 +21,12 @@ export interface LoadV2Filters {
         start: string;
         end: string;
     };
+    hierarchicalFilter?: {
+        currentUser: string;
+        currentUserRole: string;
+        targetUserIds: number;
+        appliedHierarchy: boolean;
+    };
 }
 
 export interface LoadV2Summary {

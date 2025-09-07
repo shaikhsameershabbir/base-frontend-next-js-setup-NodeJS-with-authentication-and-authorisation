@@ -619,19 +619,22 @@ export const getAllLoadsV2 = async (req: Request, res: Response): Promise<void> 
             end = new Date(today.getTime() + 24 * 60 * 60 * 1000);
         }
 
+        // Get current user for hierarchical filtering
+        const currentUser = (req as AuthenticatedRequest).user;
+        if (!currentUser) {
+            res.status(401).json({ success: false, message: 'Authentication required' });
+            return;
+        }
+
         // Build query for bets
         const betQuery: Record<string, unknown> = {
             createdAt: { $gte: start, $lt: end }
         };
 
-        // Add user filter if provided
-        if (userId) {
-            const currentUser = (req as AuthenticatedRequest).user;
-            if (!currentUser) {
-                res.status(401).json({ success: false, message: 'Authentication required' });
-                return;
-            }
+        // Always apply hierarchical filtering based on current user
+        let targetUserIds: string[] = [];
 
+        if (userId && userId !== 'all') {
             // Check if the requested user is accessible to current user
             const accessibleUserIds = await HierarchyService.getAllDownlineUserIds(currentUser.userId, true);
 
@@ -640,10 +643,15 @@ export const getAllLoadsV2 = async (req: Request, res: Response): Promise<void> 
                 return;
             }
 
-            // If userId is provided, get all downline users for hierarchical aggregation
-            const selectedUserDownline = await HierarchyService.getAllDownlineUserIds(userId as string, true);
-            betQuery.userId = { $in: selectedUserDownline };
+            // If specific userId is provided, get all downline users for hierarchical aggregation
+            targetUserIds = await HierarchyService.getAllDownlineUserIds(userId as string, true);
+        } else {
+            // If no specific userId or 'all', get all users under current user's hierarchy
+            targetUserIds = await HierarchyService.getAllDownlineUserIds(currentUser.userId, true);
         }
+
+        // Apply user filter to bet query
+        betQuery.userId = { $in: targetUserIds };
 
         // Add market filter if provided
         if (marketId) {
@@ -666,6 +674,12 @@ export const getAllLoadsV2 = async (req: Request, res: Response): Promise<void> 
                     dateRange: {
                         start: start.toISOString(),
                         end: end.toISOString()
+                    },
+                    hierarchicalFilter: {
+                        currentUser: currentUser.username,
+                        currentUserRole: currentUser.role,
+                        targetUserIds: targetUserIds.length,
+                        appliedHierarchy: true
                     }
                 },
                 summary: {
