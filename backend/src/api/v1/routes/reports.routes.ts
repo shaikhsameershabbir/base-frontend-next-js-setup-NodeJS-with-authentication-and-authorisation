@@ -8,14 +8,24 @@ const authMiddleware = new AuthMiddleware();
 // Apply authentication middleware to all routes
 router.use(authMiddleware.authenticateToken.bind(authMiddleware));
 
-// Get comprehensive bet reports
-router.get('/bet-reports', async (req, res) => {
-    await ReportsController.getBetReports(req as AuthenticatedRequest, res);
+// Get hierarchical reports with drill-down capability
+router.get('/hierarchical-reports', async (req, res) => {
+    await ReportsController.getHierarchicalReports(req as AuthenticatedRequest, res);
 });
 
 // Get real-time bet statistics
 router.get('/bet-stats', async (req, res) => {
     await ReportsController.getBetStats(req as AuthenticatedRequest, res);
+});
+
+// Debug endpoint to check bet data
+router.get('/debug-bets', async (req, res) => {
+    await ReportsController.debugBets(req as AuthenticatedRequest, res);
+});
+
+// Test hierarchical reports without date filter
+router.get('/test-hierarchical-reports', async (req, res) => {
+    await ReportsController.testHierarchicalReports(req as AuthenticatedRequest, res);
 });
 
 export default router;

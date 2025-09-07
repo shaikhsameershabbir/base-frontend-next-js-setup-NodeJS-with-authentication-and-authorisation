@@ -1,9 +1,7 @@
 'use client';
 
 import { AdminLayout } from '@/components/layout/admin-layout';
-import { useReports } from '@/hooks/useReports';
 import { useAuth } from '@/hooks/useAuth';
-import { ReportsStats } from '@/components/reports/ReportsStats';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,167 +17,128 @@ import {
     Download,
     Eye,
     Shield,
-    ArrowLeft
+    BarChart3,
+    ArrowLeft,
+    DollarSign
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { AdminReport, BetReport } from '@/lib/reportsApi';
-import apiClient from '@/lib/api-client';
+import { useReports } from '@/hooks/useReports';
+import { getRoleDisplayName, getRoleColor, getRoleIcon } from '@/app/helperFunctions/helper';
+
+interface HierarchicalReport {
+    userId: string;
+    username: string;
+    role: string;
+    percentage: number;
+    totalBet: number;
+    totalWin: number;
+    claimedAmount: number;
+    unclaimedAmount: number;
+    totalBets: number;
+    winningBets: number;
+    commission: number;
+    hasChildren: boolean;
+}
+
+interface ReportsData {
+    reports: HierarchicalReport[];
+    summary: {
+        totalBet: number;
+        totalWin: number;
+        claimedAmount: number;
+        unclaimedAmount: number;
+        totalBets: number;
+        winningBets: number;
+        totalUsers: number;
+        totalCommission: number;
+    };
+    filters: {
+        startDate: string | null;
+        endDate: string | null;
+    };
+    currentLevel: {
+        role: string;
+        parentId?: string;
+        parentName?: string;
+    };
+}
 
 export default function ReportsPage() {
     const { user, loading: authLoading, isAuthenticated } = useAuth();
-    const { reports, stats, loading, error, fetchReports, fetchStats, refreshReports } = useReports();
+    const { reports, stats, loading, error, fetchReports, fetchStats } = useReports();
 
-    // Set default dates to today
-    const getTodayDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    };
-
+    // Date filters
+    const getTodayDate = () => new Date().toISOString().split('T')[0];
     const [startDate, setStartDate] = useState(getTodayDate());
     const [endDate, setEndDate] = useState(getTodayDate());
-    const [expandedAdmins, setExpandedAdmins] = useState<Set<string>>(new Set());
 
-    // New state for drill-down functionality
-    const [drillDownLevel, setDrillDownLevel] = useState<'main' | 'distributors' | 'agents' | 'players'>('main');
-    const [drillDownData, setDrillDownData] = useState<any[]>([]);
-    const [drillDownParent, setDrillDownParent] = useState<{ id: string, username: string, role: string } | null>(null);
+    // Navigation state for drill-down
+    const [navigationStack, setNavigationStack] = useState<Array<{
+        parentId: string;
+        parentName: string;
+        role: string;
+    }>>([]);
 
-    // Auto-apply filters when dates change
+    // Auto-fetch data when filters change
     useEffect(() => {
-        if (isAuthenticated && user && (startDate || endDate)) {
+        if (isAuthenticated && user) {
             const params: any = {};
             if (startDate) params.startDate = startDate;
             if (endDate) params.endDate = endDate;
 
-            // Only fetch if we have at least one date
-            if (startDate || endDate) {
-                fetchReports(params);
-            }
-        }
-    }, [startDate, endDate, isAuthenticated, user, fetchReports]);
+            // Use the last navigation item's parentId, or undefined for root level
+            const currentParentId = navigationStack.length > 0
+                ? navigationStack[navigationStack.length - 1].parentId
+                : undefined;
 
-    // Fetch data when component mounts and user is authenticated
-    useEffect(() => {
-        if (isAuthenticated && user) {
-            // Fetch with today's date by default
-            fetchReports({ startDate: getTodayDate(), endDate: getTodayDate() });
+            if (currentParentId) {
+                params.parentId = currentParentId;
+            }
+
+            fetchReports(params);
             fetchStats();
         }
-    }, [isAuthenticated, user, fetchReports, fetchStats]);
+    }, [startDate, endDate, navigationStack, isAuthenticated, user, fetchReports, fetchStats]);
 
     const handleFilter = () => {
         const params: any = {};
         if (startDate) params.startDate = startDate;
         if (endDate) params.endDate = endDate;
 
-        // Validate that we have at least one date filter
-        if (!startDate && !endDate) {
-            // If no dates, default to today
-            params.startDate = getTodayDate();
-            params.endDate = getTodayDate();
-            setStartDate(getTodayDate());
-            setEndDate(getTodayDate());
+        const currentParentId = navigationStack.length > 0
+            ? navigationStack[navigationStack.length - 1].parentId
+            : undefined;
+
+        if (currentParentId) {
+            params.parentId = currentParentId;
         }
 
-        if (drillDownLevel === 'main') {
-            fetchReports(params);
-        } else {
-            // Apply filters to drill-down data
-            // For now, just refresh the drill-down data with current filters
-            // In a real implementation, you might want to re-fetch the drill-down data with filters
-        }
+        fetchReports(params);
     };
 
     const handleReset = () => {
         const today = getTodayDate();
         setStartDate(today);
         setEndDate(today);
+        setNavigationStack([]); // Reset navigation to root level
+    };
 
-        if (drillDownLevel === 'main') {
-            fetchReports({ startDate: today, endDate: today });
-        } else {
-            // Reset filters for drill-down data
+    const handleDrillDown = (report: HierarchicalReport) => {
+        if (report.hasChildren) {
+            setNavigationStack(prev => [...prev, {
+                parentId: report.userId,
+                parentName: report.username,
+                role: report.role
+            }]);
         }
     };
 
-    const toggleAdminExpansion = (adminId: string) => {
-        const newExpanded = new Set(expandedAdmins);
-        if (newExpanded.has(adminId)) {
-            newExpanded.delete(adminId);
-        } else {
-            newExpanded.add(adminId);
-        }
-        setExpandedAdmins(newExpanded);
+    const handleGoBack = () => {
+        setNavigationStack(prev => prev.slice(0, -1));
     };
 
-    // New function for drill-down functionality
-    const drillDownToNextLevel = async (userId: string, username: string, role: string) => {
-        try {
-            // Prevent drilling down if we're already at players level
-            if (drillDownLevel === 'players' || role === 'player') {
-                return;
-            }
-
-            // Determine the next level based on current role
-            let nextLevel: 'distributors' | 'agents' | 'players';
-            let nextRole: string;
-
-            if (role === 'admin') {
-                nextLevel = 'distributors';
-                nextRole = 'distributor';
-            } else if (role === 'distributor') {
-                nextLevel = 'agents';
-                nextRole = 'agent';
-            } else if (role === 'agent') {
-                nextLevel = 'players';
-                nextRole = 'player';
-            } else {
-                return; // No next level for players
-            }
-
-            // Fetch users at the next level using the existing users API
-            const response = await apiClient.get(`/users?role=${nextRole}&parentId=${userId}`);
-
-            if (response.status === 200) {
-                const data = response.data;
-                const nextLevelUsers = data.data || [];
-
-                // For each user at the next level, get their bet data with current date filters
-                const nextLevelReports = await Promise.all(
-                    nextLevelUsers.map(async (nextUser: any) => {
-                        const betResponse = await apiClient.get(`/reports/bet-reports?startDate=${startDate}&endDate=${endDate}`);
-
-                        if (betResponse.status === 200) {
-                            const betData = betResponse.data;
-                            return betData.data.reports[0]; // Get the first (and only) report
-                        }
-                        return null;
-                    })
-                );
-
-                const validReports = nextLevelReports.filter(report => report !== null);
-
-                setDrillDownData(validReports);
-                setDrillDownLevel(nextLevel);
-                setDrillDownParent({ id: userId, username, role });
-            }
-        } catch (error) {
-            console.error('Error drilling down:', error);
-        }
-    };
-
-    // Function to go back to main level
-    const goBackToMain = () => {
-        setDrillDownLevel('main');
-        setDrillDownData([]);
-        setDrillDownParent(null);
-    };
-
-    // Helper function to check if Actions column should be shown
-    const shouldShowActions = () => {
-        if (drillDownLevel === 'players') return false;
-        if (drillDownLevel === 'main' && user?.role === 'agent') return false;
-        return true;
+    const handleGoToRoot = () => {
+        setNavigationStack([]);
     };
 
     const formatCurrency = (amount: number) => {
@@ -236,34 +195,42 @@ export default function ReportsPage() {
         );
     }
 
+    const reportsData: ReportsData = reports || {
+        reports: [],
+        summary: {
+            totalBet: 0,
+            totalWin: 0,
+            claimedAmount: 0,
+            unclaimedAmount: 0,
+            totalBets: 0,
+            winningBets: 0,
+            totalUsers: 0,
+            totalCommission: 0
+        },
+        filters: {
+            startDate: null,
+            endDate: null
+        },
+        currentLevel: {
+            role: 'admin',
+            parentId: undefined,
+            parentName: undefined
+        }
+    };
+
     return (
         <AdminLayout>
             <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-primary">User Reports</h1>
-                        <p className="text-secondary">Comprehensive bet calculations and analytics based on user hierarchy</p>
+                        <h1 className="text-3xl font-bold text-primary">Hierarchical Reports</h1>
+                        <p className="text-secondary">Drill down through user hierarchy to view consolidated bet data and commissions</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button onClick={drillDownLevel === 'main' ? () => {
-                            // Refresh with current filters
-                            const params: any = {};
-                            if (startDate) params.startDate = startDate;
-                            if (endDate) params.endDate = endDate;
-                            fetchReports(params);
-                        } : () => {
-                            // Refresh drill-down data
-                            if (drillDownParent) {
-                                drillDownToNextLevel(drillDownParent.id, drillDownParent.username, drillDownParent.role);
-                            }
-                        }} variant="outline" size="sm">
+                        <Button onClick={handleFilter} variant="outline" size="sm">
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Refresh
-                        </Button>
-                        <Button onClick={handleFilter} variant="outline" size="sm">
-                            <Filter className="h-4 w-4 mr-2" />
-                            Apply Filters
                         </Button>
                         <Button variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-2" />
@@ -271,6 +238,38 @@ export default function ReportsPage() {
                         </Button>
                     </div>
                 </div>
+
+                {/* Navigation Breadcrumb */}
+                {navigationStack.length > 0 && (
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleGoToRoot}
+                                    className="text-primary hover:text-primary/80"
+                                >
+                                    <Users className="h-4 w-4 mr-1" />
+                                    Root
+                                </Button>
+                                {navigationStack.map((item, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <span className="text-secondary">/</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setNavigationStack(prev => prev.slice(0, index + 1))}
+                                            className="text-primary hover:text-primary/80"
+                                        >
+                                            {getRoleDisplayName(item.role)}: {item.parentName}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Filters */}
                 <Card>
@@ -339,19 +338,6 @@ export default function ReportsPage() {
                                 >
                                     Last 30 Days
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        const now = new Date();
-                                        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                                        setStartDate(startOfMonth.toISOString().split('T')[0]);
-                                        setEndDate(now.toISOString().split('T')[0]);
-                                    }}
-                                    className="text-xs"
-                                >
-                                    This Month
-                                </Button>
                             </div>
                         </div>
 
@@ -384,7 +370,7 @@ export default function ReportsPage() {
                                     ) : (
                                         <>
                                             <Filter className="h-4 w-4 mr-2" />
-                                            Apply Filters
+                                            Apply
                                         </>
                                     )}
                                 </Button>
@@ -393,8 +379,9 @@ export default function ReportsPage() {
                                 </Button>
                             </div>
                         </div>
+
                         {/* Current Filter Display */}
-                        {(startDate || endDate) && (
+                        {(startDate || endDate || navigationStack.length > 0) && (
                             <div className="mt-4 p-3 bg-muted/30 rounded-lg">
                                 <p className="text-sm text-secondary mb-2">Current Filters:</p>
                                 <div className="flex flex-wrap gap-2 text-xs">
@@ -406,6 +393,11 @@ export default function ReportsPage() {
                                     {endDate && (
                                         <span className="px-2 py-1 bg-primary/20 text-primary rounded">
                                             To: {new Date(endDate).toLocaleDateString()}
+                                        </span>
+                                    )}
+                                    {navigationStack.length > 0 && (
+                                        <span className="px-2 py-1 bg-primary/20 text-primary rounded">
+                                            Level: {getRoleDisplayName(reportsData.currentLevel.role)}
                                         </span>
                                     )}
                                 </div>
@@ -423,233 +415,185 @@ export default function ReportsPage() {
                     </Card>
                 )}
 
-                {/* Today's Statistics */}
-                <ReportsStats stats={drillDownLevel === 'main' ? stats : {
-                    todayBets: drillDownData.reduce((sum, item) => sum + item.totalBets, 0),
-                    todayBetAmount: drillDownData.reduce((sum, item) => sum + item.totalBet, 0),
-                    todayWinningBets: drillDownData.reduce((sum, item) => sum + item.winningBets, 0),
-                    todayWinAmount: drillDownData.reduce((sum, item) => sum + item.totalWin, 0),
-                    totalUsers: drillDownData.length
-                }} />
-
-                {/* Summary Cards */}
-                {reports?.summary && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-primary">Total Bet Amount</CardTitle>
-                                <Coins className="h-4 w-4 text-white" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">
-                                    {formatCurrency(drillDownLevel === 'main' ? reports.summary.totalBet :
-                                        drillDownData.reduce((sum, item) => sum + item.totalBet, 0))}
-                                </div>
-                                <p className="text-xs text-secondary">
-                                    {drillDownLevel === 'main' ?
-                                        (user?.role === 'superadmin' ? 'Across all admins' :
-                                            user?.role === 'admin' ? 'Across all distributors' :
-                                                user?.role === 'distributor' ? 'Across all agents' :
-                                                    user?.role === 'agent' ? 'Across all players' : 'Total amount') :
-                                        `Across all ${drillDownLevel}`
-                                    }
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-primary">Total Win Amount</CardTitle>
-                                <TrendingUp className="h-4 w-4 text-white" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">
-                                    {formatCurrency(drillDownLevel === 'main' ? reports.summary.totalWin :
-                                        drillDownData.reduce((sum, item) => sum + item.totalWin, 0))}
-                                </div>
-                                <p className="text-xs text-secondary">Total winnings</p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-primary">Claimed Amount</CardTitle>
-                                <Target className="h-4 w-4 text-white" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">
-                                    {formatCurrency(drillDownLevel === 'main' ? reports.summary.claimedAmount :
-                                        drillDownData.reduce((sum, item) => sum + item.claimedAmount, 0))}
-                                </div>
-                                <p className="text-xs text-secondary">Already claimed</p>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-primary">Unclaimed Amount</CardTitle>
-                                <TrendingDown className="h-4 w-4 text-white" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-primary">
-                                    {formatCurrency(drillDownLevel === 'main' ? reports.summary.unclaimedAmount :
-                                        drillDownData.reduce((sum, item) => sum + item.unclaimedAmount, 0))}
-                                </div>
-                                <p className="text-xs text-secondary">Pending claims</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-                )}
-
-                {/* Admin Reports */}
-                {reports?.reports && reports.reports.length > 0 ? (
-                    <div className="space-y-6">
-                        {/* Back Button when drill-down is active */}
-                        {drillDownLevel !== 'main' && drillDownParent && (
-                            <div className="flex items-center gap-4">
-                                <Button onClick={goBackToMain} variant="outline" size="sm">
-                                    <ArrowLeft className="h-4 w-4 mr-2" />
-                                    Back to {user?.role === 'superadmin' ? 'Admin' :
-                                        user?.role === 'admin' ? 'Distributor' :
-                                            user?.role === 'distributor' ? 'Agent' : 'User'} Reports
-                                </Button>
-                                <div>
-                                    <h3 className="text-lg font-medium text-secondary">
-                                        Showing {drillDownLevel} under {drillDownParent.role} {drillDownParent.username}
-                                    </h3>
-                                </div>
+                {/* Statistics Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Total Bet Amount</CardTitle>
+                            <Coins className="h-4 w-4 text-white" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(reportsData.summary.totalBet)}
                             </div>
-                        )}
+                            <p className="text-xs text-secondary">
+                                {formatNumber(reportsData.summary.totalBets)} total bets
+                            </p>
+                        </CardContent>
+                    </Card>
 
-                        <h2 className="text-2xl font-semibold text-primary">
-                            {drillDownLevel === 'main' ?
-                                (user?.role === 'superadmin' ? 'Admin Reports' :
-                                    user?.role === 'admin' ? 'Distributor Reports' :
-                                        user?.role === 'distributor' ? 'Agent Reports' :
-                                            user?.role === 'agent' ? 'Player Reports' : 'User Reports') :
-                                drillDownParent?.username + "'s " + drillDownLevel.charAt(0).toUpperCase() + drillDownLevel.slice(1)
-                            }
-                        </h2>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Total Win Amount</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-white" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(reportsData.summary.totalWin)}
+                            </div>
+                            <p className="text-xs text-secondary">
+                                {formatNumber(reportsData.summary.winningBets)} winning bets
+                            </p>
+                        </CardContent>
+                    </Card>
 
-                        {/* Main Admin Summary Table */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Users className="h-5 w-5" />
-                                    {drillDownLevel === 'main' ?
-                                        (user?.role === 'superadmin' ? 'Admin Reports Table' :
-                                            user?.role === 'admin' ? 'Distributor Reports Table' :
-                                                user?.role === 'distributor' ? 'Agent Reports Table' :
-                                                    user?.role === 'agent' ? 'Player Reports Table' : 'User Reports Table') :
-                                        drillDownLevel.charAt(0).toUpperCase() + drillDownLevel.slice(1) + ' Reports Table'
-                                    }
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b bg-muted/50">
-                                                <th className="text-left py-3 px-4 text-secondary font-medium">
-                                                    {drillDownLevel === 'main' ?
-                                                        (user?.role === 'superadmin' ? 'Admin' :
-                                                            user?.role === 'admin' ? 'Distributor' :
-                                                                user?.role === 'distributor' ? 'Agent' :
-                                                                    user?.role === 'agent' ? 'Player' : 'User') :
-                                                        drillDownLevel.charAt(0).toUpperCase() + drillDownLevel.slice(1, -1)
-                                                    }
-                                                </th>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Claimed Amount</CardTitle>
+                            <Target className="h-4 w-4 text-white" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(reportsData.summary.claimedAmount)}
+                            </div>
+                            <p className="text-xs text-secondary">Already claimed</p>
+                        </CardContent>
+                    </Card>
 
-                                                <th className="text-right py-3 px-4 text-secondary font-medium">Total Bet</th>
-                                                <th className="text-right py-3 px-4 text-secondary font-medium">Total Win</th>
-                                                <th className="text-right py-3 px-4 text-secondary font-medium">Claimed</th>
-                                                <th className="text-right py-3 px-4 text-secondary font-medium">Unclaimed</th>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Unclaimed Amount</CardTitle>
+                            <TrendingDown className="h-4 w-4 text-white" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(reportsData.summary.unclaimedAmount)}
+                            </div>
+                            <p className="text-xs text-secondary">Pending claims</p>
+                        </CardContent>
+                    </Card>
 
-                                                {shouldShowActions() && (
-                                                    <th className="text-center py-3 px-4 text-secondary font-medium">Actions</th>
-                                                )}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(drillDownLevel === 'main' ? reports.reports : drillDownData).map((admin: AdminReport) => (
-                                                <tr key={admin.adminId} className="border-b hover:bg-muted/30">
-                                                    <td className="py-3 px-4">
-                                                        <div className="font-medium text-primary">{admin.adminUsername}</div>
-                                                    </td>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-primary">Total Commission</CardTitle>
+                            <DollarSign className="h-4 w-4 text-white" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">
+                                {formatCurrency(reportsData.summary.totalCommission)}
+                            </div>
+                            <p className="text-xs text-secondary">Commission earned</p>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                                                    <td className="py-3 px-4 text-right font-medium text-secondary">
-                                                        {formatCurrency(admin.totalBet)}
-                                                    </td>
-                                                    <td className="py-3 px-4 text-right font-medium text-secondary">
-                                                        {formatCurrency(admin.totalWin)}
-                                                    </td>
-                                                    <td className="py-4 text-right">
-                                                        <span className="text-green-600 dark:text-green-400 font-medium">
-                                                            {formatCurrency(admin.claimedAmount)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 text-right">
-                                                        <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                                            {formatCurrency(admin.unclaimedAmount)}
-                                                        </span>
-                                                    </td>
-
-                                                    {shouldShowActions() && (
-                                                        <td className="py-3 px-4 text-center">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => drillDownToNextLevel(admin.adminId, admin.adminUsername, admin.adminRole)}
-                                                                className="h-8 w-8 p-0"
-                                                            >
-                                                                <Eye className="h-4 w-4" />
-                                                            </Button>
-                                                        </td>
+                {/* Reports Table */}
+                {reportsData.reports.length > 0 ? (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <BarChart3 className="h-5 w-5" />
+                                {getRoleDisplayName(reportsData.currentLevel.role)} Reports ({reportsData.reports.length} users)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-muted/50">
+                                            <th className="text-left py-3 px-4 text-secondary font-medium">User</th>
+                                            <th className="text-left py-3 px-4 text-secondary font-medium">Role</th>
+                                            <th className="text-left py-3 px-4 text-secondary font-medium">Percentage</th>
+                                            <th className="text-right py-3 px-4 text-secondary font-medium">Total Bet</th>
+                                            <th className="text-right py-3 px-4 text-secondary font-medium">Total Win</th>
+                                            <th className="text-right py-3 px-4 text-secondary font-medium">Claimed</th>
+                                            <th className="text-right py-3 px-4 text-secondary font-medium">Unclaimed</th>
+                                            <th className="text-right py-3 px-4 text-secondary font-medium">Commission</th>
+                                            <th className="text-center py-3 px-4 text-secondary font-medium">Bets</th>
+                                            <th className="text-center py-3 px-4 text-secondary font-medium">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {reportsData.reports.map((report) => (
+                                            <tr key={report.userId} className="border-b hover:bg-muted/30">
+                                                <td className="py-3 px-4">
+                                                    <div className="font-medium text-primary">{report.username}</div>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getRoleColor(report.role)}`}>
+                                                        {getRoleIcon(report.role)}
+                                                        {getRoleDisplayName(report.role)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4">
+                                                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                                                        {report.percentage}%
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-right font-medium text-secondary">
+                                                    {formatCurrency(report.totalBet)}
+                                                </td>
+                                                <td className="py-3 px-4 text-right font-medium text-secondary">
+                                                    {formatCurrency(report.totalWin)}
+                                                </td>
+                                                <td className="py-3 px-4 text-right">
+                                                    <span className="text-green-600 dark:text-green-400 font-medium">
+                                                        {formatCurrency(report.claimedAmount)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-right">
+                                                    <span className="text-orange-600 dark:text-orange-400 font-medium">
+                                                        {formatCurrency(report.unclaimedAmount)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-right">
+                                                    <span className="font-medium text-green-600 dark:text-green-400">
+                                                        {formatCurrency(report.commission)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    <span className="text-sm text-secondary">
+                                                        {formatNumber(report.totalBets)}
+                                                    </span>
+                                                </td>
+                                                <td className="py-3 px-4 text-center">
+                                                    {report.hasChildren ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDrillDown(report)}
+                                                            className="h-8 w-8 p-0"
+                                                            title={`View ${getRoleDisplayName(report.role)} details`}
+                                                        >
+                                                            <Eye className="h-4 w-4" />
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-xs text-secondary">-</span>
                                                     )}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-
-                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ) : (
                     <Card>
                         <CardContent className="pt-6">
                             <div className="text-center py-8">
-                                <Users className="h-12 w-12 mx-auto mb-4 text-white" />
-                                <p className="text-secondary">No reports available for the selected date range</p>
+                                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-white" />
+                                <p className="text-secondary">No reports available for the selected filters</p>
                                 <p className="text-sm text-secondary mb-4">
-                                    {startDate && endDate ?
-                                        `No data found between ${new Date(startDate).toLocaleDateString()} and ${new Date(endDate).toLocaleDateString()}` :
-                                        'No data found for the current filters'
-                                    }
+                                    Try adjusting your date range or navigation level
                                 </p>
-                                <div className="flex gap-2 justify-center">
-                                    <Button onClick={handleReset} variant="outline" size="sm">
-                                        Reset to Today
-                                    </Button>
-                                    <Button onClick={() => {
-                                        // Set to last 7 days
-                                        const end = new Date();
-                                        const start = new Date();
-                                        start.setDate(start.getDate() - 7);
-                                        setStartDate(start.toISOString().split('T')[0]);
-                                        setEndDate(end.toISOString().split('T')[0]);
-                                    }} variant="outline" size="sm">
-                                        Last 7 Days
-                                    </Button>
-                                </div>
+                                <Button onClick={handleReset} variant="outline" size="sm">
+                                    Reset Filters
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
                 )}
-
-
-
             </div>
         </AdminLayout>
     );

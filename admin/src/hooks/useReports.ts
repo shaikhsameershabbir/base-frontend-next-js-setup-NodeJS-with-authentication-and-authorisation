@@ -9,16 +9,18 @@ export function useReports() {
     const [currentFilters, setCurrentFilters] = useState<{
         startDate?: string;
         endDate?: string;
+        parentId?: string;
     }>({});
 
     const fetchReports = useCallback(async (params?: {
         startDate?: string;
         endDate?: string;
+        parentId?: string;
     }) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await ReportsApi.getBetReports(params);
+            const data = await ReportsApi.getHierarchicalReports(params);
             setReports(data);
             // Store current filters for refresh functionality
             if (params) {
@@ -46,6 +48,7 @@ export function useReports() {
     const refreshReports = useCallback((params?: {
         startDate?: string;
         endDate?: string;
+        parentId?: string;
     }) => {
         // Use provided params or fall back to stored current filters
         const filtersToUse = params || currentFilters;

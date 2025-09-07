@@ -1,40 +1,22 @@
 import apiClient from './api-client';
 
-export interface BetReport {
+export interface HierarchicalReport {
     userId: string;
     username: string;
     role: string;
+    percentage: number;
     totalBet: number;
     totalWin: number;
     claimedAmount: number;
     unclaimedAmount: number;
     totalBets: number;
     winningBets: number;
-    claimStatus: {
-        claimed: number;
-        unclaimed: number;
-    };
-}
-
-export interface AdminReport {
-    adminId: string;
-    adminUsername: string;
-    adminRole: string;
-    totalBet: number;
-    totalWin: number;
-    claimedAmount: number;
-    unclaimedAmount: number;
-    totalBets: number;
-    winningBets: number;
-    claimStatus: {
-        claimed: number;
-        unclaimed: number;
-    };
-    downlineUsers: BetReport[];
+    commission: number;
+    hasChildren: boolean;
 }
 
 export interface ReportsResponse {
-    reports: AdminReport[];
+    reports: HierarchicalReport[];
     summary: {
         totalBet: number;
         totalWin: number;
@@ -42,12 +24,17 @@ export interface ReportsResponse {
         unclaimedAmount: number;
         totalBets: number;
         winningBets: number;
-        totalAdmins: number;
+        totalUsers: number;
+        totalCommission: number;
     };
     filters: {
         startDate: string | null;
         endDate: string | null;
-        adminId: string | null;
+    };
+    currentLevel: {
+        role: string;
+        parentId?: string;
+        parentName?: string;
     };
 }
 
@@ -61,17 +48,19 @@ export interface BetStats {
 
 export class ReportsApi {
     /**
-     * Get comprehensive bet reports
+     * Get hierarchical reports with drill-down capability
      */
-    static async getBetReports(params?: {
+    static async getHierarchicalReports(params?: {
         startDate?: string;
         endDate?: string;
+        parentId?: string;
     }): Promise<ReportsResponse> {
         const queryParams = new URLSearchParams();
         if (params?.startDate) queryParams.append('startDate', params.startDate);
         if (params?.endDate) queryParams.append('endDate', params.endDate);
+        if (params?.parentId) queryParams.append('parentId', params.parentId);
 
-        const url = `/reports/bet-reports?${queryParams.toString()}`;
+        const url = `/reports/hierarchical-reports?${queryParams.toString()}`;
 
         const response = await apiClient.get(url);
         return response.data.data;

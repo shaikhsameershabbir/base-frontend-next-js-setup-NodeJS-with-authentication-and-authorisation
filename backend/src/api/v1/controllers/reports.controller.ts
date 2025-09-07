@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Bet } from '../../../models/Bet';
 import { User } from '../../../models/User';
-import { HierarchyService } from '../../../services/hierarchyService';
+import { UserHierarchy } from '../../../models/UserHierarchy';
+import { logger } from '../../../config/logger';
 
-// Define proper types for request with user - using the same interface as auth middleware
+// Define proper types for request with user
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
     user?: {
         userId: string;
@@ -14,7 +16,6 @@ interface AuthenticatedRequest extends Omit<Request, 'user'> {
     };
 }
 
-// Define proper types for date filter
 interface DateFilter {
     createdAt?: {
         $gte?: Date;
@@ -22,54 +23,27 @@ interface DateFilter {
     };
 }
 
-// Define proper types for populated bet data that matches Mongoose Document structure
-interface PopulatedBet {
-    _id: unknown;
-    userId: unknown; // Using any for populated userId field to handle complex Mongoose Document types
-    amount?: number | null | undefined;
-    winAmount?: number | null | undefined;
-    claimStatus?: boolean;
-}
-
-
-interface BetReport {
+interface HierarchicalReport {
     userId: string;
     username: string;
     role: string;
+    percentage: number;
     totalBet: number;
     totalWin: number;
     claimedAmount: number;
     unclaimedAmount: number;
     totalBets: number;
     winningBets: number;
-    claimStatus: {
-        claimed: number;
-        unclaimed: number;
-    };
+    commission: number; // NEW: Commission calculated from totalBet * percentage / 100
+    hasChildren: boolean; // NEW: Whether this user has children to drill down
 }
 
-interface AdminReport {
-    adminId: string;
-    adminUsername: string;
-    adminRole: string;
-    totalBet: number;
-    totalWin: number;
-    claimedAmount: number;
-    unclaimedAmount: number;
-    totalBets: number;
-    winningBets: number;
-    claimStatus: {
-        claimed: number;
-        unclaimed: number;
-    };
-    downlineUsers: BetReport[];
-}
 
 export class ReportsController {
     /**
-     * Get comprehensive bet reports for the current user's hierarchy
+     * Get hierarchical reports with drill-down capability
      */
-    static async getBetReports(req: AuthenticatedRequest, res: Response) {
+    static async getHierarchicalReports(req: AuthenticatedRequest, res: Response) {
         try {
             const currentUser = req.user;
             if (!currentUser) {
@@ -79,557 +53,66 @@ export class ReportsController {
                 });
             }
 
-            const { startDate, endDate } = req.query;
+            const { startDate, endDate, parentId } = req.query;
 
             // Build date filter
-            const dateFilter: DateFilter = {};
-            if (startDate && endDate) {
-                const start = new Date(startDate as string);
-                const end = new Date(endDate as string);
+            const dateFilter = this.buildDateFilter(startDate as string, endDate as string);
 
-                // Set start time to beginning of day (00:00:00)
-                start.setHours(0, 0, 0, 0);
+            // Determine the target role and parent for the current level
+            const { targetRole, targetParentId, targetParentName } = await this.getTargetLevel(currentUser, parentId as string);
 
-                // Set end time to end of day (23:59:59.999)
-                end.setHours(23, 59, 59, 999);
+            // Get users at the target level
+            const targetUsers = await this.getUsersAtLevel(targetRole, targetParentId);
 
-                dateFilter.createdAt = {
-                    $gte: start,
-                    $lte: end
-                };
-
-                console.log(`Date filter applied: ${start.toISOString()} to ${end.toISOString()}`);
-            } else if (startDate) {
-                // If only start date is provided, filter from start date to now
-                const start = new Date(startDate as string);
-                start.setHours(0, 0, 0, 0);
-                dateFilter.createdAt = {
-                    $gte: start
-                };
-
-                console.log(`Start date filter applied: from ${start.toISOString()}`);
-            } else if (endDate) {
-                // If only end date is provided, filter from beginning to end date
-                const end = new Date(endDate as string);
-                end.setHours(23, 59, 59, 999);
-                dateFilter.createdAt = {
-                    $lte: end
-                };
-
-                console.log(`End date filter applied: until ${end.toISOString()}`);
-            } else {
-                console.log('No date filters applied - showing all-time data');
-            }
-
-            let reports: AdminReport[] = [];
-
-            if (currentUser.role === 'superadmin') {
-                // Superadmin sees all admins
-                const admins = await User.find({ role: 'admin', isActive: true });
-                const adminReports = await Promise.all(
-                    admins.map(async (admin) => {
-                        try {
-                            return await this.getAdminReport((admin._id as string).toString(), dateFilter);
-                        } catch (error) {
-                            console.error(`Error getting report for admin ${admin.username}:`, error);
-                            return null;
+            if (targetUsers.length === 0) {
+                return res.json({
+                    success: true,
+                    data: {
+                        reports: [],
+                        summary: this.getEmptySummary(),
+                        filters: {
+                            startDate: startDate as string || null,
+                            endDate: endDate as string || null
+                        },
+                        currentLevel: {
+                            role: targetRole,
+                            parentId: targetParentId,
+                            parentName: targetParentName
                         }
-                    })
-                );
-                reports = adminReports.filter((report): report is AdminReport => report !== null);
-            } else if (currentUser.role === 'admin') {
-                // Admin sees all distributors
-                const distributors = await User.find({ role: 'distributor', isActive: true });
-                const distributorReports = await Promise.all(
-                    distributors.map(async (distributor) => {
-                        try {
-                            return await this.getDistributorReport((distributor._id as string).toString(), dateFilter);
-                        } catch (error) {
-                            console.error(`Error getting report for distributor ${distributor.username}:`, error);
-                            return null;
-                        }
-                    })
-                );
-                reports = distributorReports.filter((report): report is AdminReport => report !== null);
-            } else if (currentUser.role === 'distributor') {
-                // Distributor sees all agents
-                const agents = await User.find({ role: 'agent', isActive: true });
-                const agentReports = await Promise.all(
-                    agents.map(async (agent) => {
-                        try {
-                            return await this.getAgentReport((agent._id as string).toString(), dateFilter);
-                        } catch (error) {
-                            console.error(`Error getting report for agent ${agent.username}:`, error);
-                            return null;
-                        }
-                    })
-                );
-                reports = agentReports.filter((report): report is AdminReport => report !== null);
-            } else if (currentUser.role === 'agent') {
-                // Agent sees all players
-                const players = await User.find({ role: 'player', isActive: true });
-                const playerReports = await Promise.all(
-                    players.map(async (player) => {
-                        try {
-                            return await this.getPlayerReport((player._id as string).toString(), dateFilter);
-                        } catch (error) {
-                            console.error(`Error getting report for player ${player.username}:`, error);
-                            return null;
-                        }
-                    })
-                );
-                reports = playerReports.filter((report): report is AdminReport => report !== null);
-            } else {
-                // Player can only see their own report
-                const userReport = await this.getUserReport(currentUser.userId, dateFilter);
-                if (userReport) {
-                    reports = [{
-                        adminId: currentUser.userId,
-                        adminUsername: currentUser.username,
-                        adminRole: currentUser.role,
-                        totalBet: userReport.totalBet,
-                        totalWin: userReport.totalWin,
-                        claimedAmount: userReport.claimedAmount,
-                        unclaimedAmount: userReport.unclaimedAmount,
-                        totalBets: userReport.totalBets,
-                        winningBets: userReport.winningBets,
-                        claimStatus: userReport.claimStatus,
-                        downlineUsers: [userReport]
-                    }];
-                }
-            }
-
-            // Log if no reports were found
-            if (reports.length === 0) {
-                console.log(`No reports found for user ${currentUser.username} (${currentUser.role}) with filters:`, {
-                    startDate: startDate || 'none',
-                    endDate: endDate || 'none'
+                    }
                 });
-            } else {
-                console.log(`Found ${reports.length} reports for user ${currentUser.username} (${currentUser.role})`);
             }
+
+            // Get hierarchical reports for all target users
+            const reports = await this.getHierarchicalReportsForUsers(targetUsers, dateFilter);
+
+            // Calculate summary
+            const summary = this.calculateSummary(reports);
 
             return res.json({
                 success: true,
                 data: {
                     reports,
-                    summary: this.calculateSummary(reports),
+                    summary,
                     filters: {
-                        startDate: startDate || null,
-                        endDate: endDate || null
+                        startDate: startDate as string || null,
+                        endDate: endDate as string || null
+                    },
+                    currentLevel: {
+                        role: targetRole,
+                        parentId: targetParentId,
+                        parentName: targetParentName
                     }
                 }
             });
 
         } catch (error) {
-            console.error('Error getting bet reports:', error);
+            logger.error('Error getting hierarchical reports:', error);
             return res.status(500).json({
                 success: false,
-                message: 'Internal server error',
-                error: error instanceof Error ? error.message : 'Unknown error'
+                message: 'Internal server error'
             });
         }
-    }
-
-    /**
-     * Get detailed report for a specific admin
-     */
-    private static async getAdminReport(adminId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
-        try {
-            const admin = await User.findById(adminId);
-            if (!admin) return null;
-
-            // Get all downline user IDs for this admin
-            const downlineUserIds = await HierarchyService.getAllDownlineUserIds(adminId, true);
-
-            console.log(`Found ${downlineUserIds.length} downline users for admin ${admin.username}`);
-
-            if (downlineUserIds.length === 0) {
-                console.warn(`No downline users found for admin ${admin.username}`);
-            }
-
-            // Get all bets for downline users
-            const bets = await Bet.find({
-                userId: { $in: downlineUserIds },
-                ...dateFilter
-            }).populate('userId', 'username role');
-
-            console.log(`Found ${bets.length} bets for admin ${admin.username} with date filter:`, dateFilter);
-
-            // Log any bets with null userId for debugging
-            const nullUserIdBets = bets.filter(bet => !bet.userId);
-            if (nullUserIdBets.length > 0) {
-                console.warn(`Found ${nullUserIdBets.length} bets with null userId for admin ${admin.username}`);
-            }
-
-            // Calculate admin totals
-            const adminTotals = this.calculateBetTotals(bets);
-
-            // Get individual user reports
-            const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, PopulatedBet[]>();
-
-            // Group bets by user
-            bets.forEach(bet => {
-                // Add null checks for bet.userId
-                if (!bet.userId) {
-                    console.log('------------------------------->>', bet)
-                    console.warn('Bet has no userId:', bet._id);
-                    return; // Skip this bet
-                }
-
-                const userId = (bet.userId as { _id: unknown })._id?.toString();
-                if (!userId) {
-                    console.warn('Bet userId has no _id:', bet.userId);
-                    return; // Skip this bet
-                }
-
-                if (!userBetsMap.has(userId)) {
-                    userBetsMap.set(userId, []);
-                }
-                userBetsMap.get(userId)!.push(bet as PopulatedBet);
-            });
-
-            // Calculate individual user reports
-            for (const [userId, userBets] of userBetsMap) {
-                const user = await User.findById(userId);
-                if (user) {
-                    const userTotals = this.calculateBetTotals(userBets);
-                    downlineUsers.push({
-                        userId,
-                        username: user.username,
-                        role: user.role,
-                        ...userTotals
-                    });
-                }
-            }
-
-            return {
-                adminId: (admin._id as string).toString(),
-                adminUsername: admin.username,
-                adminRole: admin.role,
-                ...adminTotals,
-                downlineUsers
-            };
-
-        } catch (error) {
-            console.error('Error getting admin report:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get detailed report for a specific distributor
-     */
-    private static async getDistributorReport(distributorId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
-        try {
-            const distributor = await User.findById(distributorId);
-            if (!distributor) return null;
-
-            // Get all downline user IDs for this distributor
-            const downlineUserIds = await HierarchyService.getAllDownlineUserIds(distributorId, true);
-
-            console.log(`Found ${downlineUserIds.length} downline users for distributor ${distributor.username}`);
-
-            if (downlineUserIds.length === 0) {
-                console.warn(`No downline users found for distributor ${distributor.username}`);
-            }
-
-            // Get all bets for downline users
-            const bets = await Bet.find({
-                userId: { $in: downlineUserIds },
-                ...dateFilter
-            }).populate('userId', 'username role');
-
-            console.log(`Found ${bets.length} bets for distributor ${distributor.username} with date filter:`, dateFilter);
-
-            // Log any bets with null userId for debugging
-            const nullUserIdBets = bets.filter(bet => !bet.userId);
-            if (nullUserIdBets.length > 0) {
-                console.warn(`Found ${nullUserIdBets.length} bets with null userId for distributor ${distributor.username}`);
-            }
-
-            // Calculate distributor totals
-            const distributorTotals = this.calculateBetTotals(bets);
-
-            // Get individual user reports
-            const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, PopulatedBet[]>();
-
-            // Group bets by user
-            bets.forEach(bet => {
-                // Add null checks for bet.userId
-                if (!bet.userId) {
-                    console.warn('Bet has no userId:', bet._id);
-                    return; // Skip this bet
-                }
-
-                const userId = (bet.userId as { _id: unknown })._id?.toString();
-                if (!userId) {
-                    console.warn('Bet userId has no _id:', bet.userId);
-                    return; // Skip this bet
-                }
-
-                if (!userBetsMap.has(userId)) {
-                    userBetsMap.set(userId, []);
-                }
-                userBetsMap.get(userId)!.push(bet as PopulatedBet);
-            });
-
-            // Calculate individual user reports
-            for (const [userId, userBets] of userBetsMap) {
-                const user = await User.findById(userId);
-                if (user) {
-                    const userTotals = this.calculateBetTotals(userBets);
-                    downlineUsers.push({
-                        userId,
-                        username: user.username,
-                        role: user.role,
-                        ...userTotals
-                    });
-                }
-            }
-
-            return {
-                adminId: (distributor._id as string).toString(),
-                adminUsername: distributor.username,
-                adminRole: distributor.role,
-                ...distributorTotals,
-                downlineUsers
-            };
-
-        } catch (error) {
-            console.error('Error getting distributor report:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get detailed report for a specific agent
-     */
-    private static async getAgentReport(agentId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
-        try {
-            const agent = await User.findById(agentId);
-            if (!agent) return null;
-
-            // Get all downline user IDs for this agent
-            const downlineUserIds = await HierarchyService.getAllDownlineUserIds(agentId, true);
-
-            console.log(`Found ${downlineUserIds.length} downline users for agent ${agent.username}`);
-
-            if (downlineUserIds.length === 0) {
-                console.warn(`No downline users found for agent ${agent.username}`);
-            }
-
-            // Get all bets for downline users
-            const bets = await Bet.find({
-                userId: { $in: downlineUserIds },
-                ...dateFilter
-            }).populate('userId', 'username role');
-
-            console.log(`Found ${bets.length} bets for agent ${agent.username} with date filter:`, dateFilter);
-
-            // Log any bets with null userId for debugging
-            const nullUserIdBets = bets.filter(bet => !bet.userId);
-            if (nullUserIdBets.length > 0) {
-                console.warn(`Found ${nullUserIdBets.length} bets with null userId for agent ${agent.username}`);
-            }
-
-            // Calculate agent totals
-            const agentTotals = this.calculateBetTotals(bets);
-
-            // Get individual user reports
-            const downlineUsers: BetReport[] = [];
-            const userBetsMap = new Map<string, PopulatedBet[]>();
-
-            // Group bets by user
-            bets.forEach(bet => {
-                // Add null checks for bet.userId
-                if (!bet.userId) {
-                    console.warn('Bet has no userId:', bet._id);
-                    return; // Skip this bet
-                }
-
-                const userId = (bet.userId as { _id: unknown })._id?.toString();
-                if (!userId) {
-                    console.warn('Bet userId has no _id:', bet.userId);
-                    return; // Skip this bet
-                }
-
-                if (!userBetsMap.has(userId)) {
-                    userBetsMap.set(userId, []);
-                }
-                userBetsMap.get(userId)!.push(bet as PopulatedBet);
-            });
-
-            // Calculate individual user reports
-            for (const [userId, userBets] of userBetsMap) {
-                const user = await User.findById(userId);
-                if (user) {
-                    const userTotals = this.calculateBetTotals(userBets);
-                    downlineUsers.push({
-                        userId,
-                        username: user.username,
-                        role: user.role,
-                        ...userTotals
-                    });
-                }
-            }
-
-            return {
-                adminId: (agent._id as string).toString(),
-                adminUsername: agent.username,
-                adminRole: agent.role,
-                ...agentTotals,
-                downlineUsers
-            };
-
-        } catch (error) {
-            console.error('Error getting agent report:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get detailed report for a specific player
-     */
-    private static async getPlayerReport(playerId: string, dateFilter: DateFilter): Promise<AdminReport | null> {
-        try {
-            const player = await User.findById(playerId);
-            if (!player) return null;
-
-            // Get all bets for this player
-            const bets = await Bet.find({
-                userId: playerId,
-                ...dateFilter
-            });
-
-            // Calculate player totals
-            const playerTotals = this.calculateBetTotals(bets);
-
-            return {
-                adminId: (player._id as string).toString(),
-                adminUsername: player.username,
-                adminRole: player.role,
-                ...playerTotals,
-                downlineUsers: [] // No downline users for players
-            };
-
-        } catch (error) {
-            console.error('Error getting player report:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Get report for a specific user
-     */
-    private static async getUserReport(userId: string, dateFilter: DateFilter): Promise<BetReport | null> {
-        try {
-            const user = await User.findById(userId);
-            if (!user) return null;
-
-            const bets = await Bet.find({
-                userId,
-                ...dateFilter
-            });
-
-            const totals = this.calculateBetTotals(bets);
-
-            return {
-                userId: (user._id as string).toString(),
-                username: user.username,
-                role: user.role,
-                ...totals
-            };
-
-        } catch (error) {
-            console.error('Error getting user report:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Calculate bet totals from an array of bets
-     */
-    private static calculateBetTotals(bets: PopulatedBet[]): {
-        totalBet: number;
-        totalWin: number;
-        claimedAmount: number;
-        unclaimedAmount: number;
-        totalBets: number;
-        winningBets: number;
-        claimStatus: { claimed: number; unclaimed: number };
-    } {
-        const totals = {
-            totalBet: 0,
-            totalWin: 0,
-            claimedAmount: 0,
-            unclaimedAmount: 0,
-            totalBets: bets.length,
-            winningBets: 0,
-            claimStatus: { claimed: 0, unclaimed: 0 }
-        };
-
-        bets.forEach(bet => {
-            // Add null checks for bet data
-            if (!bet) {
-                console.warn('Null bet encountered in calculateBetTotals');
-                return;
-            }
-
-            // Safely add bet amount
-            const betAmount = bet.amount || 0;
-            totals.totalBet += betAmount;
-
-            // Safely handle win amount
-            if (bet.winAmount && bet.winAmount > 0) {
-                totals.totalWin += bet.winAmount;
-                totals.winningBets++;
-
-                // Safely handle claim status
-                if (bet.claimStatus) {
-                    totals.claimedAmount += bet.winAmount;
-                    totals.claimStatus.claimed++;
-                } else {
-                    totals.unclaimedAmount += bet.winAmount;
-                    totals.claimStatus.unclaimed++;
-                }
-            }
-        });
-
-        return totals;
-    }
-
-    /**
-     * Calculate summary across all reports
-     */
-    private static calculateSummary(reports: AdminReport[]): {
-        totalBet: number;
-        totalWin: number;
-        claimedAmount: number;
-        unclaimedAmount: number;
-        totalBets: number;
-        winningBets: number;
-        totalAdmins: number;
-    } {
-        return reports.reduce((summary, report) => ({
-            totalBet: summary.totalBet + report.totalBet,
-            totalWin: summary.totalWin + report.totalWin,
-            claimedAmount: summary.claimedAmount + report.claimedAmount,
-            unclaimedAmount: summary.unclaimedAmount + report.unclaimedAmount,
-            totalBets: summary.totalBets + report.totalBets,
-            winningBets: summary.winningBets + report.winningBets,
-            totalAdmins: summary.totalAdmins + 1
-        }), {
-            totalBet: 0,
-            totalWin: 0,
-            claimedAmount: 0,
-            unclaimedAmount: 0,
-            totalBets: 0,
-            winningBets: 0,
-            totalAdmins: 0
-        });
     }
 
     /**
@@ -645,63 +128,19 @@ export class ReportsController {
                 });
             }
 
+            // Get target users
+            const { targetRole, targetParentId } = await this.getTargetLevel(currentUser);
+            const targetUsers = await this.getUsersAtLevel(targetRole, targetParentId);
+            const userIds = targetUsers.map(user => user._id.toString());
+
+            // Get today's date range
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
 
-            let userIds: string[] = [];
-
-            if (currentUser.role === 'superadmin') {
-                // Get all admin IDs and their downlines
-                const admins = await User.find({ role: 'admin', isActive: true });
-                for (const admin of admins) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((admin._id as string).toString(), true);
-                    userIds.push(...downlineIds);
-                }
-            } else if (currentUser.role === 'admin') {
-                // Admin sees all distributors and their downlines
-                const distributors = await User.find({ role: 'distributor', isActive: true });
-                for (const distributor of distributors) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((distributor._id as string).toString(), true);
-                    userIds.push(...downlineIds);
-                }
-            } else if (currentUser.role === 'distributor') {
-                // Distributor sees all agents and their downlines
-                const agents = await User.find({ role: 'agent', isActive: true });
-                for (const agent of agents) {
-                    const downlineIds = await HierarchyService.getAllDownlineUserIds((agent._id as string).toString(), true);
-                    userIds.push(...downlineIds);
-                }
-            } else if (currentUser.role === 'agent') {
-                // Agent sees all players
-                const players = await User.find({ role: 'player', isActive: true });
-                userIds = players.map(player => (player._id as string).toString());
-            } else {
-                // Player only sees their own stats
-                userIds = [currentUser.userId];
-            }
-
-            // Get today's bets
-            const todayBets = await Bet.find({
-                userId: { $in: userIds },
-                createdAt: { $gte: today, $lt: tomorrow }
-            });
-
-            // Get today's winning bets
-            const todayWinningBets = await Bet.find({
-                userId: { $in: userIds },
-                createdAt: { $gte: today, $lt: tomorrow },
-                winAmount: { $gt: 0 }
-            });
-
-            const stats = {
-                todayBets: todayBets.length,
-                todayBetAmount: todayBets.reduce((sum, bet) => sum + (bet.amount || 0), 0),
-                todayWinningBets: todayWinningBets.length,
-                todayWinAmount: todayWinningBets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0),
-                totalUsers: userIds.length
-            };
+            // Get today's stats in a single aggregation
+            const stats = await this.getTodayStats(userIds, today, tomorrow);
 
             return res.json({
                 success: true,
@@ -709,11 +148,595 @@ export class ReportsController {
             });
 
         } catch (error) {
-            console.error('Error getting bet stats:', error);
+            logger.error('Error getting bet stats:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    /**
+     * Determine the target level based on current user and parentId
+     */
+    private static async getTargetLevel(currentUser: { userId: string; role: string }, parentId?: string): Promise<{
+        targetRole: string;
+        targetParentId: string | undefined;
+        targetParentName: string | undefined;
+    }> {
+        // Define role hierarchy
+        const roleHierarchy: Record<string, string> = {
+            'superadmin': 'admin',
+            'admin': 'distributor',
+            'distributor': 'agent',
+            'agent': 'player'
+        };
+
+        let targetRole: string;
+        let targetParentId: string | undefined;
+        let targetParentName: string | undefined;
+
+        if (parentId && parentId !== 'all') {
+            // If parentId is specified, get the children of that parent
+            const parentUser = await User.findById(parentId);
+            if (parentUser) {
+                targetRole = roleHierarchy[parentUser.role] || 'player';
+                targetParentId = parentId;
+                targetParentName = parentUser.username;
+            } else {
+                // Fallback to current user's children
+                targetRole = roleHierarchy[currentUser.role] || 'player';
+                targetParentId = currentUser.userId;
+            }
+        } else {
+            // Default: show children of current user
+            targetRole = roleHierarchy[currentUser.role] || 'player';
+            targetParentId = currentUser.userId;
+        }
+
+        return { targetRole, targetParentId, targetParentName };
+    }
+
+    /**
+     * Get users at a specific level
+     */
+    private static async getUsersAtLevel(role: string, parentId?: string): Promise<Array<{ _id: string; username: string; role: string; percentage: number }>> {
+        const query: Record<string, unknown> = {
+            isActive: true,
+            role: role
+        };
+
+        if (parentId) {
+            query.parentId = parentId;
+        }
+
+        const users = await User.find(query).select('_id username role percentage');
+        return users.map(user => ({
+            _id: String(user._id),
+            username: user.username,
+            role: user.role,
+            percentage: user.percentage || 0
+        }));
+    }
+
+    /**
+     * Get hierarchical reports for users (includes all their downline data)
+     */
+    private static async getHierarchicalReportsForUsers(users: Array<{ _id: string; username: string; role: string; percentage: number }>, dateFilter: DateFilter): Promise<HierarchicalReport[]> {
+        const reports: HierarchicalReport[] = [];
+
+        for (const user of users) {
+            // Get all players under this user's hierarchy
+            const playerIds = await this.getAllPlayersUnderUser(user._id);
+
+            if (playerIds.length === 0) {
+                // No players under this user, return empty report
+                reports.push({
+                    userId: user._id,
+                    username: user.username,
+                    role: user.role,
+                    percentage: user.percentage,
+                    totalBet: 0,
+                    totalWin: 0,
+                    claimedAmount: 0,
+                    unclaimedAmount: 0,
+                    totalBets: 0,
+                    winningBets: 0,
+                    commission: 0,
+                    hasChildren: await this.userHasChildren(user._id)
+                });
+                continue;
+            }
+
+            // Get bet data for all players under this user
+            let betData = await this.getBetDataForUsers(playerIds, dateFilter);
+
+            // If no data with date filter, try without date filter for debugging
+            if (betData.totalBets === 0 && playerIds.length > 0) {
+                console.log(`No bets found with date filter for user ${user.username}, trying without date filter...`);
+                betData = await this.getBetDataForUsers(playerIds, {});
+            }
+
+            // Calculate commission: (totalBet / 100) * percentage
+            const commission = (betData.totalBet / 100) * user.percentage;
+
+            reports.push({
+                userId: user._id,
+                username: user.username,
+                role: user.role,
+                percentage: user.percentage,
+                ...betData,
+                commission,
+                hasChildren: await this.userHasChildren(user._id)
+            });
+        }
+
+        return reports;
+    }
+
+    /**
+     * Get all players under a user's hierarchy
+     */
+    private static async getAllPlayersUnderUser(userId: string): Promise<string[]> {
+        const playerIds: string[] = [];
+
+        try {
+            // Method 1: Use UserHierarchy if available
+            const hierarchy = await UserHierarchy.findOne({ userId });
+            if (hierarchy) {
+                // Get all users in the downline
+                const downlineUsers = await UserHierarchy.find({
+                    path: userId
+                });
+
+                // Filter to get only players
+                for (const downlineUser of downlineUsers) {
+                    const user = await User.findById(downlineUser.userId);
+                    if (user && user.role === 'player' && user.isActive) {
+                        playerIds.push(String(user._id));
+                    }
+                }
+            } else {
+                // Method 2: Fallback to recursive user search
+                const players = await this.getPlayersRecursively(userId);
+                playerIds.push(...players);
+            }
+
+            // Method 3: If still no players found, check direct children
+            if (playerIds.length === 0) {
+                const directChildren = await User.find({
+                    parentId: userId,
+                    isActive: true
+                });
+
+                for (const child of directChildren) {
+                    if (child.role === 'player') {
+                        playerIds.push(String(child._id));
+                    } else {
+                        // Recursively get players from this child
+                        const childPlayers = await this.getPlayersRecursively(String(child._id));
+                        playerIds.push(...childPlayers);
+                    }
+                }
+            }
+
+            console.log(`Found ${playerIds.length} players under user ${userId}`);
+            return playerIds;
+        } catch (error) {
+            console.error('Error getting players under user:', error);
+            return playerIds;
+        }
+    }
+
+    /**
+     * Recursively get all players under a user
+     */
+    private static async getPlayersRecursively(userId: string): Promise<string[]> {
+        const playerIds: string[] = [];
+
+        try {
+            const children = await User.find({
+                parentId: userId,
+                isActive: true
+            });
+
+            for (const child of children) {
+                if (child.role === 'player') {
+                    playerIds.push(String(child._id));
+                } else {
+                    // Recursively get players from this child
+                    const childPlayers = await this.getPlayersRecursively(String(child._id));
+                    playerIds.push(...childPlayers);
+                }
+            }
+        } catch (error) {
+            console.error('Error in recursive player search:', error);
+        }
+
+        return playerIds;
+    }
+
+    /**
+     * Check if a user has children
+     */
+    private static async userHasChildren(userId: string): Promise<boolean> {
+        const children = await User.find({ parentId: userId, isActive: true });
+        return children.length > 0;
+    }
+
+    /**
+     * Get bet data for multiple users using aggregation
+     */
+    private static async getBetDataForUsers(userIds: string[], dateFilter: DateFilter): Promise<{
+        totalBet: number;
+        totalWin: number;
+        claimedAmount: number;
+        unclaimedAmount: number;
+        totalBets: number;
+        winningBets: number;
+    }> {
+        if (userIds.length === 0) {
+            console.log('No user IDs provided for bet data aggregation');
+            return {
+                totalBet: 0,
+                totalWin: 0,
+                claimedAmount: 0,
+                unclaimedAmount: 0,
+                totalBets: 0,
+                winningBets: 0
+            };
+        }
+
+        console.log(`Getting bet data for ${userIds.length} users:`, userIds);
+        console.log('Date filter:', dateFilter);
+
+        // First, let's check if there are any bets at all
+        const totalBetsCount = await Bet.countDocuments();
+        console.log(`Total bets in database: ${totalBetsCount}`);
+
+        // Convert string IDs to ObjectIds for MongoDB query
+        const objectIds = userIds.map(id => new mongoose.Types.ObjectId(id));
+
+        // Check bets for these specific users
+        const userBetsCount = await Bet.countDocuments({ userId: { $in: objectIds } });
+        console.log(`Bets for these users: ${userBetsCount}`);
+
+        const pipeline = [
+            {
+                $match: {
+                    userId: { $in: objectIds },
+                    ...dateFilter
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalBet: { $sum: '$amount' },
+                    totalWin: { $sum: { $ifNull: ['$winAmount', 0] } },
+                    totalBets: { $sum: 1 },
+                    winningBets: {
+                        $sum: {
+                            $cond: [{ $gt: [{ $ifNull: ['$winAmount', 0] }, 0] }, 1, 0]
+                        }
+                    },
+                    claimedAmount: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $gt: [{ $ifNull: ['$winAmount', 0] }, 0] },
+                                        { $eq: ['$claimStatus', true] }
+                                    ]
+                                },
+                                { $ifNull: ['$winAmount', 0] },
+                                0
+                            ]
+                        }
+                    },
+                    unclaimedAmount: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $and: [
+                                        { $gt: [{ $ifNull: ['$winAmount', 0] }, 0] },
+                                        { $ne: ['$claimStatus', true] }
+                                    ]
+                                },
+                                { $ifNull: ['$winAmount', 0] },
+                                0
+                            ]
+                        }
+                    }
+                }
+            }
+        ];
+
+        const result = await Bet.aggregate(pipeline);
+        const betData = result[0] || {
+            totalBet: 0,
+            totalWin: 0,
+            claimedAmount: 0,
+            unclaimedAmount: 0,
+            totalBets: 0,
+            winningBets: 0
+        };
+
+        console.log('Aggregated bet data:', betData);
+        return betData;
+    }
+
+    /**
+     * Build date filter from query parameters
+     */
+    private static buildDateFilter(startDate?: string, endDate?: string): DateFilter {
+        const dateFilter: DateFilter = {};
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+            dateFilter.createdAt = { $gte: start, $lte: end };
+        } else if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            dateFilter.createdAt = { $gte: start };
+        } else if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            dateFilter.createdAt = { $lte: end };
+        }
+
+        return dateFilter;
+    }
+
+    /**
+     * Get today's statistics using aggregation
+     */
+    private static async getTodayStats(userIds: string[], start: Date, end: Date) {
+        if (userIds.length === 0) {
+            return {
+                todayBets: 0,
+                todayBetAmount: 0,
+                todayWinningBets: 0,
+                todayWinAmount: 0,
+                totalUsers: 0
+            };
+        }
+
+        const pipeline = [
+            {
+                $match: {
+                    userId: { $in: userIds },
+                    createdAt: { $gte: start, $lt: end }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    todayBets: { $sum: 1 },
+                    todayBetAmount: { $sum: '$amount' },
+                    todayWinningBets: {
+                        $sum: {
+                            $cond: [{ $gt: ['$winAmount', 0] }, 1, 0]
+                        }
+                    },
+                    todayWinAmount: { $sum: '$winAmount' }
+                }
+            }
+        ];
+
+        const result = await Bet.aggregate(pipeline);
+        const stats = result[0] || {
+            todayBets: 0,
+            todayBetAmount: 0,
+            todayWinningBets: 0,
+            todayWinAmount: 0
+        };
+
+        return {
+            ...stats,
+            totalUsers: userIds.length
+        };
+    }
+
+    /**
+     * Calculate summary from reports
+     */
+    private static calculateSummary(reports: HierarchicalReport[]) {
+        return reports.reduce((summary, report) => ({
+            totalBet: summary.totalBet + report.totalBet,
+            totalWin: summary.totalWin + report.totalWin,
+            claimedAmount: summary.claimedAmount + report.claimedAmount,
+            unclaimedAmount: summary.unclaimedAmount + report.unclaimedAmount,
+            totalBets: summary.totalBets + report.totalBets,
+            winningBets: summary.winningBets + report.winningBets,
+            totalUsers: summary.totalUsers + 1,
+            totalCommission: summary.totalCommission + report.commission
+        }), {
+            totalBet: 0,
+            totalWin: 0,
+            claimedAmount: 0,
+            unclaimedAmount: 0,
+            totalBets: 0,
+            winningBets: 0,
+            totalUsers: 0,
+            totalCommission: 0
+        });
+    }
+
+    /**
+     * Get empty summary
+     */
+    private static getEmptySummary() {
+        return {
+            totalBet: 0,
+            totalWin: 0,
+            claimedAmount: 0,
+            unclaimedAmount: 0,
+            totalBets: 0,
+            winningBets: 0,
+            totalUsers: 0,
+            totalCommission: 0
+        };
+    }
+
+    /**
+     * Debug endpoint to check bet data
+     */
+    static async debugBets(req: AuthenticatedRequest, res: Response) {
+        try {
+            const currentUser = req.user;
+            if (!currentUser) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            // Get total bets count
+            const totalBets = await Bet.countDocuments();
+
+            // Get recent bets
+            const recentBets = await Bet.find()
+                .populate('userId', 'username role')
+                .populate('marketId', 'name')
+                .sort({ createdAt: -1 })
+                .limit(10);
+
+            // Get all users
+            const totalUsers = await User.countDocuments();
+            const usersByRole = await User.aggregate([
+                { $group: { _id: '$role', count: { $sum: 1 } } }
+            ]);
+
+            // Get players specifically
+            const players = await User.find({ role: 'player', isActive: true });
+            const playerIds = players.map(p => String(p._id));
+
+            // Check the specific user from the bet data
+            const specificUserId = '68bc165af01db02f42f2c3a7';
+            const specificUser = await User.findById(specificUserId);
+            const specificUserBets = await Bet.countDocuments({ userId: new mongoose.Types.ObjectId(specificUserId) });
+
+            // Get bets for players
+            const playerBets = await Bet.countDocuments({ userId: { $in: playerIds } });
+
+            return res.json({
+                success: true,
+                data: {
+                    totalBets,
+                    totalUsers,
+                    usersByRole,
+                    players: {
+                        count: players.length,
+                        ids: playerIds,
+                        bets: playerBets
+                    },
+                    specificUser: {
+                        id: specificUserId,
+                        exists: !!specificUser,
+                        role: specificUser?.role,
+                        isActive: specificUser?.isActive,
+                        bets: specificUserBets
+                    },
+                    recentBets: recentBets.map(bet => ({
+                        id: bet._id,
+                        amount: bet.amount,
+                        winAmount: bet.winAmount,
+                        claimStatus: bet.claimStatus,
+                        createdAt: bet.createdAt,
+                        user: bet.userId,
+                        market: bet.marketId
+                    }))
+                }
+            });
+
+        } catch (error) {
+            logger.error('Error in debug bets:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    /**
+     * Test hierarchical reports without date filter
+     */
+    static async testHierarchicalReports(req: AuthenticatedRequest, res: Response) {
+        try {
+            const currentUser = req.user;
+            if (!currentUser) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication required'
+                });
+            }
+
+            console.log('Testing hierarchical reports for user:', currentUser.userId);
+
+            // Get target level (next role in hierarchy)
+            const targetLevel = await this.getTargetLevel(currentUser);
+            console.log('Target level:', targetLevel);
+
+            // Get users at target level
+            const users = await this.getUsersAtLevel(targetLevel.targetRole, currentUser.userId);
+            console.log(`Found ${users.length} users at ${targetLevel.targetRole} level`);
+
+            const reports = [];
+            for (const user of users) {
+                console.log(`Processing user: ${user.username} (${user.role})`);
+
+                // Get all players under this user
+                const playerIds = await this.getAllPlayersUnderUser(user._id);
+                console.log(`Found ${playerIds.length} players under ${user.username}`);
+
+                // Get bet data without date filter
+                const betData = await this.getBetDataForUsers(playerIds, {});
+                console.log(`Bet data for ${user.username}:`, betData);
+
+                // Calculate commission
+                const commission = (betData.totalBet / 100) * user.percentage;
+
+                reports.push({
+                    userId: user._id,
+                    username: user.username,
+                    role: user.role,
+                    percentage: user.percentage,
+                    totalBet: betData.totalBet,
+                    totalWin: betData.totalWin,
+                    claimedAmount: betData.claimedAmount,
+                    unclaimedAmount: betData.unclaimedAmount,
+                    totalBets: betData.totalBets,
+                    winningBets: betData.winningBets,
+                    commission: commission,
+                    hasChildren: await this.userHasChildren(user._id),
+                    playerCount: playerIds.length
+                });
+            }
+
+            return res.json({
+                success: true,
+                data: {
+                    currentUser: currentUser,
+                    targetLevel: targetLevel,
+                    reports: reports,
+                    summary: {
+                        totalUsers: reports.length,
+                        totalBet: reports.reduce((sum, r) => sum + r.totalBet, 0),
+                        totalWin: reports.reduce((sum, r) => sum + r.totalWin, 0),
+                        totalCommission: reports.reduce((sum, r) => sum + r.commission, 0)
+                    }
+                }
+            });
+
+        } catch (error) {
+            logger.error('Error in test hierarchical reports:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : String(error)
             });
         }
     }
