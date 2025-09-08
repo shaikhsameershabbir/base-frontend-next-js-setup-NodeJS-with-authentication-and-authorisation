@@ -8,9 +8,9 @@ interface Market {
 }
 
 interface DayResult {
-    open: number | null;
-    main: number | null;
-    close: number | null;
+    open: string | null; // Changed to string to match backend
+    main: string | null; // Changed to string to match backend
+    close: string | null; // Changed to string to match backend
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
 }
@@ -28,7 +28,8 @@ interface WeeklyResult {
 interface Result {
     _id: string;
     marketId: Market;
-    results: WeeklyResult;
+    resultDate: Date; // Backend returns single date, not weekly structure
+    results: DayResult; // Backend returns single day result, not weekly
 }
 
 interface TodayResultsProps {
@@ -48,13 +49,14 @@ export function TodayResults({
 }: TodayResultsProps) {
     if (!marketResults || selectedMarket === 'all') return null;
 
-    const today = new Date();
-    const dayName = getDayName(today);
-    const dayResult = marketResults.results[dayName as keyof WeeklyResult];
+    // Backend returns single day result, not weekly structure
+    const dayResult = marketResults.results;
 
     if (!dayResult || (!dayResult.open && !dayResult.close)) {
         return null;
     }
+
+    const today = new Date(); // Add back the today variable
 
     return (
         <Card className="mb-6 bg-gray-900 border-gray-700">

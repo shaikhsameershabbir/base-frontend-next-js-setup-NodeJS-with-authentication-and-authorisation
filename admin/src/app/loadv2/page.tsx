@@ -102,7 +102,7 @@ export default function LoadV2Page() {
     });
     const [declareLoading, setDeclareLoading] = useState(false);
 
-    const [marketResults, setMarketResults] = useState<import('@/lib/api-service').Result | null>(null);
+    const [marketResults, setMarketResults] = useState<any>(null);
     const [allResults, setAllResults] = useState<import('@/lib/api-service').Result[]>([]);
     const [loadingResults, setLoadingResults] = useState(false);
 
@@ -418,6 +418,12 @@ export default function LoadV2Page() {
             return;
         }
 
+        // Validate result number format (3-digit string)
+        if (!/^\d{3}$/.test(resultNumber)) {
+            toast.error('Result number must be a 3-digit panna number (000-999)');
+            return;
+        }
+
         const number = parseInt(resultNumber);
         if (isNaN(number) || number < 100 || number > 999) {
             toast.error('Result number must be a 3-digit panna number (100-999)');
@@ -436,8 +442,8 @@ export default function LoadV2Page() {
 
             // Additional validation for close result
             if (resultType === 'close' && marketResults) {
-                const dayName = getDayName(new Date(targetDate));
-                const dayResult = marketResults.results[dayName as keyof import('@/lib/api-service').WeeklyResult];
+                // Backend returns single day result, not weekly structure
+                const dayResult = marketResults.results;
                 if (!dayResult || !dayResult.open) {
                     toast.error('Open result must be declared before declaring close result');
                     return;
@@ -447,7 +453,7 @@ export default function LoadV2Page() {
             const requestData: DeclareResultRequest = {
                 marketId: selectedMarket,
                 resultType,
-                resultNumber: number,
+                resultNumber: resultNumber, // Send as string
                 targetDate: targetDate
             };
 
@@ -485,8 +491,8 @@ export default function LoadV2Page() {
     const canDeclareClose = (): boolean => {
         if (!marketResults || !targetDate) return false;
 
-        const dayName = getDayName(new Date(targetDate));
-        const dayResult = marketResults.results[dayName as keyof import('@/lib/api-service').WeeklyResult];
+        // Backend returns single day result, not weekly structure
+        const dayResult = marketResults.results;
 
         const canDeclare = !!(dayResult && dayResult.open !== null && dayResult.open !== undefined);
 

@@ -510,9 +510,9 @@ export const apiUtils = {
 // ============================================================================
 
 export interface DayResult {
-    open: number | null;
-    main: number | null;
-    close: number | null;
+    open: string | null; // Changed to string to match backend
+    main: string | null; // Changed to string to match backend
+    close: string | null; // Changed to string to match backend
     openDeclationTime: Date | null;
     closeDeclationTime: Date | null;
 }
@@ -549,7 +549,7 @@ export interface Result {
 export interface DeclareResultRequest {
     marketId: string;
     resultType: 'open' | 'close';
-    resultNumber: number;
+    resultNumber: string; // Changed to string to match backend
     targetDate: string; // ISO date string
 }
 
@@ -559,7 +559,7 @@ export interface DeclareResultResponse {
     data: {
         marketId: string;
         resultType: 'open' | 'close';
-        resultNumber: number;
+        resultNumber: string; // Changed to string to match backend
         declaredBy: string;
         declarationTime: Date;
     };
