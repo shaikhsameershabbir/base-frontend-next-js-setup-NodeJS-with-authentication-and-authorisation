@@ -95,17 +95,17 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
 
   return (
     <div className={`rounded-2xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-          </div>
-      <div className="rounded-2xl flex justify-between items-start">
+      <div className="flex items-center gap-2 mb-1">
+        <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
+      </div>
+      <div className="rounded-2xl flex justify-between items-center">
         <div className="rounded-2xl flex-1">
 
           {/* Market Status - Only show when closed today */}
           {marketStatus?.status === 'closed_today' && (
             <div className="mb-2">
               <div className="text-sm font-medium text-red-600">
-                Market closed today
+                Market closed 
               </div>
             </div>
           )}
@@ -135,7 +135,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-center justify-center ml-4 self-stretch">
+        <div className="flex flex-col items-center justify-center ml-4">
           <button
             onClick={handlePlayClick}
             disabled={!marketStatus?.isOpen}
@@ -153,7 +153,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
           </button>
           <span className={`text-sm font-medium mt-2 ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
             }`}>
-            {marketStatus?.isOpen ? 'Play Now' : 'Market Closed'}
+            {marketStatus?.isOpen ? 'Play' : 'Closed'}
           </span>
         </div>
       </div>

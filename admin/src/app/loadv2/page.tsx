@@ -818,8 +818,7 @@ export default function LoadV2Page() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-white">Load V2 - JSON View</h1>
-                        <p className="text-gray-400 text-sm sm:text-base">View raw load data in JSON format with hierarchical filtering</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-white">Load </h1>
                     </div>
                 </div>
 
@@ -904,7 +903,7 @@ export default function LoadV2Page() {
                 {/* Results History */}
 
 
-                {/* JSON Data Display */}
+                {/* JSON Data Display
                 {data && (
                     <Card className="bg-gray-900 border-gray-700">
                         <CardHeader>
@@ -933,7 +932,7 @@ export default function LoadV2Page() {
                             </div>
                         </CardContent>
                     </Card>
-                )}
+                )} */}
 
                 {!data && !loading && (
                     <Card className="bg-gray-900 border-gray-700">

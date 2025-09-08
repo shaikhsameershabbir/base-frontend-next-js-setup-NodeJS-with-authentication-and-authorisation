@@ -173,6 +173,8 @@ app.use((req, res, next) => {
     const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
     // Create request log object
+   
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requestLog: Record<string, any> = {
         timestamp,
         method,
