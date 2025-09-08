@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Bet } from '../../../models/Bet';
 import { User } from '../../../models/User';
+import { logger } from '../../../config/logger';
 
 // Define proper types for request with user
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
@@ -51,7 +52,7 @@ export class ClaimController {
             });
 
         } catch (error) {
-            console.error('Error getting unclaimed tickets:', error);
+            logger.error('Error getting unclaimed tickets:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
@@ -133,7 +134,7 @@ export class ClaimController {
             });
 
         } catch (error) {
-            console.error('Error claiming tickets:', error);
+            logger.error('Error claiming tickets:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Internal server error',
@@ -184,7 +185,7 @@ export class ClaimController {
             });
 
         } catch (error) {
-            console.error('Error getting claim summary:', error);
+            logger.error('Error getting claim summary:', error);
             return res.status(500).json({
                 success: false,
                 message: 'Internal server error',

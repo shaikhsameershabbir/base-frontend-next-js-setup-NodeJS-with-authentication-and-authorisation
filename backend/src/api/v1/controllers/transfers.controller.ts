@@ -4,6 +4,7 @@ import { User } from '../../../models/User';
 
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { UserHierarchy } from '../../../models/UserHierarchy';
+import { logger } from '../../../config/logger';
 
 // Interface for populated user data
 interface PopulatedUser {
@@ -88,7 +89,7 @@ export class TransfersController {
                 data: childUsers
             });
         } catch (error) {
-            console.error('Error getting child users:', error);
+            logger.error('Error getting child users:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     };
@@ -246,13 +247,13 @@ export class TransfersController {
                 transfer.status = 'failed';
                 await transfer.save();
 
-                console.error('Transfer processing error:', transferError);
+                logger.error('Transfer processing error:', transferError);
                 res.status(500).json({ message: 'Transfer processing failed' });
                 return;
             }
 
         } catch (error) {
-            console.error('Error processing transfer:', error);
+            logger.error('Error processing transfer:', error);
             res.status(500).json({ message: 'Internal server error' });
             return;
         }
@@ -342,7 +343,7 @@ export class TransfersController {
             });
 
         } catch (error) {
-            console.error('Error getting transfer history:', error);
+            logger.error('Error getting transfer history:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     };
@@ -386,7 +387,7 @@ export class TransfersController {
             });
 
         } catch (error) {
-            console.error('Error getting transfer stats:', error);
+            logger.error('Error getting transfer stats:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     };

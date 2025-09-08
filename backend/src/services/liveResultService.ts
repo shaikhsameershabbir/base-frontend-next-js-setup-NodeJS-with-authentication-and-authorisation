@@ -24,7 +24,7 @@ function getSignature(timestamp: string): string {
 }
 
 export async function hitApiAndLog(): Promise<ApiResponse | string> {
-    console.log("hitApiAndLog");
+    // API hit and logged
     const timestamp = new Date().toISOString();
     const headers = {
         "X-API-Key": API_CONFIG.key,
@@ -37,7 +37,7 @@ export async function hitApiAndLog(): Promise<ApiResponse | string> {
             headers,
         });
 
-     
+
         return response.data;
     } catch (error) {
         // Only log actual errors, not expected conditions

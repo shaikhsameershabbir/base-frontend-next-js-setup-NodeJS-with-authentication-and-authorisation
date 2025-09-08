@@ -587,10 +587,7 @@ export class AutoResultService {
 
         const isSame = d1.getTime() === d2.getTime();
 
-        // Add logging for debugging
-        if (!isSame) {
-            logger.info(`Date mismatch: ${date1.toDateString()} vs ${date2.toDateString()}`);
-        }
+
 
         return isSame;
     }

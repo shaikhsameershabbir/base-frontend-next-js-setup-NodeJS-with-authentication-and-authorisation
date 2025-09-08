@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { Result } from '../../../models/result';
 import { Market } from '../../../models/Market';
 import { WinningCalculationService } from '../../../services/winningCalculation.service';
+import { logger } from '../../../config/logger';
 
 // Types for the declare result functionality
 interface DeclareResultRequest {
@@ -38,7 +39,7 @@ const normalizeDate = (date: Date): Date => {
 // Declare result for a specific market and day
 export const declareResult = async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log(req.body, 'req.body');
+        // Request body received
         const currentUser = (req as AuthenticatedRequest).user;
         if (!currentUser) {
             res.status(401).json({ success: false, message: 'Authentication required' });
@@ -67,7 +68,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         // Ensure resultNumber is a string and validate it (should be a 3-digit panna number)
         const resultNumberStr = String(resultNumber);
-        console.log('resultNumberStr:', resultNumberStr, 'type:', typeof resultNumberStr);
+        // Processing result number string
 
         if (!/^\d{3}$/.test(resultNumberStr)) {
             res.status(400).json({
@@ -86,7 +87,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         // Check if market exists
         const market = await Market.findById(marketId);
-        console.log(market, 'market');
+        // Market found
         if (!market) {
             res.status(404).json({ success: false, message: 'Market not found' });
             return;
@@ -200,7 +201,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 mainValue
             );
         }
-        console.log(existingResult, 'existingResult');
+        // Existing result checked
         res.json({
             success: true,
             message: `${resultType.charAt(0).toUpperCase() + resultType.slice(1)} result declared successfully for ${targetDateObj.toDateString()}`,
@@ -216,7 +217,8 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
             }
         });
     } catch (error) {
-        console.log(error, 'error');
+        // Error occurred during result declaration
+        logger.error('Error declaring result:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };

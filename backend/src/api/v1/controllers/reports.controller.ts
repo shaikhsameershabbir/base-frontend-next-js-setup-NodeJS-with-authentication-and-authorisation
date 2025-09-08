@@ -233,28 +233,17 @@ export class ReportsController {
 
             if (user.role === 'player') {
                 // For players, get their own bet data directly
-                console.log(`Getting bet data for player: ${user.username} (${user._id})`);
                 playerIds = [user._id];
-
-                // Check if this is the specific player from the bet data
-                if (user._id === '68bc165af01db02f42f2c3a7') {
-                    console.log('This is the specific player with bet data!');
-                    console.log('Date filter:', dateFilter);
-                }
 
                 betData = await this.getBetDataForUsers(playerIds, dateFilter);
 
-                // If no data with date filter, try without date filter for debugging
+                // If no data with date filter, try without date filter
                 if (betData.totalBets === 0) {
-                    console.log(`No bets found with date filter for player ${user.username}, trying without date filter...`);
                     betData = await this.getBetDataForUsers(playerIds, {});
                 }
-
-                console.log(`Final bet data for player ${user.username}:`, betData);
             } else {
                 // For non-players, get all players under this user's hierarchy
                 playerIds = await this.getAllPlayersUnderUser(user._id);
-                console.log(`Found ${playerIds.length} players under ${user.username} (${user.role})`);
 
                 if (playerIds.length === 0) {
                     // No players under this user, return empty report
@@ -278,9 +267,8 @@ export class ReportsController {
                 // Get bet data for all players under this user
                 betData = await this.getBetDataForUsers(playerIds, dateFilter);
 
-                // If no data with date filter, try without date filter for debugging
+                // If no data with date filter, try without date filter
                 if (betData.totalBets === 0 && playerIds.length > 0) {
-                    console.log(`No bets found with date filter for user ${user.username}, trying without date filter...`);
                     betData = await this.getBetDataForUsers(playerIds, {});
                 }
             }
@@ -348,10 +336,10 @@ export class ReportsController {
                 }
             }
 
-            console.log(`Found ${playerIds.length} players under user ${userId}`);
+            // Found players under user
             return playerIds;
         } catch (error) {
-            console.error('Error getting players under user:', error);
+            logger.error('Error getting players under user:', error);
             return playerIds;
         }
     }
@@ -378,7 +366,7 @@ export class ReportsController {
                 }
             }
         } catch (error) {
-            console.error('Error in recursive player search:', error);
+            logger.error('Error in recursive player search:', error);
         }
 
         return playerIds;
@@ -404,7 +392,7 @@ export class ReportsController {
         winningBets: number;
     }> {
         if (userIds.length === 0) {
-            console.log('No user IDs provided for bet data aggregation');
+            // No user IDs provided for bet data aggregation
             return {
                 totalBet: 0,
                 totalWin: 0,
@@ -415,19 +403,16 @@ export class ReportsController {
             };
         }
 
-        console.log(`Getting bet data for ${userIds.length} users:`, userIds);
-        console.log('Date filter:', dateFilter);
+        // Getting bet data for users
 
         // First, let's check if there are any bets at all
         const totalBetsCount = await Bet.countDocuments();
-        console.log(`Total bets in database: ${totalBetsCount}`);
 
         // Convert string IDs to ObjectIds for MongoDB query
         const objectIds = userIds.map(id => new mongoose.Types.ObjectId(id));
 
         // Check bets for these specific users
         const userBetsCount = await Bet.countDocuments({ userId: { $in: objectIds } });
-        console.log(`Bets for these users: ${userBetsCount}`);
 
         const pipeline = [
             {
@@ -489,7 +474,7 @@ export class ReportsController {
             winningBets: 0
         };
 
-        console.log('Aggregated bet data:', betData);
+        // Aggregated bet data calculated
         return betData;
     }
 
@@ -702,27 +687,27 @@ export class ReportsController {
                 });
             }
 
-            console.log('Testing hierarchical reports for user:', currentUser.userId);
+            // Testing hierarchical reports for user
 
             // Get target level (next role in hierarchy)
             const targetLevel = await this.getTargetLevel(currentUser);
-            console.log('Target level:', targetLevel);
+            // Target level determined
 
             // Get users at target level
             const users = await this.getUsersAtLevel(targetLevel.targetRole, currentUser.userId);
-            console.log(`Found ${users.length} users at ${targetLevel.targetRole} level`);
+            // Found users at target level
 
             const reports = [];
             for (const user of users) {
-                console.log(`Processing user: ${user.username} (${user.role})`);
+                // Processing user
 
                 // Get all players under this user
                 const playerIds = await this.getAllPlayersUnderUser(user._id);
-                console.log(`Found ${playerIds.length} players under ${user.username}`);
+                // Found players under user
 
                 // Get bet data without date filter
                 const betData = await this.getBetDataForUsers(playerIds, {});
-                console.log(`Bet data for ${user.username}:`, betData);
+                // Bet data calculated for user
 
                 // Calculate commission
                 const commission = (betData.totalBet / 100) * user.percentage;
@@ -783,7 +768,7 @@ export class ReportsController {
             }
 
             const playerId = req.params.playerId;
-            console.log(`Testing player data for: ${playerId}`);
+            // Testing player data
 
             // Get player info
             const player = await User.findById(playerId);
@@ -794,11 +779,11 @@ export class ReportsController {
                 });
             }
 
-            console.log(`Player found: ${player.username} (${player.role})`);
+            // Player found
 
             // Get all bets for this player (no date filter)
             const allBets = await Bet.find({ userId: new mongoose.Types.ObjectId(playerId) });
-            console.log(`Found ${allBets.length} total bets for player`);
+            // Found total bets for player
 
             // Get bets with today's date filter
             const today = new Date();
@@ -810,17 +795,17 @@ export class ReportsController {
                 userId: new mongoose.Types.ObjectId(playerId),
                 createdAt: { $gte: today, $lt: tomorrow }
             });
-            console.log(`Found ${todayBets.length} bets for today`);
+            // Found today's bets for player
 
             // Get bet data using our aggregation
             const betData = await this.getBetDataForUsers([playerId], {});
-            console.log('Aggregated bet data:', betData);
+            // Aggregated bet data calculated
 
             // Get bet data with today's filter
             const todayBetData = await this.getBetDataForUsers([playerId], {
                 createdAt: { $gte: today, $lt: tomorrow }
             });
-            console.log('Today bet data:', todayBetData);
+            // Today bet data calculated
 
             return res.json({
                 success: true,

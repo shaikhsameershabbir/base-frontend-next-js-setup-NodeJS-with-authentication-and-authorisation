@@ -5,6 +5,7 @@ import { Market } from '../../../models/Market';
 import { UserMarketAssignment } from '../../../models/UserMarketAssignment';
 import { HierarchyService } from '../../../services/hierarchyService';
 import { AuthenticatedRequest } from '../../../middlewares/auth';
+import { logger } from '../../../config/logger';
 
 // Get hierarchical users for the current user
 export const getHierarchicalUsers = async (req: Request, res: Response): Promise<void> => {
@@ -111,7 +112,7 @@ export const getHierarchicalUsers = async (req: Request, res: Response): Promise
             data: groupedUsers
         });
     } catch (error) {
-        console.error('Get hierarchical users error:', error);
+        logger.error('Get hierarchical users error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
@@ -161,7 +162,7 @@ export const getAssignedMarkets = async (req: Request, res: Response): Promise<v
             data: markets
         });
     } catch (error) {
-        console.error('Get assigned markets error:', error);
+        logger.error('Get assigned markets error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
@@ -598,7 +599,7 @@ export const getAllLoads = async (req: Request, res: Response): Promise<void> =>
             }
         });
     } catch (error) {
-        console.error('Get all loads error:', error);
+        logger.error('Get all loads error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
@@ -691,7 +692,7 @@ export const getAllLoadsV2 = async (req: Request, res: Response): Promise<void> 
             }
         });
     } catch (error) {
-        console.error('Get all loads V2 error:', error);
+        logger.error('Get all loads V2 error:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };

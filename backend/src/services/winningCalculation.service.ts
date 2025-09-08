@@ -1,3 +1,4 @@
+import { logger } from '../config/logger';
 import { Bet } from '../models/Bet';
 
 // Winning rates constants
@@ -200,7 +201,7 @@ export class WinningCalculationService {
             }
 
         } catch (error) {
-            console.error('Error calculating open winnings:', error);
+            logger.error('Error calculating open winnings:', error);
             throw error;
         }
     }
@@ -292,7 +293,7 @@ export class WinningCalculationService {
             }
 
         } catch (error) {
-            console.error('Error calculating close winnings:', error);
+            logger.error('Error calculating close winnings:', error);
             throw error;
         }
     }

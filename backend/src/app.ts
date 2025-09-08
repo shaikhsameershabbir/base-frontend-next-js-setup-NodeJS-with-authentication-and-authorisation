@@ -173,7 +173,7 @@ app.use((req, res, next) => {
     const fullUrl = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
     // Create request log object
-   
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const requestLog: Record<string, any> = {
         timestamp,
@@ -216,9 +216,9 @@ app.use((req, res, next) => {
     delete headers['x-api-key'];
     requestLog.headers = headers;
 
-    // Log the complete request
-    console.log(`[${timestamp}] ${method} ${endpoint}`);
-    console.log('Request Details:', requestLog.query);
+    // Log the complete request (production logging handled by logger)
+    // console.log(`[${timestamp}] ${method} ${endpoint}`);
+    // console.log('Request Details:', requestLog.query);
 
     next();
 });

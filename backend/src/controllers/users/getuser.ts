@@ -200,7 +200,7 @@ export const getUsersByRole = async (req: AuthenticatedRequest, res: Response): 
             }
         });
     } catch (error) {
-        console.error('Error getting users:', error);
+        logger.error('Error getting users:', error);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
