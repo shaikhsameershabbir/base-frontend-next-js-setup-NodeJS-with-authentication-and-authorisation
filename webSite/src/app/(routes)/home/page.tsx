@@ -3,6 +3,8 @@
 import BottomNav from "@/app/components/BottomNav";
 import MarketCard from "@/app/components/MarketCard";
 import VirtualizedMarketGrid from "@/app/components/VirtualizedMarketGrid";
+import BatchMarketGrid from "@/app/components/BatchMarketGrid";
+import BatchVirtualizedMarketGrid from "@/app/components/BatchVirtualizedMarketGrid";
 import Message from "@/app/components/Message";
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
@@ -42,8 +44,8 @@ const HomeContent = React.memo(() => {
         fetchData();
     }, [fetchData]);
 
-    // Determine if we should use virtualization (for 40+ markets and desktop only)
-    const shouldUseVirtualization = sortedMarkets.length >= 40 && !isMobile;
+    // Determine if we should use virtualization (for 100+ markets and desktop only)
+    const shouldUseVirtualization = sortedMarkets.length >= 100 && !isMobile;
     return (
         <main className="min-h-screen bg-gray-100">
             <div className="pt-16">
@@ -77,23 +79,16 @@ const HomeContent = React.memo(() => {
                             marketResults={marketResults}
                             itemsPerRow={3}
                             itemHeight={200}
-                            containerHeight="calc(100vh - 200px)"
+                            containerHeight="calc(100vh - 0px)"
                         />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 pt-4 pb-20 scrollbar-hide">
-                        {sortedMarkets.map((market) => {
-                            const marketResult = marketResults[market._id];
-
-                            return (
-                                <MarketCard
-                                    key={market._id}
-                                    market={market}
-                                    marketResult={marketResult}
-                                />
-                            );
-                        })}
-                    </div>
+                    <BatchMarketGrid
+                        markets={sortedMarkets}
+                        marketResults={marketResults}
+                        batchSize={sortedMarkets.length > 50 ? 18 : 12}
+                        delayBetweenBatches={16}
+                    />
                 )}
             </div>
             <BottomNav />

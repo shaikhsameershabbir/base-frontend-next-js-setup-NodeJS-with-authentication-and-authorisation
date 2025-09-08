@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { marketsAPI } from '@/lib/api/auth';
 import { betAPI } from '@/lib/api/bet';
+import { useAuthContext } from './AuthContext';
 
 interface Market {
   _id: string;
@@ -65,6 +66,7 @@ interface MarketDataProviderProps {
 }
 
 export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children }) => {
+  const { state: { isAuthenticated, loading: authLoading } } = useAuthContext();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [marketResults, setMarketResults] = useState<Record<string, MarketResult>>({});
   const [marketStatuses, setMarketStatuses] = useState<Record<string, MarketStatus>>({});
@@ -74,14 +76,18 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const isMountedRef = React.useRef(true);
   const isFetchingRef = React.useRef(false);
   const statusFetchingRef = React.useRef<Set<string>>(new Set());
+  const lastAuthStateRef = React.useRef<boolean | null>(null);
+
+  const resetData = () => {
+    console.log('MarketDataContext: Resetting data');
+    setMarkets([]);
+    setMarketResults({});
+    setMarketStatuses({});
+    setIsInitialized(false);
+    setError(null);
+  };
 
   const fetchData = async () => {
-    // Prevent duplicate calls during initialization
-    if (isInitialized && markets.length > 0) {
-      console.log('MarketDataContext: Skipping fetchData - already initialized');
-      return;
-    }
-
     // Prevent concurrent fetch calls
     if (isFetchingRef.current) {
       console.log('MarketDataContext: Skipping fetchData - already fetching');
@@ -196,16 +202,39 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     return null;
   };
 
-  // Fetch data on mount
+  // Monitor authentication state changes
   useEffect(() => {
-    if (isMountedRef.current) {
+    // Skip if auth is still loading
+    if (authLoading) {
+      return;
+    }
+
+    // If user just logged in (was not authenticated, now is)
+    if (!lastAuthStateRef.current && isAuthenticated) {
+      console.log('MarketDataContext: User logged in, fetching data');
+      resetData();
+      fetchData();
+    }
+    // If user just logged out (was authenticated, now is not)
+    else if (lastAuthStateRef.current && !isAuthenticated) {
+      console.log('MarketDataContext: User logged out, resetting data');
+      resetData();
+    }
+
+    // Update the last auth state
+    lastAuthStateRef.current = isAuthenticated;
+  }, [isAuthenticated, authLoading]);
+
+  // Fetch data on mount (only if authenticated)
+  useEffect(() => {
+    if (isMountedRef.current && isAuthenticated && !authLoading) {
       fetchData();
     }
 
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   const value = {
     markets,
