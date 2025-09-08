@@ -42,7 +42,7 @@ const VirtualizedMarketGrid: React.FC<VirtualizedMarketGridProps> = ({
     marketResults,
     itemsPerRow = 3,
     itemHeight = 200,
-    containerHeight = "calc(100vh - 200px)"
+    containerHeight = "100%"
 }) => {
     const [scrollTop, setScrollTop] = useState(0);
     const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
