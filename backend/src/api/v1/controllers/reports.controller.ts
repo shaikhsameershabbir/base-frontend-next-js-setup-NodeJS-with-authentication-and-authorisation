@@ -405,14 +405,9 @@ export class ReportsController {
 
         // Getting bet data for users
 
-        // First, let's check if there are any bets at all
-        const totalBetsCount = await Bet.countDocuments();
-
         // Convert string IDs to ObjectIds for MongoDB query
         const objectIds = userIds.map(id => new mongoose.Types.ObjectId(id));
 
-        // Check bets for these specific users
-        const userBetsCount = await Bet.countDocuments({ userId: { $in: objectIds } });
 
         const pipeline = [
             {

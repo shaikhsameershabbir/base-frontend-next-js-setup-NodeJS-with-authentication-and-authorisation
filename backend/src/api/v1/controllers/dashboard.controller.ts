@@ -34,9 +34,7 @@ export class DashboardController {
             // Get all downline user IDs for the current user
             const downlineUserIds = await HierarchyService.getAllDownlineUserIds(currentUserId, true);
 
-            // Debug: Log the downline user IDs
-            logger.info(`Dashboard stats for user ${currentUserId}: Found ${downlineUserIds.length} downline users`);
-            logger.info(`Downline user IDs: ${JSON.stringify(downlineUserIds)}`);
+            // Get downline user IDs for dashboard stats
 
             // Get total users under current user (excluding self)
             const totalUsers = downlineUserIds.length - 1; // Exclude self
@@ -82,15 +80,7 @@ export class DashboardController {
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
 
-            // Debug: Check if there are any bets at all
-            const totalBetsCount = await Bet.countDocuments({});
-            logger.info(`Total bets in database: ${totalBetsCount}`);
-
-            if (totalBetsCount > 0) {
-                // Get a sample bet to see the structure
-                const sampleBet = await Bet.findOne({}).lean();
-                logger.info(`Sample bet: ${JSON.stringify(sampleBet)}`);
-            }
+            // Check if there are any bets in database
 
             // Convert string IDs to ObjectIds for MongoDB query
             const downlineUserObjectIds = downlineUserIds.map(id => new mongoose.Types.ObjectId(id));
@@ -100,14 +90,7 @@ export class DashboardController {
                 createdAt: { $gte: today, $lt: tomorrow }
             };
 
-            // Debug: Log the query
-            logger.info(`Total bids query: ${JSON.stringify(totalBidsQuery)}`);
-
-            // Debug: Check if there are any bets for the downline users
-            const downlineUserBetsCount = await Bet.countDocuments({
-                userId: { $in: downlineUserObjectIds }
-            });
-            logger.info(`Bets for downline users: ${downlineUserBetsCount}`);
+            // Query for total bids from downline users
 
             const totalBidsResult = await Bet.aggregate([
                 { $match: totalBidsQuery },
@@ -116,7 +99,6 @@ export class DashboardController {
 
             const totalBids = totalBidsResult.length > 0 ? totalBidsResult[0].totalBids : 0;
             const totalBetAmount = totalBidsResult.length > 0 ? totalBidsResult[0].totalAmount : 0;
-            logger.info(`Total bids result: ${totalBids}, Total amount: ${totalBetAmount}`);
 
             // Get win amount from all downline users (today only)
             const winAmountQuery = {
@@ -140,12 +122,7 @@ export class DashboardController {
                     // Convert market ID to ObjectId for proper MongoDB query
                     const marketObjectId = new mongoose.Types.ObjectId(market._id);
 
-                    // Debug: Check if there are any bets for this market (today only)
-                    const marketBetsCount = await Bet.countDocuments({
-                        marketId: marketObjectId,
-                        createdAt: { $gte: today, $lt: tomorrow }
-                    });
-                    logger.info(`Market ${market.marketName} total bets (today): ${marketBetsCount}`);
+                    // Check bets for this market (today only)
 
                     // For superadmin, show all bets for the market. For others, show only downline bets
                     const marketBidsQuery = currentUser.role === 'superadmin' ? {
@@ -157,9 +134,7 @@ export class DashboardController {
                         createdAt: { $gte: today, $lt: tomorrow }
                     };
 
-                    // Debug: Log the market query and ObjectId
-                    logger.info(`Market ${market.marketName} ID: ${market._id}, ObjectId: ${marketObjectId}`);
-                    logger.info(`Market ${market.marketName} query: ${JSON.stringify(marketBidsQuery)}`);
+                    // Execute market bids aggregation
 
                     const marketBidsResult = await Bet.aggregate([
                         { $match: marketBidsQuery },
@@ -168,7 +143,6 @@ export class DashboardController {
 
                     const totalBids = marketBidsResult.length > 0 ? marketBidsResult[0].totalBids : 0;
                     const totalAmount = marketBidsResult.length > 0 ? marketBidsResult[0].totalAmount : 0;
-                    logger.info(`Market ${market.marketName} bids result: ${totalBids}, amount: ${totalAmount}`);
 
                     return {
                         _id: market._id,
