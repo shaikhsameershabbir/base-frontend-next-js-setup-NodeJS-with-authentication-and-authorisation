@@ -130,7 +130,7 @@ const Header = () => {
           {/* Claim Button */}
           <button
             onClick={openClaimModal}
-            className="bg-yellow-600  hover:bg-yellow-700 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-2xl flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
+            className="bg-yellow-600  hover:bg-yellow-700 text-white p-1 rounded  font-bold flex items-center gap-1 sm:gap-2 transition-colors relative text-sm sm:text-base"
           >
             {/* <p className="sm:w-5 sm:h-5 font-bold" >Claim</p> */}
         Claim
@@ -193,7 +193,7 @@ const Header = () => {
             {/* Modal Content */}
             <div className="p-3 sm:p-4">
               {claimMessage && (
-                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg text-sm sm:text-base ${claimMessage.includes('Successfully')
+                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-sm text-sm sm:text-base ${claimMessage.includes('Successfully')
                   ? 'bg-green-100 text-green-800 border border-green-200'
                   : 'bg-red-100 text-red-800 border border-red-200'
                   }`}>

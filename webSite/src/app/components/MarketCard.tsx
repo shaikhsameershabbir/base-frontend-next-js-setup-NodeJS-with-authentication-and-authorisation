@@ -151,7 +151,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
                 }`}
             />
           </button>
-          <span className={`text-sm font-medium mt-2 ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
+          <span className={`text-l  mt-2 font-bold ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
             }`}>
             {marketStatus?.isOpen ? 'Play' : 'Closed'}
           </span>
