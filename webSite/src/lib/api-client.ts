@@ -20,6 +20,18 @@ apiClient.interceptors.request.use((config) => {
         }
     }
 
+    // Add cache-busting headers for production
+    if (process.env.NODE_ENV === 'production') {
+        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        config.headers['Pragma'] = 'no-cache'
+        config.headers['Expires'] = '0'
+        // Add timestamp to prevent caching
+        if (config.method === 'get') {
+            const separator = config.url?.includes('?') ? '&' : '?'
+            config.url = `${config.url}${separator}_t=${Date.now()}`
+        }
+    }
+
     // Ensure the 'credentials' option is set to 'include'
     config.withCredentials = true
     return config

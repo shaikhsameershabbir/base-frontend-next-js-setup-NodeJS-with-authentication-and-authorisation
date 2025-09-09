@@ -13,6 +13,12 @@ import { useMarketData } from "@/contexts/MarketDataContext";
 
 const HomeContent = React.memo(() => {
     const { markets, marketResults, loading, error, fetchData } = useMarketData();
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    // Handle hydration
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
 
     // Sort markets by rank
     const sortedMarkets = useMemo(() => {
@@ -50,7 +56,11 @@ const HomeContent = React.memo(() => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto pb-20">
-                {loading ? (
+                {!isHydrated ? (
+                    <div className="flex justify-center items-center h-full">
+                        <div className="text-lg text-primary">Initializing...</div>
+                    </div>
+                ) : loading ? (
                     <div className="flex justify-center items-center h-full">
                         <div className="text-lg text-primary">Loading markets...</div>
                     </div>

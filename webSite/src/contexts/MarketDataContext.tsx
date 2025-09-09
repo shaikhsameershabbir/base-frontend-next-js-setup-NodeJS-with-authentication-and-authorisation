@@ -73,6 +73,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const isMountedRef = React.useRef(true);
   const isFetchingRef = React.useRef(false);
   const statusFetchingRef = React.useRef<Set<string>>(new Set());
@@ -87,8 +88,19 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   };
 
   const fetchData = async () => {
-    // Prevent concurrent fetch calls
+    // Only fetch on client side
+    if (!isClient) {
+      return;
+    }
+
+    // Prevent concurrent fetch calls only for a short time
     if (isFetchingRef.current) {
+      // Wait a bit and try again
+      setTimeout(() => {
+        if (!isFetchingRef.current) {
+          fetchData();
+        }
+      }, 1000);
       return;
     }
 
@@ -137,6 +149,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
 
       setIsInitialized(true);
     } catch (error: any) {
+      console.error('MarketData fetch error:', error);
       setError(error.message || 'Failed to fetch data');
     } finally {
       setLoading(false);
@@ -160,6 +173,11 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   };
 
   const fetchMarketStatus = async (marketId: string): Promise<MarketStatus | null> => {
+    // Only fetch on client side
+    if (!isClient) {
+      return null;
+    }
+
     // Prevent duplicate calls for the same market
     if (statusFetchingRef.current.has(marketId)) {
       return null;
@@ -182,6 +200,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
         return statusData;
       }
     } catch (error) {
+      console.error('Market status fetch error:', error);
       // Error fetching status - silently fail
     } finally {
       // Remove from fetching set
@@ -191,10 +210,15 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     return null;
   };
 
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Monitor authentication state changes
   useEffect(() => {
-    // Skip if auth is still loading
-    if (authLoading) {
+    // Skip if not client-side or auth is still loading
+    if (!isClient || authLoading) {
       return;
     }
 
@@ -210,18 +234,18 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
 
     // Update the last auth state
     lastAuthStateRef.current = isAuthenticated;
-  }, [isAuthenticated, authLoading]);
+  }, [isClient, isAuthenticated, authLoading]);
 
-  // Fetch data on mount (only if authenticated)
+  // Fetch data on mount (only if authenticated and client-side)
   useEffect(() => {
-    if (isMountedRef.current && isAuthenticated && !authLoading) {
+    if (isClient && isMountedRef.current && isAuthenticated && !authLoading) {
       fetchData();
     }
 
     return () => {
       isMountedRef.current = false;
     };
-  }, [isAuthenticated, authLoading]);
+  }, [isClient, isAuthenticated, authLoading]);
 
   const value = {
     markets,
