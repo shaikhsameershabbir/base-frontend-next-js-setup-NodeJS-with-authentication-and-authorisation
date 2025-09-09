@@ -46,7 +46,7 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
           setMarketStatus(status);
         }
       } catch (error) {
-        console.error('Failed to fetch market status:', error);
+        // Error fetching market status
       }
     };
 
@@ -238,7 +238,7 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
         showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
-      console.error('Bet placement error:', error);
+      // Bet placement error
       showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -389,7 +389,7 @@ const DoublePanna: React.FC<DoublePannaProps> = ({ marketId, marketName = 'Marke
             <div className="grid grid-cols-10 sm:grid-cols-10 lg:grid-cols-10 gap-1 sm:gap-2 lg:gap-3 mb-3 sm:mb-6">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="group">
-             
+
                   <button
                     type="button"
                     onClick={() => setSelectedNumber(i)}

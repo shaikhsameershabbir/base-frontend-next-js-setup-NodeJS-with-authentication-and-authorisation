@@ -98,7 +98,6 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
             return (currentTime >= openWindowStart && currentTime < todayOpenTime) ||
                 (currentTime >= closeWindowStart && currentTime < todayCloseTime);
         } catch (error) {
-            console.error('Error checking loading window:', error);
             return false;
         }
     };
@@ -121,7 +120,6 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
 
             return currentTime > todayOpenTime;
         } catch (error) {
-            console.error('Error checking if open time passed:', error);
             return false;
         }
     };

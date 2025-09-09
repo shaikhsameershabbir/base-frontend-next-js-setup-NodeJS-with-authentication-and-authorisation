@@ -351,7 +351,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Call logout API (to invalidate tokens on server)
             await authAPI.logout();
         } catch (err) {
-            console.error('Logout error:', err);
+            // Logout error - silently fail
         } finally {
             // Always clear local state, even if API call fails
             dispatch({ type: 'LOGOUT' });
@@ -423,7 +423,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         await fetchUserProfile();
                     }
                 } catch (err) {
-                    console.error('❌ Error parsing user data:', err);
                     // If stored data is corrupted, clear it
                     localStorage.removeItem('isAuthenticated');
                     localStorage.removeItem('user');

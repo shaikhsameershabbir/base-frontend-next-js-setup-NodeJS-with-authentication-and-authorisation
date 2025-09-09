@@ -62,7 +62,6 @@ const Header = () => {
     // Prevent duplicate calls
     if (isFetching) return;
 
-    console.log('🔄 Header: Fetching unclaimed tickets...');
     setIsFetching(true);
     try {
       const response = await apiClient.get('/claim/tickets');
@@ -70,12 +69,9 @@ const Header = () => {
       if (response.status === 200) {
         const data = response.data;
         setClaimData(data.data);
-        console.log('✅ Header: Unclaimed tickets fetched successfully');
-      } else {
-        console.error('❌ Header: Failed to fetch unclaimed tickets');
       }
     } catch (error) {
-      console.error('❌ Header: Error fetching unclaimed tickets:', error);
+      // Error fetching tickets - silently fail
     } finally {
       setIsFetching(false);
     }
@@ -110,7 +106,6 @@ const Header = () => {
         setClaimMessage('Failed to claim tickets');
       }
     } catch (error) {
-      console.error('Error claiming tickets:', error);
       setClaimMessage('Error claiming tickets');
     } finally {
       setIsLoading(false);

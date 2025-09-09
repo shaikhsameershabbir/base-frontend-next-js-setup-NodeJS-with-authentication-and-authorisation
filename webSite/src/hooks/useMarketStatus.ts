@@ -80,7 +80,7 @@ export const useMarketStatus = (market: Market) => {
                     closeTimeParsed = { hours, minutes };
                 }
             } catch (error) {
-                console.error('Error parsing market times:', error);
+                // Error parsing market times
                 return {
                     status: 'closed',
                     message: 'Invalid market times',

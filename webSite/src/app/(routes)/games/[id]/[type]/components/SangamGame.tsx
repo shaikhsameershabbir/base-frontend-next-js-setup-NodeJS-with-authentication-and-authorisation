@@ -41,7 +41,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
           setMarketStatus(status);
         }
       } catch (error) {
-        console.error('Failed to fetch market status:', error);
+        // Error fetching market status
       }
     };
     getStatus();
@@ -298,7 +298,7 @@ const SangamGame: React.FC<SangamGameProps> = ({ marketId, marketName = 'Market'
         toast.error(response.message || 'Failed to place bet');
       }
     } catch (error: any) {
-      console.error('Bet placement error:', error);
+      // Bet placement error
       toast.error(error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);

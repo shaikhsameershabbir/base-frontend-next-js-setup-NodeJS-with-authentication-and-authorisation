@@ -81,7 +81,7 @@ function Page() {
           setTotalPages(Math.ceil(response.data.total / itemsPerPage));
         }
       } catch (error) {
-        console.error("Failed to fetch bets:", error);
+        // Error fetching bets
       } finally {
         if (isMountedRef.current) {
           setLoading(false);

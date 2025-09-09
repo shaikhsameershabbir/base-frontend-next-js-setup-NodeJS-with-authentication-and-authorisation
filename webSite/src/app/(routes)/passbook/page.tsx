@@ -44,7 +44,7 @@ function Page() {
                 setTotalPages(response.pagination.pages);
             }
         } catch (error) {
-            console.error("Failed to fetch transfers:", error);
+            // Error fetching transfers
         } finally {
             setLoading(false);
         }

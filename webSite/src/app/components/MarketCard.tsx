@@ -69,7 +69,6 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
         hour12: true
       });
     } catch (error) {
-      console.error('Error parsing time:', timeStr, error);
       return timeStr || 'Invalid Time';
     }
   }, []);
@@ -105,7 +104,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
           {marketStatus?.status === 'closed_today' && (
             <div className="mb-2">
               <div className="text-sm font-medium text-red-600">
-                Market closed 
+                Market closed
               </div>
             </div>
           )}

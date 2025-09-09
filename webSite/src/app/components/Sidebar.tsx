@@ -28,7 +28,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       // Redirect to root page (which will handle routing to login)
       router.replace('/');
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout error
       // Even if logout fails, clear local data and redirect
       if (typeof window !== 'undefined') {
         localStorage.clear();

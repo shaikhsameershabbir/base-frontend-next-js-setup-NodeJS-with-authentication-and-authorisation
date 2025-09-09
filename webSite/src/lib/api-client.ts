@@ -113,11 +113,11 @@ apiClient.interceptors.response.use(
 
         // Handle other errors without automatic redirects
         if (error.response?.status === 403) {
-            console.warn("Permission denied for this action.")
+            // Permission denied for this action
         }
 
         if (error.response?.status === 429) {
-            console.warn("Too many requests. Please wait a moment before trying again.")
+            // Too many requests. Please wait a moment before trying again
         }
 
         return Promise.reject(error)

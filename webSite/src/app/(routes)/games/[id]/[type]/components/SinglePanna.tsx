@@ -46,7 +46,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
           setMarketStatus(status);
         }
       } catch (error) {
-        console.error('Failed to fetch market status:', error);
+        // Error fetching market status
       }
     };
 
@@ -235,7 +235,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
         showError('Bet Failed', response.message || 'Failed to place bet');
       }
     } catch (error: any) {
-      console.error('Bet placement error:', error);
+      // Bet placement error
       showError('Bet Failed', error.message || 'Failed to place bet. Please try again.');
     } finally {
       setIsSubmitting(false);

@@ -79,7 +79,6 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const lastAuthStateRef = React.useRef<boolean | null>(null);
 
   const resetData = () => {
-    console.log('MarketDataContext: Resetting data');
     setMarkets([]);
     setMarketResults({});
     setMarketStatuses({});
@@ -90,19 +89,16 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const fetchData = async () => {
     // Prevent concurrent fetch calls
     if (isFetchingRef.current) {
-      console.log('MarketDataContext: Skipping fetchData - already fetching');
       return;
     }
 
     isFetchingRef.current = true;
 
     try {
-      console.log('MarketDataContext: Starting fetchData');
       setLoading(true);
       setError(null);
 
       // Fetch markets
-      console.log('MarketDataContext: Fetching assigned markets');
       const marketsResponse = await marketsAPI.getAssignedMarkets();
       if (!marketsResponse.success || !marketsResponse.data) {
         throw new Error(marketsResponse.message || 'Failed to fetch markets');
@@ -123,13 +119,10 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
         };
       });
 
-      console.log('MarketDataContext: Setting markets data', marketsData.length);
-      console.log('MarketDataContext: Sample market data:', marketsData[0]);
       setMarkets(marketsData);
 
       // Fetch all market results in a single API call
       const marketIds = marketsData.map(market => market._id);
-      console.log('MarketDataContext: Fetching market results for', marketIds.length, 'markets');
       const resultsResponse = await betAPI.getAllMarketResults(marketIds);
 
       if (resultsResponse.success && resultsResponse.data) {
@@ -139,13 +132,11 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
             resultsMap[item.marketId] = item.data;
           }
         });
-        console.log('MarketDataContext: Setting market results', Object.keys(resultsMap).length);
         setMarketResults(resultsMap);
       }
 
       setIsInitialized(true);
     } catch (error: any) {
-      console.error('MarketDataContext: Error fetching data', error);
       setError(error.message || 'Failed to fetch data');
     } finally {
       setLoading(false);
@@ -171,7 +162,6 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const fetchMarketStatus = async (marketId: string): Promise<MarketStatus | null> => {
     // Prevent duplicate calls for the same market
     if (statusFetchingRef.current.has(marketId)) {
-      console.log(`MarketDataContext: Skipping status fetch for ${marketId} - already fetching`);
       return null;
     }
 
@@ -185,7 +175,6 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     statusFetchingRef.current.add(marketId);
 
     try {
-      console.log(`MarketDataContext: Fetching status for market ${marketId}`);
       const response = await betAPI.getMarketStatus(marketId);
       if (response.success && response.data) {
         const statusData = response.data;
@@ -193,7 +182,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
         return statusData;
       }
     } catch (error) {
-      console.error(`MarketDataContext: Error fetching status for market ${marketId}:`, error);
+      // Error fetching status - silently fail
     } finally {
       // Remove from fetching set
       statusFetchingRef.current.delete(marketId);
@@ -211,13 +200,11 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
 
     // If user just logged in (was not authenticated, now is)
     if (!lastAuthStateRef.current && isAuthenticated) {
-      console.log('MarketDataContext: User logged in, fetching data');
       resetData();
       fetchData();
     }
     // If user just logged out (was authenticated, now is not)
     else if (lastAuthStateRef.current && !isAuthenticated) {
-      console.log('MarketDataContext: User logged out, resetting data');
       resetData();
     }
 
