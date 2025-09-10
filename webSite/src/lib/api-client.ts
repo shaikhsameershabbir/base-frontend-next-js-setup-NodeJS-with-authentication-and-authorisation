@@ -20,16 +20,21 @@ apiClient.interceptors.request.use((config) => {
         }
     }
 
-    // Add cache-busting headers for production
-    if (process.env.NODE_ENV === 'production') {
-        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        config.headers['Pragma'] = 'no-cache'
-        config.headers['Expires'] = '0'
-        // Add timestamp to prevent caching
-        if (config.method === 'get') {
-            const separator = config.url?.includes('?') ? '&' : '?'
-            config.url = `${config.url}${separator}_t=${Date.now()}`
-        }
+    // Add aggressive cache-busting headers for all environments
+    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    config.headers['Pragma'] = 'no-cache'
+    config.headers['Expires'] = '0'
+    config.headers['Last-Modified'] = new Date().toUTCString()
+    config.headers['ETag'] = `"${Date.now()}"`
+
+    // Add timestamp to prevent caching for all requests
+    if (config.method === 'get') {
+        const separator = config.url?.includes('?') ? '&' : '?'
+        config.url = `${config.url}${separator}_t=${Date.now()}&_r=${Math.random()}`
+    } else {
+        // For POST/PUT/PATCH requests, add cache-busting to URL as well
+        const separator = config.url?.includes('?') ? '&' : '?'
+        config.url = `${config.url}${separator}_t=${Date.now()}`
     }
 
     // Ensure the 'credentials' option is set to 'include'

@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 
@@ -82,6 +81,7 @@ const calculateAverageHitsPerMinute = (stats: EndpointStats) => {
 // Initialize services after database connection
 export const initializeServices = async (): Promise<void> => {
     try {
+        logger.info('Initializing services...Using new code for auto result service');
         // Initialize cron service
         logger.info('Initializing cron service...');
         try {
@@ -118,26 +118,6 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false,
 }));
 
-// CORS configuration - Allow all origins
-app.use(cors({
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Allow all origins
-        return callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept', 'Cache-Control', 'X-File-Name'],
-    exposedHeaders: ['Set-Cookie', 'Content-Length', 'X-Foo', 'X-Bar'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-}));
-
-// Handle preflight requests explicitly
-app.options('*', cors());
-
 // Global rate limiting
 app.use(rateLimiter.apiLimiter);
 
@@ -148,21 +128,46 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Input sanitization
 app.use(validationMiddleware.sanitizeInput);
 
-// Additional CORS headers for all responses
-app.use((req, res, next) => {
-    // Set the origin header to the requesting origin or * if no origin
-    const origin = req.headers.origin || '*';
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-File-Name');
-    res.header('Access-Control-Allow-Credentials', 'true');
+// Handle OPTIONS requests first (preflight requests)
+app.options('*', (req, res) => {
+    const origin = req.headers.origin;
 
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
+    logger.info(`OPTIONS request from origin: ${origin}, path: ${req.path}`);
+
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
     } else {
-        next();
+        res.header('Access-Control-Allow-Origin', '*');
     }
+
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-File-Name, Pragma, Expires, ETag, Last-Modified, Surrogate-Control, Vary, CDN-Cache-Control, Cloudflare-CDN-Cache-Control');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie, Content-Length, X-Foo, X-Bar');
+
+    logger.info(`CORS headers set for OPTIONS request: ${JSON.stringify(res.getHeaders())}`);
+
+    res.status(200).end();
+});
+
+// Comprehensive CORS middleware - Handle all CORS requirements
+app.use((req, res, next) => {
+    // Get the origin from the request
+    const origin = req.headers.origin;
+
+    // Set CORS headers for all responses
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, X-File-Name, Pragma, Expires, ETag, Last-Modified, Surrogate-Control, Vary, CDN-Cache-Control, Cloudflare-CDN-Cache-Control');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie, Content-Length, X-Foo, X-Bar');
+
+    next();
 });
 
 // Enhanced logging middleware

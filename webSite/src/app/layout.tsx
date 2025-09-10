@@ -17,6 +17,11 @@ const quicksand = Quicksand({
 export const metadata: Metadata = {
   title: 'Matka SK',
   description: 'Matka SK - Online Matka Game',
+  other: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
 };
 
 export default function RootLayout({
@@ -26,6 +31,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
+        <meta httpEquiv="Last-Modified" content={new Date().toUTCString()} />
+        <meta httpEquiv="ETag" content={`"${Date.now()}"`} />
+      </head>
       <body className={`${quicksand.variable} font-quicksand antialiased`}>
         <AuthProvider>
           <NotificationProvider>

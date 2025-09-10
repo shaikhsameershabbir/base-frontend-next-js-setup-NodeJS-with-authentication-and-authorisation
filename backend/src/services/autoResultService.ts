@@ -461,8 +461,8 @@ export class AutoResultService {
 
             logger.info(`Processing open result for ${market.marketName}: ${marketResult.result} on ${marketResult.updated_date}`);
 
-            // Declare the result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
+            // Use the actual result date from API, not the current date
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, resultDate, null);
 
 
 
@@ -521,7 +521,7 @@ export class AutoResultService {
             // Update the existing result with close
             if (existingResult) {
                 if (existingResult) {
-                    await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, date);
+                    await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, resultDate);
                 }
             }
 
@@ -691,11 +691,21 @@ export class AutoResultService {
         existingResult.results.close = closeNumber;
 
         // Combine main values: open main + close main
-        const openMain = parseInt(existingResult.results.main || '0');
-        const combinedMain = parseInt(openMain.toString() + closeMain.toString());
-        const finalMain = combinedMain > 99 ? combinedMain % 100 : combinedMain;
+        // Handle the case where main values are single digits (e.g., 0 + 0 = 00)
+        const openMain = existingResult.results.main || '0';
+        const closeMainStr = closeMain.toString();
 
-        existingResult.results.main = finalMain.toString();
+        // Pad single digits with leading zero for proper combination
+        const paddedOpenMain = openMain.length === 1 ? '0' + openMain : openMain;
+        const paddedCloseMain = closeMainStr.length === 1 ? '0' + closeMainStr : closeMainStr;
+
+        // Combine the padded values
+        const combinedMain = paddedOpenMain + paddedCloseMain;
+
+        // If the combined result is more than 2 digits, take modulo 100
+        const finalMain = combinedMain.length > 2 ? (parseInt(combinedMain) % 100).toString().padStart(2, '0') : combinedMain;
+
+        existingResult.results.main = finalMain;
         existingResult.results.closeDeclationTime = new Date();
 
         await existingResult.save();
@@ -705,7 +715,7 @@ export class AutoResultService {
             existingResult.marketId.toString(),
             date,
             existingResult.results.open,
-            openMain,
+            parseInt(openMain),
             closeNumber,
             closeMain
         );
@@ -922,7 +932,7 @@ export class AutoResultService {
             }
 
             // Declare the missed open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, resultDate, null);
 
 
 
@@ -975,7 +985,7 @@ export class AutoResultService {
 
             // If no existing result, create one first
             if (!existingResult) {
-                const normalizedDate = this.normalizeDate(date);
+                const normalizedDate = this.normalizeDate(resultDate); // Use resultDate instead of date
                 const newDayResult = {
                     open: null,
                     main: null,
@@ -1000,7 +1010,7 @@ export class AutoResultService {
 
             // Update the existing result with close
             if (existingResult) {
-                await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, date);
+                await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, resultDate);
             }
 
         } catch (error) {
@@ -1045,6 +1055,7 @@ export class AutoResultService {
             const openNumber = formatAnalysis.number!;
             const openMain = formatAnalysis.main!;
             const closeNumber = formatAnalysis.closeNumber!;
+            const closeMain = formatAnalysis.main!; // For close result, we use the main value from the 3-part format
 
             // Check if result is for today
             const resultDate = this.parseResultDate(marketResult.updated_date);
@@ -1083,7 +1094,7 @@ export class AutoResultService {
 
             // Then declare close result
             if (resultRecord) {
-                await this.saveCloseResult(resultRecord, dayName, closeNumber, openMain, date);
+                await this.saveCloseResult(resultRecord, dayName, closeNumber, closeMain, resultDate);
             }
 
         } catch (error) {
@@ -1226,7 +1237,7 @@ export class AutoResultService {
             }
 
             // Declare the missed open result
-            await this.saveOpenResult(market._id, dayName, openNumber, openMain, date, null);
+            await this.saveOpenResult(market._id, dayName, openNumber, openMain, resultDate, null);
 
 
 
@@ -1301,7 +1312,7 @@ export class AutoResultService {
 
             // Update the existing result with close
             if (existingResult) {
-                await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, date);
+                await this.saveCloseResult(existingResult, dayName, closeNumber, closeMain, resultDate);
             }
 
 
@@ -1337,6 +1348,7 @@ export class AutoResultService {
             const openNumber = formatAnalysis.number!;
             const openMain = formatAnalysis.main!;
             const closeNumber = formatAnalysis.closeNumber!;
+            const closeMain = formatAnalysis.main!; // For close result, we use the main value from the 3-part format
 
             // Check if result is for today
             const resultDate = this.parseResultDate(marketResult.updated_date);
@@ -1376,7 +1388,7 @@ export class AutoResultService {
 
             // Then declare close result
             if (resultRecord) {
-                await this.saveCloseResult(resultRecord, dayName, closeNumber, openMain, date);
+                await this.saveCloseResult(resultRecord, dayName, closeNumber, closeMain, resultDate);
             }
 
 

@@ -3,31 +3,36 @@ const nextConfig = {
     // Output configuration for standalone deployment
     output: 'standalone',
 
-    // Compress static assets
-    compress: true,
+    // Disable compression to prevent caching
+    compress: false,
 
-    // Enable experimental features for better performance
+    // Disable experimental features that might cache
     experimental: {
-        // Enable optimized CSS loading (critters dependency now installed)
-        optimizeCss: true,
+        // Disable optimized CSS loading to prevent caching
+        optimizeCss: false,
     },
 
-    // Image optimization
+    // Disable image optimization completely
     images: {
-        // Enable image optimization
-        unoptimized: false,
-        // Add your image domains if loading external images
+        unoptimized: true,
         domains: [],
-        // Image formats for optimization
-        formats: ['image/webp', 'image/avif'],
+        // Disable all image optimization
+        formats: [],
     },
 
-    // Headers for security and performance
+    // Disable static optimization
+    trailingSlash: false,
+
+    // Disable ISR (Incremental Static Regeneration)
+    generateEtags: false,
+
+    // Headers to disable all caching
     async headers() {
         return [
             {
                 source: '/(.*)',
                 headers: [
+                    // Security headers
                     {
                         key: 'X-Frame-Options',
                         value: 'DENY',
@@ -40,6 +45,55 @@ const nextConfig = {
                         key: 'Referrer-Policy',
                         value: 'strict-origin-when-cross-origin',
                     },
+                    // Complete cache disabling headers
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-cache, no-store, must-revalidate, max-age=0',
+                    },
+                    {
+                        key: 'Pragma',
+                        value: 'no-cache',
+                    },
+                    {
+                        key: 'Expires',
+                        value: '0',
+                    },
+                    {
+                        key: 'Last-Modified',
+                        value: new Date().toUTCString(),
+                    },
+                    {
+                        key: 'ETag',
+                        value: `"${Date.now()}"`,
+                    },
+                ],
+            },
+            // Specific headers for API routes
+            {
+                source: '/api/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-cache, no-store, must-revalidate, max-age=0',
+                    },
+                    {
+                        key: 'Pragma',
+                        value: 'no-cache',
+                    },
+                    {
+                        key: 'Expires',
+                        value: '0',
+                    },
+                ],
+            },
+            // Headers for static assets
+            {
+                source: '/_next/static/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-cache, no-store, must-revalidate, max-age=0',
+                    },
                 ],
             },
         ];
@@ -50,11 +104,10 @@ const nextConfig = {
         PORT: process.env.PORT || '3001',
     },
 
-    // Production optimizations
+    // Disable all optimizations that might cache
     ...(process.env.NODE_ENV === 'production' && {
-        // Disable development features in production
         reactStrictMode: true,
-        swcMinify: true,
+        swcMinify: false, // Disable minification to prevent caching
     }),
 };
 

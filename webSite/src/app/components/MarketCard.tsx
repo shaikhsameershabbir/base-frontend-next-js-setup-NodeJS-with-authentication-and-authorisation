@@ -73,87 +73,87 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
     }
   }, []);
 
-  // Get status icon based on market status - memoized
-  const statusIcon = useMemo(() => {
-    if (!marketStatus) return null;
 
-    switch (marketStatus.status) {
-      case 'open_betting':
-        return <span className="text-green-600">●</span>;
-      case 'close_betting':
-        return <span className="text-blue-600">●</span>;
-      case 'open_loading':
-      case 'close_loading':
-        return <Clock className="w-4 h-4 text-orange-600 animate-pulse" />;
-      case 'closed_today':
-        return <AlertCircle className="w-4 h-4 text-red-600" />;
-      default:
-        return <span className="text-gray-500">●</span>;
-    }
-  }, [marketStatus?.status]);
 
   return (
-    <div className={`rounded-2xl p-4 mb-4 mx-2 ${market.isGolden ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-300' : 'bg-white'}`}>
-      <div className="flex items-center gap-2 mb-1">
-        <h2 className="text-2xl font-bold text-gray-800">{market.marketName}</h2>
-      </div>
-      <div className="rounded-2xl flex justify-between items-center">
-        <div className="rounded-2xl flex-1">
+    <div
+      className="relative border-2 border-[#7b7b79] rounded-[18px] shadow-lg overflow-hidden transition-transform duration-200 hover:scale-102 hover:shadow-2xl flex flex-col"
+      style={{
+        background: market.isGolden
+          ? "linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)"
+          : "#ffffff",
+        borderTopColor: "#7b7b79",
+        borderTopWidth: "3px",
+      }}
+    >
+      {/* Center Content */}
+      <div className="flex flex-col items-center justify-center text-center py-2 px-2 flex-1 min-h-[120px]">
+        <h3
+          className="text-2xl font-extrabold text-[#b80000] drop-shadow-lg mb-1"
+          style={{
+            fontFamily: "'Pepper Sans', sans-serif",
+            textShadow: "2px 2px 8px #fff, 0 0 2px #0000",
+            letterSpacing: "1px",
+          }}
+        >
+          {market.marketName}
+        </h3>
 
-          {/* Market Status - Only show when closed today */}
-          {marketStatus?.status === 'closed_today' && (
-            <div className="mb-2">
-              <div className="text-sm font-medium text-red-600">
-                Market closed
-              </div>
-            </div>
-          )}
-
-          {/* Winning Numbers Section */}
-          <WinningNumbers
-            marketId={market._id}
-            marketName={market.marketName}
-            openTime={market.openTime}
-            closeTime={market.closeTime}
-            weekDays={market.weekDays || 7}
-            marketResult={marketResult}
-          />
-
-          <div className="flex gap-4 mt-2">
-            <div>
-              <p className="text-sm text-gray-600 font-bold"> Open:</p>
-              <p className="text-orange-500 font-semibold">
-                {formatTimeDisplay(market.openTime)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 font-bold"> Close:</p>
-              <p className="text-orange-500 font-semibold">
-                {formatTimeDisplay(market.closeTime)}
-              </p>
+        {/* Market Status - Only show when closed today */}
+        {marketStatus?.status === 'closed_today' && (
+          <div className="mb-2">
+            <div className="text-sm font-medium text-red-600">
+              Market closed
             </div>
           </div>
-        </div>
-        <div className="flex flex-col items-center justify-center ml-4">
-          <button
-            onClick={handlePlayClick}
-            disabled={!marketStatus?.isOpen}
-            className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
-              ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
-              : 'border-gray-300 bg-gray-100 cursor-not-allowed'
-              }`}
-          >
-            <PlayCircle
-              className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
-                ? 'bg-primary text-white'
-                : 'text-gray-400 bg-gray-200'
+        )}
+
+        {/* Main Content Row */}
+        <div className="flex flex-row items-center justify-between w-full">
+          {/* Center - Result and Times */}
+          <div className="flex flex-col items-center flex-1">
+            {/* Winning Numbers Section */}
+            <div className="mb-2">
+              <WinningNumbers
+                marketId={market._id}
+                marketName={market.marketName}
+                openTime={market.openTime}
+                closeTime={market.closeTime}
+                weekDays={market.weekDays || 7}
+                marketResult={marketResult}
+              />
+            </div>
+
+            {/* Time Display */}
+            <div className="flex items-center gap-2 text-[12px] text-black">
+              <span className="font-bold">{formatTimeDisplay(market.openTime)}</span>
+              <span className="mx-1">|</span>
+              <span className="font-bold">{formatTimeDisplay(market.closeTime)}</span>
+            </div>
+          </div>
+
+          {/* Right Side - Play Button */}
+          <div className="flex flex-col items-center justify-center ml-4">
+            <button
+              onClick={handlePlayClick}
+              disabled={!marketStatus?.isOpen}
+              className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
+                ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
+                : 'border-gray-300 bg-gray-100 cursor-not-allowed'
                 }`}
-            />
-          </button>
-          <span className={`text-l  mt-2 font-bold ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
-            }`}>
-            {marketStatus?.isOpen ? 'Play' : 'Closed'}
-          </span>
+            >
+              <PlayCircle
+                className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
+                  ? 'bg-primary text-white'
+                  : 'text-gray-400 bg-gray-200'
+                  }`}
+              />
+            </button>
+            <span className={`text-sm mt-1 font-bold ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
+              }`}>
+              {marketStatus?.isOpen ? 'Play' : 'Closed'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
