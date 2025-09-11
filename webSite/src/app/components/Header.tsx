@@ -222,6 +222,7 @@ const Header = () => {
                           <div key={ticket._id} className="bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
                             <div className="flex justify-between items-start gap-2">
                               <div className="min-w-0 flex-1">
+                                <div className="font-medium text-green-800 text-sm sm:text-base truncate">{ticket.marketId?.marketName}</div>
                                 <div className="font-medium text-green-800 text-sm sm:text-base truncate">{ticket.type}</div>
                                 <div className="text-xs sm:text-sm text-green-600">Result: {ticket.result}</div>
                               </div>
