@@ -250,7 +250,7 @@ export function EditUserModal({ open, onClose, user, onUserUpdated }: EditUserMo
                             className="bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
                             disabled={loading}
                         />
-                        <p className="text-xs text-muted">
+                        <p className="text-xs text-muted text-white">
                             Percentage value between 0 and 100
                         </p>
                     </div>

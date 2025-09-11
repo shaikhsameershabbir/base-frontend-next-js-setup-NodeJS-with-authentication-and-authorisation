@@ -205,12 +205,7 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                         </Badge>
                     </div>
 
-                    {/* Parent Info */}
-                    {parentId && (
-                        <div className="text-sm text-muted">
-                            Will be created under the selected user
-                        </div>
-                    )}
+             
 
                     {/* Username Field */}
                     <div className="space-y-2">
@@ -309,7 +304,7 @@ export function AddUserModal({ role, parentId, currentUserRole, onUserAdded, tri
                             className="bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60"
                             disabled={loading}
                         />
-                        <p className="text-xs text-muted">
+                        <p className="text-xs text-muted text-white">
                             Percentage value between 0 and 100
                         </p>
                     </div>

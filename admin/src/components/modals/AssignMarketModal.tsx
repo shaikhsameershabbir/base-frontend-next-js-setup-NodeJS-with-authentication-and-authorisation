@@ -243,6 +243,7 @@ export function AssignMarketModal({
                                                 className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50/20 hover:bg-green-50/30 transition-colors mb-2"
                                             >
                                                 <Checkbox
+                                                 className="bg-white "
                                                     id={market._id}
                                                     checked={!marketsToUnassign.includes(market._id)}
                                                     onCheckedChange={() => handleMarketToggle(market._id, true)}

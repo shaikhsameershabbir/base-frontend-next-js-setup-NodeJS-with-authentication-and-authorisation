@@ -129,11 +129,7 @@ function Page() {
             </div>
           )}
 
-          {/* UIL ID */}
-          <div className="bg-white rounded-lg shadow-md p-4 text-center w-full max-w-md">
-            <p className="text-lg font-semibold text-black">UIL ID</p>
-            <p className="text-2xl font-bold text-primary">123456789</p>
-          </div>
+          
         </div>
       </div>
 
