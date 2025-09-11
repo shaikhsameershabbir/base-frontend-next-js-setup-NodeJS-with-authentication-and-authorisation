@@ -1,6 +1,8 @@
 import express from 'express';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
+import path from 'path';
+import fs from 'fs';
 
 import apiRoutes from './api/v1/routes';
 import { ErrorHandlerMiddleware } from './api/v1/middlewares/errorHandler.middleware';
@@ -258,6 +260,42 @@ app.get('/api-stats', (req, res) => {
         timestamp: new Date().toISOString()
     });
 });
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Handle OPTIONS requests for uploads
+app.options('/uploads/*', (req, res) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.status(200).end();
+});
+
+// Serve static files from uploads directory with CORS headers
+app.use('/uploads', (req, res, next) => {
+    // Set CORS headers for static files
+    const origin = req.headers.origin;
+    if (origin) {
+        res.header('Access-Control-Allow-Origin', origin);
+    } else {
+        res.header('Access-Control-Allow-Origin', '*');
+    }
+    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+
+    next();
+}, express.static(uploadsDir));
 
 const API_PREFIX = '/api/v1';
 

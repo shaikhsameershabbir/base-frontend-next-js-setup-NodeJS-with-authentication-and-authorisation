@@ -75,6 +75,11 @@ export const superNavbar: NavbarItem[] = [
         ],
     },
     {
+        title: "Payment Configuration",
+        href: "/payment-configuration",
+        icon: "QrCode",
+    },
+    {
         title: "Logs",
         href: "/logs",
         icon: "Activity",
@@ -147,6 +152,11 @@ export const adminNavbar: NavbarItem[] = [
             },
 
         ],
+    },
+    {
+        title: "Payment Configuration",
+        href: "/payment-configuration",
+        icon: "QrCode",
     },
     {
         title: "Logs",
@@ -302,6 +312,11 @@ export const agentNavbar: NavbarItem[] = [
         title: "Logs",
         href: "/logs",
         icon: "Activity",
+    },
+    {
+        title: "Payment Configuration",
+        href: "/payment-configuration",
+        icon: "CreditCard",
     },
 ];
 

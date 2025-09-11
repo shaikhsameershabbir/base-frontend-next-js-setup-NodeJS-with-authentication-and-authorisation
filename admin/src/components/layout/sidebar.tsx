@@ -28,6 +28,8 @@ import {
     Award,
     ClipboardList,
     Eye,
+    CreditCard,
+    QrCode,
 } from "lucide-react"
 import { superNavbar, adminNavbar, distributorNavbar, agentNavbar, NavbarItem } from "@/app/constant";
 
@@ -54,6 +56,8 @@ const iconMap = {
     Award,
     ClipboardList,
     Eye,
+    CreditCard,
+    QrCode
 };
 
 function getIcon(iconName: string) {

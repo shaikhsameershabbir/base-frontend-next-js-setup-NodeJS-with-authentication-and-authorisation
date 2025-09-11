@@ -11,6 +11,8 @@ export interface IUser extends Document {
     isActive: boolean;
     loginSource: string;
     lastLogin: Date;
+    barcodeImage?: string; // Base64 encoded barcode image
+    whatsappNumber?: string; // WhatsApp contact number
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;
@@ -66,6 +68,21 @@ const userSchema = new Schema<IUser>({
     lastLogin: {
         type: Date,
         default: Date.now
+    },
+    barcodeImage: {
+        type: String,
+        default: null
+    },
+    whatsappNumber: {
+        type: String,
+        default: null,
+        validate: {
+            validator: function (v: string) {
+                // Basic phone number validation (10-15 digits, optional + prefix)
+                return !v || /^\+?[1-9]\d{9,14}$/.test(v);
+            },
+            message: 'WhatsApp number must be a valid phone number'
+        }
     }
 }, {
     timestamps: true

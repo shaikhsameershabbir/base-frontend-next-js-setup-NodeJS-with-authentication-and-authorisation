@@ -673,4 +673,224 @@ export class UsersController {
             });
         }
     }
+
+    async getPaymentConfiguration(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            const user = await User.findById(userId).select('barcodeImage whatsappNumber');
+            if (!user) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Payment configuration retrieved successfully',
+                data: {
+                    barcodeImage: user.barcodeImage || null,
+                    whatsappNumber: user.whatsappNumber || null
+                }
+            });
+        } catch (error) {
+            logger.error('Get payment configuration error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async updatePaymentConfiguration(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            const { whatsappNumber } = req.body;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            // Validate WhatsApp number if provided
+            if (whatsappNumber && !/^\+?[1-9]\d{9,14}$/.test(whatsappNumber)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'WhatsApp number must be a valid phone number'
+                });
+                return;
+            }
+
+            const updateData: any = {};
+            if (whatsappNumber !== undefined) {
+                updateData.whatsappNumber = whatsappNumber;
+            }
+
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                updateData,
+                { new: true, runValidators: true }
+            ).select('barcodeImage whatsappNumber');
+
+            if (!updatedUser) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Payment configuration updated successfully',
+                data: {
+                    barcodeImage: updatedUser.barcodeImage || null,
+                    whatsappNumber: updatedUser.whatsappNumber || null
+                }
+            });
+        } catch (error) {
+            logger.error('Update payment configuration error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async uploadBarcodeImage(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            const { imageData } = req.body;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            // Check if image data was provided
+            if (!imageData) {
+                res.status(400).json({
+                    success: false,
+                    message: 'No image data provided'
+                });
+                return;
+            }
+
+            // Validate base64 format
+            const base64Regex = /^data:image\/(jpeg|jpg|png|gif);base64,/;
+            if (!base64Regex.test(imageData)) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Invalid image format. Please provide a valid base64 encoded image (JPEG, PNG, or GIF)'
+                });
+                return;
+            }
+
+            // Extract the base64 data and validate size
+            const base64Data = imageData.split(',')[1];
+            const imageSize = (base64Data.length * 3) / 4; // Approximate size in bytes
+            const maxSize = 5 * 1024 * 1024; // 5MB
+
+            if (imageSize > maxSize) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Image size must be less than 5MB'
+                });
+                return;
+            }
+
+            // Store the base64 image data directly in the database
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { barcodeImage: imageData },
+                { new: true, runValidators: true }
+            ).select('barcodeImage whatsappNumber');
+
+            if (!updatedUser) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Barcode image uploaded successfully',
+                data: {
+                    barcodeImage: updatedUser.barcodeImage,
+                    whatsappNumber: updatedUser.whatsappNumber || null
+                }
+            });
+        } catch (error) {
+            logger.error('Upload barcode image error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    async deleteBarcodeImage(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { barcodeImage: null },
+                { new: true, runValidators: true }
+            ).select('barcodeImage whatsappNumber');
+
+            if (!updatedUser) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Barcode image deleted successfully',
+                data: {
+                    barcodeImage: null,
+                    whatsappNumber: updatedUser.whatsappNumber || null
+                }
+            });
+        } catch (error) {
+            logger.error('Delete barcode image error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
 } 

@@ -8,6 +8,27 @@ const usersController = new UsersController();
 const authMiddleware = new AuthMiddleware();
 const usersValidator = new UsersValidator();
 
+// Payment configuration routes
+router.get('/payment-configuration',
+    authMiddleware.authenticateToken,
+    usersController.getPaymentConfiguration
+);
+
+router.put('/payment-configuration',
+    authMiddleware.authenticateToken,
+    usersController.updatePaymentConfiguration
+);
+
+router.post('/payment-configuration/upload-barcode',
+    authMiddleware.authenticateToken,
+    usersController.uploadBarcodeImage
+);
+
+router.delete('/payment-configuration/barcode',
+    authMiddleware.authenticateToken,
+    usersController.deleteBarcodeImage
+);
+
 // User management routes (with role-based access)
 router.get('/',
     authMiddleware.authenticateToken,
