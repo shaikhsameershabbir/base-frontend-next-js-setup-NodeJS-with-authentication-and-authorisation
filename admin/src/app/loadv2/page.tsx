@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AdminLayout } from '@/components/layout/admin-layout';
 import { WINNING_RATES, singlePannaNumbers, doublePannaNumbers, triplePannaNumbers } from '@/components/winner/constants';
-import { declareResult, getMarketResults, getAllResults, type Result, type DeclareResultRequest } from '@/lib/api-service';
+import { declareResult, getMarketResults, type DeclareResultRequest } from '@/lib/api-service';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
@@ -103,7 +103,6 @@ export default function LoadV2Page() {
     const [declareLoading, setDeclareLoading] = useState(false);
 
     const [marketResults, setMarketResults] = useState<any>(null);
-    const [allResults, setAllResults] = useState<import('@/lib/api-service').Result[]>([]);
     const [loadingResults, setLoadingResults] = useState(false);
 
     // Details modal state
@@ -113,7 +112,6 @@ export default function LoadV2Page() {
     useEffect(() => {
         fetchLoadData();
         fetchFilters();
-        fetchAllResults();
     }, []);
 
     // Auto-refresh today's results every 30 seconds
@@ -269,14 +267,9 @@ export default function LoadV2Page() {
             // Filter out entries below the cutting amount
             Object.keys(result).forEach(category => {
                 const categoryData = result[category as keyof ProcessedBetData] as { [key: string]: number };
-                const filteredData: { [key: string]: number } = {};
-
-                Object.entries(categoryData).forEach(([key, amount]) => {
-                    if (amount >= cuttingValue) {
-                        filteredData[key] = amount;
-                    }
-                });
-
+                const filteredData = Object.fromEntries(
+                    Object.entries(categoryData).filter(([, amount]) => amount >= cuttingValue)
+                );
                 result[category as keyof ProcessedBetData] = filteredData as any;
             });
         }
@@ -326,18 +319,6 @@ export default function LoadV2Page() {
         }
     };
 
-    const fetchAllResults = async () => {
-        try {
-            setLoadingResults(true);
-            const response = await getAllResults();
-            setAllResults(response.data);
-        } catch (error: any) {
-            console.error('Failed to fetch all results:', error);
-            toast.error('Failed to fetch all results');
-        } finally {
-            setLoadingResults(false);
-        }
-    };
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedDate(e.target.value);
@@ -464,7 +445,6 @@ export default function LoadV2Page() {
                 setResultNumber('');
                 // Refresh results
                 await fetchMarketResults(selectedMarket);
-                await fetchAllResults();
             } else {
                 toast.error(response.message);
             }
@@ -500,42 +480,36 @@ export default function LoadV2Page() {
     };
 
     const calculateWinAmount = (betType: string, betAmount: number, number: string): number => {
+        // Helper function to calculate digit sum
+        const getDigitSum = (num: string) => num.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
+
+        // Helper function to calculate panna win with digit sum
+        const calculatePannaWin = (pannaRate: number) => {
+            const pannaWin = betAmount * pannaRate;
+            const digitSum = getDigitSum(number);
+            const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
+            const digitSumWin = singleNumberAmount * WINNING_RATES.single;
+            return pannaWin + digitSumWin;
+        };
+
         switch (betType) {
             case 'singleNumbers':
                 return betAmount * WINNING_RATES.single;
             case 'doubleNumbers':
                 return betAmount * WINNING_RATES.double;
             case 'singlePanna':
-                // Main panna win: betAmount * 150
-                const pannaWin = betAmount * WINNING_RATES.singlePanna;
-                // Digit sum win: sum of digits * 10 (if that single number has bets)
-                const digitSum = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount = processedData?.singleNumbers[digitSum.toString()] || 0;
-                const digitSumWin = singleNumberAmount * WINNING_RATES.single;
-                return pannaWin + digitSumWin;
+                return calculatePannaWin(WINNING_RATES.singlePanna);
             case 'doublePanna':
-                // Main panna win: betAmount * 300
-                const doublePannaWin = betAmount * WINNING_RATES.doublePanna;
-                // Digit sum win: sum of digits * 10 (if that single number has bets)
-                const digitSum2 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount2 = processedData?.singleNumbers[digitSum2.toString()] || 0;
-                const digitSumWin2 = singleNumberAmount2 * WINNING_RATES.single;
-                return doublePannaWin + digitSumWin2;
+                return calculatePannaWin(WINNING_RATES.doublePanna);
             case 'triplePanna':
-                // Main panna win: betAmount * 1000
-                const triplePannaWin = betAmount * WINNING_RATES.triplePanna;
-                // Digit sum win: sum of digits * 10 (if that single number has bets)
-                const digitSum3 = number.split('').reduce((sum, digit) => sum + parseInt(digit), 0);
-                const singleNumberAmount3 = processedData?.singleNumbers[digitSum3.toString()] || 0;
-                const digitSumWin3 = singleNumberAmount3 * WINNING_RATES.single;
-                return triplePannaWin + digitSumWin3;
+                return calculatePannaWin(WINNING_RATES.triplePanna);
             case 'halfSangamOpen':
             case 'halfSangamClose':
                 return betAmount * WINNING_RATES.halfSangam;
             case 'fullSangam':
                 return betAmount * WINNING_RATES.fullSangam;
             default:
-                return betAmount * WINNING_RATES.single; // default to single rate
+                return betAmount * WINNING_RATES.single;
         }
     };
 
@@ -551,6 +525,7 @@ export default function LoadV2Page() {
     };
 
     const clearFilters = () => {
+        // Reset all filter states
         setSelectedUser('all');
         setSelectedMarket('all');
         setSelectedDate('');
@@ -558,15 +533,14 @@ export default function LoadV2Page() {
         setSelectedDistributor('all');
         setSelectedAgent('all');
         setSelectedPlayer('all');
-        setCuttingAmount(''); // Clear cutting amount
-        setSelectedBetType('all'); // Clear bet type filter
+        setCuttingAmount('');
+        setSelectedBetType('all');
         setCurrentDataUser('all');
-        setResultNumber(''); // Clear result number
-        setResultType('open'); // Reset result type
-        setTargetDate(() => {
-            const today = new Date();
-            return today.toISOString().split('T')[0];
-        });
+        setResultNumber('');
+        setResultType('open');
+        setTargetDate(new Date().toISOString().split('T')[0]);
+
+        // Fetch fresh data
         fetchLoadData();
     };
 
@@ -906,39 +880,6 @@ export default function LoadV2Page() {
                     calculateWinAmount={calculateWinAmount}
                 />
 
-                {/* Results History */}
-
-
-                {/* JSON Data Display
-                {data && (
-                    <Card className="bg-gray-900 border-gray-700">
-                        <CardHeader>
-                            <CardTitle className="text-white">Raw JSON Data</CardTitle>
-                            <div className="text-sm text-gray-400">
-                                Total Bets: {data.data.summary.totalBets} |
-                                Total Amount: ₹{data.data.summary.totalAmount.toLocaleString()} |
-                                Unique Users: {data.data.summary.uniqueUsers} |
-                                Unique Markets: {data.data.summary.uniqueMarkets}
-                                {cuttingAmount && ` | Cutting Amount: ₹${parseInt(cuttingAmount).toLocaleString()}`}
-                            </div>
-                            {data.data.filters.hierarchicalFilter && (
-                                <div className="text-sm text-blue-400 mt-2 p-2 bg-blue-900/20 rounded border border-blue-700">
-                                    <strong>Hierarchical Filter Applied:</strong>
-                                    <br />• Current User: {data.data.filters.hierarchicalFilter.currentUser} ({data.data.filters.hierarchicalFilter.currentUserRole})
-                                    <br />• Users in Hierarchy: {data.data.filters.hierarchicalFilter.targetUserIds}
-                                    <br />• Showing only bets from your hierarchy
-                                </div>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            <div className="bg-gray-800 rounded-lg p-4 overflow-auto max-h-96">
-                                <pre className="text-sm text-green-400 whitespace-pre-wrap font-mono">
-                                    {JSON.stringify(data, null, 2)}
-                                </pre>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )} */}
 
                 {!data && !loading && (
                     <Card className="bg-gray-900 border-gray-700">
