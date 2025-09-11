@@ -99,9 +99,8 @@ function Page() {
 
               {/* Parent Info */}
               <div className="mb-3">
-                <p className="text-sm text-gray-600">Contact Person</p>
-                <p className="text-lg font-semibold text-primary">
-                  {barcodeData.parentUsername} ({barcodeData.parentRole})
+                <p className="text-lg text-black font-semibold text-primary">
+                  {barcodeData.parentUsername}
                 </p>
               </div>
 
