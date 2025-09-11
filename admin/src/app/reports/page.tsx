@@ -24,6 +24,8 @@ import {
 import { useState, useEffect } from 'react';
 import { useReports } from '@/hooks/useReports';
 import { getRoleDisplayName, getRoleColor, getRoleIcon } from '@/app/helperFunctions/helper';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface HierarchicalReport {
     userId: string;
@@ -154,6 +156,202 @@ export default function ReportsPage() {
         return new Intl.NumberFormat('en-IN').format(num);
     };
 
+    const exportTableToPDF = () => {
+        if (!reportsData || reportsData.reports.length === 0) {
+            alert('No data to export');
+            return;
+        }
+
+        const doc = new jsPDF('landscape');
+
+        // Header information
+        doc.setFontSize(16);
+        doc.text('Hierarchical Reports', 20, 20);
+
+        doc.setFontSize(10);
+        doc.text(`Date Range: ${startDate} to ${endDate}`, 20, 30);
+        doc.text(`Current Level: ${getRoleDisplayName(reportsData.currentLevel.role)}`, 20, 35);
+        doc.text(`Total Users: ${reportsData.reports.length}`, 20, 40);
+
+        // Summary information
+        doc.setFontSize(12);
+        doc.text('Summary', 20, 50);
+        doc.setFontSize(10);
+        doc.text(`Total Bet Amount: ${reportsData.summary.totalBet.toLocaleString('en-IN')}`, 20, 60);
+        doc.text(`Total Win Amount: ${reportsData.summary.totalWin.toLocaleString('en-IN')}`, 20, 65);
+        doc.text(`Claimed Amount: ${reportsData.summary.claimedAmount.toLocaleString('en-IN')}`, 20, 70);
+        doc.text(`Unclaimed Amount: ${reportsData.summary.unclaimedAmount.toLocaleString('en-IN')}`, 20, 75);
+        doc.text(`Total Commission: ${reportsData.summary.totalCommission.toLocaleString('en-IN')}`, 20, 80);
+
+        // Prepare table data
+        const tableData = reportsData.reports.map(report => [
+            report.username,
+            getRoleDisplayName(report.role),
+            `${report.percentage}%`,
+            `${report.totalBet.toLocaleString('en-IN')}`,
+            `${report.totalWin.toLocaleString('en-IN')}`,
+            `${report.claimedAmount.toLocaleString('en-IN')}`,
+            `${report.unclaimedAmount.toLocaleString('en-IN')}`,
+            `${report.commission.toLocaleString('en-IN')}`,
+            report.totalBets.toLocaleString('en-IN'),
+            report.hasChildren ? 'Yes' : 'No'
+        ]);
+
+        // Add table
+        autoTable(doc, {
+            head: [['User', 'Role', 'Percentage', 'Total Bet', 'Total Win', 'Claimed', 'Unclaimed', 'Commission', 'Bets', 'Has Children']],
+            body: tableData,
+            startY: 90,
+            styles: {
+                fontSize: 8,
+                cellPadding: 3,
+            },
+            headStyles: {
+                fillColor: [41, 128, 185],
+                textColor: 255,
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245],
+            },
+        });
+
+        // Footer
+        const finalY = (doc as any).lastAutoTable.finalY || 90;
+        doc.setFontSize(8);
+        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 20, finalY + 20);
+
+        // Save the PDF
+        const fileName = `Hierarchical_Reports_${startDate}_to_${endDate}.pdf`;
+        doc.save(fileName);
+    };
+
+    const exportUserToPDF = (report: HierarchicalReport) => {
+        const doc = new jsPDF();
+
+        // Header section with compact styling
+        doc.setFillColor(41, 128, 185);
+        doc.rect(0, 0, 210, 20, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('User Report Details', 15, 14);
+
+        // User info section - compact
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`User: ${report.username}`, 15, 28);
+        doc.text(`Role: ${getRoleDisplayName(report.role)}`, 15, 34);
+        doc.text(`Date Range: ${startDate} to ${endDate}`, 15, 40);
+        doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 15, 46);
+
+        // Financial summary cards - compact
+        const cardY = 52;
+        const cardWidth = 85;
+        const cardHeight = 20;
+        const cardSpacing = 90;
+
+        // Card 1: Total Bet Amount
+        doc.setFillColor(52, 152, 219);
+        doc.rect(15, cardY, cardWidth, cardHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOTAL BET AMOUNT', 20, cardY + 6);
+        doc.setFontSize(12);
+        doc.text(report.totalBet.toLocaleString('en-IN'), 20, cardY + 14);
+
+        // Card 2: Total Win Amount
+        doc.setFillColor(46, 204, 113);
+        doc.rect(15 + cardSpacing, cardY, cardWidth, cardHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOTAL WIN AMOUNT', 20 + cardSpacing, cardY + 6);
+        doc.setFontSize(12);
+        doc.text(report.totalWin.toLocaleString('en-IN'), 20 + cardSpacing, cardY + 14);
+
+        // Card 3: Commission
+        doc.setFillColor(155, 89, 182);
+        doc.rect(15, cardY + 25, cardWidth, cardHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('COMMISSION', 20, cardY + 31);
+        doc.setFontSize(12);
+        doc.text(report.commission.toLocaleString('en-IN'), 20, cardY + 39);
+
+        // Card 4: Unclaimed Amount
+        doc.setFillColor(230, 126, 34);
+        doc.rect(15 + cardSpacing, cardY + 25, cardWidth, cardHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('UNCLAIMED AMOUNT', 20 + cardSpacing, cardY + 31);
+        doc.setFontSize(12);
+        doc.text(report.unclaimedAmount.toLocaleString('en-IN'), 20 + cardSpacing, cardY + 39);
+
+        // Detailed information table - compact
+        const userData = [
+            ['Username', report.username],
+            ['Role', getRoleDisplayName(report.role)],
+            ['Commission %', `${report.percentage}%`],
+            ['Claimed Amount', report.claimedAmount.toLocaleString('en-IN')],
+            ['Total Bets', report.totalBets.toLocaleString('en-IN')],
+            ['Winning Bets', report.winningBets.toLocaleString('en-IN')],
+            ['Win Rate', `${((report.winningBets / report.totalBets) * 100).toFixed(1)}%`],
+            ['Has Sub-Users', report.hasChildren ? 'Yes' : 'No']
+        ];
+
+        autoTable(doc, {
+            body: userData,
+            startY: cardY + 55,
+            styles: {
+                fontSize: 9,
+                cellPadding: 4,
+                lineColor: [200, 200, 200],
+                lineWidth: 0.3,
+            },
+            headStyles: {
+                fillColor: [52, 73, 94],
+                textColor: 255,
+                fontStyle: 'bold',
+                fontSize: 10,
+            },
+            columnStyles: {
+                0: {
+                    fontStyle: 'bold',
+                    fillColor: [236, 240, 241],
+                    textColor: [44, 62, 80],
+                    cellWidth: 50
+                },
+                1: {
+                    fillColor: [255, 255, 255],
+                    textColor: [44, 62, 80],
+                    cellWidth: 70
+                }
+            },
+            margin: { left: 15, right: 15 },
+            tableWidth: 'auto'
+        });
+
+        // Compact footer
+        const finalY = (doc as any).lastAutoTable.finalY || 200;
+        doc.setFillColor(44, 62, 80);
+        doc.rect(0, finalY + 5, 210, 12, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Report generated on ${new Date().toLocaleString('en-IN')}`, 15, finalY + 12);
+
+        // Save the PDF
+        const fileName = `User_Report_${report.username}_${startDate}_to_${endDate}.pdf`;
+        doc.save(fileName);
+    };
+
+
     // Show loading while checking authentication
     if (authLoading) {
         return (
@@ -232,9 +430,14 @@ export default function ReportsPage() {
                             <RefreshCw className="h-4 w-4 mr-2" />
                             Refresh
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportTableToPDF}
+                            disabled={!reportsData || reportsData.reports.length === 0}
+                        >
                             <Download className="h-4 w-4 mr-2" />
-                            Export
+                            Export Complete Table
                         </Button>
                     </div>
                 </div>
@@ -557,19 +760,29 @@ export default function ReportsPage() {
                                                     </span>
                                                 </td>
                                                 <td className="py-3 px-4 text-center">
-                                                    {report.hasChildren ? (
+                                                    <div className="flex items-center justify-center gap-1">
                                                         <Button
-                                                            variant="ghost"
+                                                            variant="outline"
                                                             size="sm"
-                                                            onClick={() => handleDrillDown(report)}
-                                                            className="h-8 w-8 p-0"
-                                                            title={`View ${getRoleDisplayName(report.role)} details`}
+                                                            onClick={() => exportUserToPDF(report)}
+                                                            className="h-8 px-2"
+                                                            title="Export user report to PDF"
                                                         >
-                                                            <Eye className="h-4 w-4" />
+                                                            <Download className="h-4 w-4 mr-1" />
+                                                            Export
                                                         </Button>
-                                                    ) : (
-                                                        <span className="text-xs text-secondary">-</span>
-                                                    )}
+                                                        {report.hasChildren && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleDrillDown(report)}
+                                                                className="h-8 w-8 p-0"
+                                                                title={`View ${getRoleDisplayName(report.role)} details`}
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
