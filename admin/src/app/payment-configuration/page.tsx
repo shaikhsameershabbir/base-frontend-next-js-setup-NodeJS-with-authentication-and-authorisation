@@ -151,7 +151,7 @@ export default function PaymentConfigurationPage() {
             <div className="container mx-auto p-6 max-w-4xl">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-primary mb-2">Payment Configuration</h1>
-                    <p className="text-muted">Manage your barcode image and WhatsApp contact information</p>
+                    <p className="text-white">Manage your barcode image and WhatsApp contact information</p>
                 </div>
 
                 <div className="space-y-6">
@@ -176,9 +176,7 @@ export default function PaymentConfigurationPage() {
                                     onChange={handleWhatsAppNumberChange}
                                     className="mt-1"
                                 />
-                                <p className="text-xs text-muted mt-1">
-                                    Include country code (e.g., +1 for US, +91 for India)
-                                </p>
+                    
                             </div>
 
                             <Button
@@ -221,7 +219,7 @@ export default function PaymentConfigurationPage() {
                                             <X className="h-4 w-4" />
                                         </Button>
                                     </div>
-                                    <p className="text-sm text-muted">
+                                    <p className="text-sm text-white">
                                         Current barcode image. Click the X button to delete or upload a new one.
                                     </p>
                                 </div>
