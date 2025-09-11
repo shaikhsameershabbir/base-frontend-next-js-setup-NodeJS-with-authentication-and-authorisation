@@ -893,4 +893,65 @@ export class UsersController {
             });
         }
     }
+
+    async getParentBarcodeImage(req: Request, res: Response): Promise<void> {
+        try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            // Get current user to find their parent
+            const currentUser = await User.findById(userId).select('parentId role');
+            if (!currentUser) {
+                res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+                return;
+            }
+
+            // If user is an agent, they don't have a parent with barcode
+            if (currentUser.role === 'agent') {
+                res.status(404).json({
+                    success: false,
+                    message: 'No parent barcode available for agents'
+                });
+                return;
+            }
+
+            // Get parent user's barcode image and contact info
+            const parentUser = await User.findById(currentUser.parentId).select('barcodeImage whatsappNumber username role');
+            if (!parentUser) {
+                res.status(404).json({
+                    success: false,
+                    message: 'Parent user not found'
+                });
+                return;
+            }
+
+            res.json({
+                success: true,
+                message: 'Parent barcode image retrieved successfully',
+                data: {
+                    barcodeImage: parentUser.barcodeImage || null,
+                    whatsappNumber: parentUser.whatsappNumber || null,
+                    parentUsername: parentUser.username,
+                    parentRole: parentUser.role
+                }
+            });
+        } catch (error) {
+            logger.error('Get parent barcode image error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
 } 

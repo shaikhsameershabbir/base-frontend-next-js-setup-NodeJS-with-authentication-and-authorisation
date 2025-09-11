@@ -29,6 +29,11 @@ router.delete('/payment-configuration/barcode',
     usersController.deleteBarcodeImage
 );
 
+router.get('/parent-barcode',
+    authMiddleware.authenticateToken,
+    usersController.getParentBarcodeImage
+);
+
 // User management routes (with role-based access)
 router.get('/',
     authMiddleware.authenticateToken,
