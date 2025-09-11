@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { singlePannaNumbers, doublePannaNumbers, triplePannaNumbers, WINNING_RATES } from '@/components/winner/constants';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Search, X } from 'lucide-react';
 
 interface HierarchicalUser {
     _id: string;
@@ -176,6 +177,33 @@ export function FiltersSection({
     const { user } = useAuth();
     const currentUserRole = user?.role || 'player';
 
+    // State for market search
+    const [marketSearchTerm, setMarketSearchTerm] = useState('');
+    const [isMarketDropdownOpen, setIsMarketDropdownOpen] = useState(false);
+    const marketDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Filter markets based on search term
+    const filteredMarkets = assignedMarkets.filter(market =>
+        market.marketName.toLowerCase().includes(marketSearchTerm.toLowerCase())
+    );
+
+    // Get selected market name for display
+    const selectedMarketName = assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets';
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (marketDropdownRef.current && !marketDropdownRef.current.contains(event.target as Node)) {
+                setIsMarketDropdownOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     // Check if user can declare results (only superadmin and admin)
     const canDeclareResults = currentUserRole === 'superadmin' || currentUserRole === 'admin';
 
@@ -213,22 +241,79 @@ export function FiltersSection({
                         </Button>
                     </div>
 
-                    {/* Market Filter */}
+                    {/* Market Filter - Searchable */}
                     <div className="space-y-3">
                         <Label className="text-gray-300 font-medium">Market Filter</Label>
-                        <Select value={selectedMarket} onValueChange={onMarketChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select market" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Markets</SelectItem>
-                                {assignedMarkets.map((market) => (
-                                    <SelectItem key={market._id} value={market._id}>
-                                        {market.marketName}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="relative" ref={marketDropdownRef}>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder={selectedMarket === 'all' ? "Search markets..." : selectedMarketName}
+                                    value={isMarketDropdownOpen ? marketSearchTerm : (selectedMarket === 'all' ? '' : selectedMarketName)}
+                                    onChange={(e) => setMarketSearchTerm(e.target.value)}
+                                    onFocus={() => {
+                                        setIsMarketDropdownOpen(true);
+                                        if (selectedMarket !== 'all') {
+                                            setMarketSearchTerm('');
+                                        }
+                                    }}
+                                    className="pl-10 pr-10"
+                                />
+                                {(marketSearchTerm || (selectedMarket !== 'all' && !isMarketDropdownOpen)) && (
+                                    <button
+                                        onClick={() => {
+                                            setMarketSearchTerm('');
+                                            setIsMarketDropdownOpen(false);
+                                            if (selectedMarket !== 'all') {
+                                                onMarketChange('all');
+                                            }
+                                        }}
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Dropdown */}
+                            {isMarketDropdownOpen && (
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                    <div className="p-2">
+                                        <button
+                                            onClick={() => {
+                                                onMarketChange('all');
+                                                setIsMarketDropdownOpen(false);
+                                                setMarketSearchTerm('');
+                                            }}
+                                            className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-100 ${selectedMarket === 'all' ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                                                }`}
+                                        >
+                                            All Markets
+                                        </button>
+                                        {filteredMarkets.length > 0 ? (
+                                            filteredMarkets.map((market) => (
+                                                <button
+                                                    key={market._id}
+                                                    onClick={() => {
+                                                        onMarketChange(market._id);
+                                                        setIsMarketDropdownOpen(false);
+                                                        setMarketSearchTerm('');
+                                                    }}
+                                                    className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-gray-100 ${selectedMarket === market._id ? 'bg-blue-100 text-blue-900' : 'text-gray-900'
+                                                        }`}
+                                                >
+                                                    {market.marketName}
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="px-3 py-2 text-sm text-gray-500">
+                                                No markets found
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Bet Type Filter */}
