@@ -15,6 +15,7 @@ export default function MarketPage() {
     const { user } = useAuth();
     const currentUserRole = user?.role || 'player';
     const isSuperadmin = currentUserRole === 'superadmin';
+    const isAdmin = currentUserRole === 'admin';
 
     const [markets, setMarkets] = useState<Market[]>([]);
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
@@ -379,8 +380,8 @@ export default function MarketPage() {
                         </div>
 
                         {/* Action Buttons - Only show for superadmin */}
-                        {isSuperadmin && (
-                            <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-2">
+                            {isSuperadmin && (
                                 <Button
                                     onClick={handleSyncMarkets}
                                     variant="outline"
@@ -395,6 +396,10 @@ export default function MarketPage() {
                                     )}
                                     Sync Markets
                                 </Button>
+
+                            )}
+                            {(isSuperadmin || isAdmin) && (
+
                                 <Button
                                     onClick={() => { setEditMarket(null); setModalOpen(true); }}
                                     variant="outline"
@@ -403,8 +408,8 @@ export default function MarketPage() {
                                 >
                                     <Plus className="h-4 w-4 mr-2" /> Create Market
                                 </Button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
 

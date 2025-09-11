@@ -132,7 +132,7 @@ app.use(validationMiddleware.sanitizeInput);
 app.options('*', (req, res) => {
     const origin = req.headers.origin;
 
-    logger.info(`OPTIONS request from origin: ${origin}, path: ${req.path}`);
+    // logger.info(`OPTIONS request from origin: ${origin}, path: ${req.path}`);
 
     if (origin) {
         res.header('Access-Control-Allow-Origin', origin);
@@ -145,7 +145,6 @@ app.options('*', (req, res) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Expose-Headers', 'Set-Cookie, Content-Length, X-Foo, X-Bar');
 
-    logger.info(`CORS headers set for OPTIONS request: ${JSON.stringify(res.getHeaders())}`);
 
     res.status(200).end();
 });
