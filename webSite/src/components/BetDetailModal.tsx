@@ -56,9 +56,10 @@ const BetDetailModal: React.FC<BetDetailModalProps> = ({ isOpen, onClose, bet })
     };
 
     const formatSelectedNumbers = (numbers: { [key: number]: number }) => {
-        return Object.entries(numbers)
-            .map(([number, amount]) => `${number}: ₹${amount}`)
-            .join(", ");
+        return Object.entries(numbers).map(([number, amount]) => ({
+            number: parseInt(number),
+            amount: amount
+        }));
     };
 
     return (
@@ -117,9 +118,21 @@ const BetDetailModal: React.FC<BetDetailModalProps> = ({ isOpen, onClose, bet })
                             </div>
 
                             <div>
-                                <span className="text-sm text-gray-600 font-medium">Selected Numbers:</span>
-                                <div className="font-medium text-sm mt-2 bg-white rounded-lg p-3 border border-gray-200 text-gray-800 shadow-sm">
-                                    {formatSelectedNumbers(bet.selectedNumbers)}
+                                <span className="text-sm text-black font-medium mb-3 block">Selected Numbers & Amounts:</span>
+                                <div className="grid grid-cols-5 gap-2 mt-2">
+                                    {formatSelectedNumbers(bet.selectedNumbers).map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className=" rounded-lg p-3 text-center  hover:text-white transition-colors"
+                                        >
+                                            <div className="text-2xl font-bold text-black mb-1">
+                                                {item.number}
+                                            </div>
+                                            <div className="text-sm text-black">
+                                                ₹{item.amount.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
