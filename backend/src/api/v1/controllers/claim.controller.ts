@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Bet } from '../../../models/Bet';
 import { User } from '../../../models/User';
 import { logger } from '../../../config/logger';
+import { createClaimTransferLog } from '../../../utils/transferLogger';
 
 // Define proper types for request with user
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
@@ -96,6 +97,18 @@ export class ClaimController {
             // Calculate total winning amount
             const totalWinningAmount = unclaimedWinningBets.reduce((sum, bet) => sum + (bet.winAmount || 0), 0);
 
+            // Get current user balance before update
+            const currentUserData = await User.findById(currentUser.userId);
+            if (!currentUserData) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            const balanceBefore = currentUserData.balance;
+            const balanceAfter = balanceBefore + totalWinningAmount;
+
             // Update user balance
             const updatedUser = await User.findByIdAndUpdate(
                 currentUser.userId,
@@ -111,10 +124,19 @@ export class ClaimController {
             }
 
             // Update claim status for all winning bets
-            const betIds = unclaimedWinningBets.map(bet => bet._id);
+            const betIds = unclaimedWinningBets.map(bet => String(bet._id));
             await Bet.updateMany(
                 { _id: { $in: betIds } },
                 { claimStatus: true }
+            );
+
+            // Create transfer log for claim
+            await createClaimTransferLog(
+                currentUser.userId,
+                totalWinningAmount,
+                balanceBefore,
+                balanceAfter,
+                betIds
             );
 
             return res.json({

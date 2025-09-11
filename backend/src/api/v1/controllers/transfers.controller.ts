@@ -5,6 +5,7 @@ import { User } from '../../../models/User';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { UserHierarchy } from '../../../models/UserHierarchy';
 import { logger } from '../../../config/logger';
+import { createManualTransferLog } from '../../../utils/transferLogger';
 
 // Interface for populated user data
 interface PopulatedUser {
@@ -219,6 +220,21 @@ export class TransfersController {
                 transfer.status = 'completed';
                 await transfer.save();
 
+                // Create additional transfer log for manual transfers
+                await createManualTransferLog(
+                    fromUserId,
+                    toUserId,
+                    amount,
+                    type,
+                    reason,
+                    adminNote || '',
+                    fromUserId,
+                    fromUserBalanceBefore,
+                    fromUserBalanceAfter,
+                    toUserBalanceBefore,
+                    toUserBalanceAfter
+                );
+
                 res.json({
                     success: true,
                     message: 'Transfer completed successfully',
@@ -312,24 +328,36 @@ export class TransfersController {
                 return `${day}-${month}-${year} ${displayHours}:${minutes}:${seconds} ${ampm}`;
             };
 
-            const formattedTransfers = transfers.map(transfer => ({
-                id: transfer._id,
-                fromUser: (transfer.fromUser as unknown as PopulatedUser)?.username || 'Unknown User',
-                toUser: (transfer.toUser as unknown as PopulatedUser)?.username || 'Unknown User',
-                amount: transfer.amount,
-                type: transfer.type,
-                status: transfer.status,
-                reason: transfer.reason,
-                adminNote: transfer.adminNote,
-                processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Unknown User',
-                timestamp: formatDate(transfer.createdAt),
-                fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
-                fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
-                toUserBalanceBefore: transfer.toUserBalanceBefore || 0,
-                toUserBalanceAfter: transfer.toUserBalanceAfter || 0,
-                isIncoming: (transfer.toUser as unknown as PopulatedUser)?._id?.toString() === userId,
-                isOutgoing: (transfer.fromUser as unknown as PopulatedUser)?._id?.toString() === userId
-            }));
+            const formattedTransfers = transfers.map(transfer => {
+                // Handle system user ID for market
+                const marketSystemUserId = '000000000000000000000000';
+                const fromUserId = (transfer.fromUser as unknown as PopulatedUser)?._id?.toString();
+                const toUserId = (transfer.toUser as unknown as PopulatedUser)?._id?.toString();
+
+                const fromUserDisplay = fromUserId === marketSystemUserId ? 'Market' :
+                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Market';
+                const toUserDisplay = toUserId === marketSystemUserId ? 'Market' :
+                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Market';
+
+                return {
+                    id: transfer._id,
+                    fromUser: fromUserDisplay,
+                    toUser: toUserDisplay,
+                    amount: transfer.amount,
+                    type: transfer.type,
+                    status: transfer.status,
+                    reason: transfer.reason,
+                    adminNote: transfer.adminNote,
+                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Market',
+                    timestamp: formatDate(transfer.createdAt),
+                    fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
+                    fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
+                    toUserBalanceBefore: transfer.toUserBalanceBefore || 0,
+                    toUserBalanceAfter: transfer.toUserBalanceAfter || 0,
+                    isIncoming: toUserId === userId,
+                    isOutgoing: fromUserId === userId
+                };
+            });
 
             res.json({
                 success: true,
@@ -388,6 +416,108 @@ export class TransfersController {
 
         } catch (error) {
             logger.error('Error getting transfer stats:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    };
+
+    async getUserTransferLogs(req: Request, res: Response): Promise<void> {
+        const authReq = req as AuthenticatedRequest;
+        try {
+            const userId = authReq.user?.userId;
+            const { page = 1, limit = 20, type, reason } = req.query;
+
+            if (!userId) {
+                res.status(401).json({ message: 'User not authenticated' });
+                return;
+            }
+
+            const skip = (Number(page) - 1) * Number(limit);
+
+            // Build filter for user's transfer logs
+            const filter: Record<string, unknown> = {
+                $or: [
+                    { fromUser: userId },
+                    { toUser: userId }
+                ]
+            };
+
+            if (type && type !== 'all') {
+                filter.type = type;
+            }
+
+            if (reason && reason !== 'all') {
+                filter.reason = { $regex: reason, $options: 'i' };
+            }
+
+            // Get transfer logs with pagination
+            const transfers = await Transfer.find(filter)
+                .populate('fromUser', 'username')
+                .populate('toUser', 'username')
+                .populate('processedBy', 'username')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(Number(limit));
+
+            // Get total count
+            const total = await Transfer.countDocuments(filter);
+
+            // Helper function to format date
+            const formatDate = (date: Date): string => {
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = date.getHours();
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = (hours % 12 || 12).toString().padStart(2, '0');
+                return `${day}-${month}-${year} ${displayHours}:${minutes}:${seconds} ${ampm}`;
+            };
+
+            const formattedTransfers = transfers.map(transfer => {
+                // Handle system user ID for market
+                const marketSystemUserId = '000000000000000000000000';
+                const fromUserId = (transfer.fromUser as unknown as PopulatedUser)?._id?.toString();
+                const toUserId = (transfer.toUser as unknown as PopulatedUser)?._id?.toString();
+
+                const fromUserDisplay = fromUserId === marketSystemUserId ? 'Market' :
+                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Market';
+                const toUserDisplay = toUserId === marketSystemUserId ? 'Market' :
+                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Market';
+
+                return {
+                    id: transfer._id,
+                    fromUser: fromUserDisplay,
+                    toUser: toUserDisplay,
+                    amount: transfer.amount,
+                    type: transfer.type,
+                    status: transfer.status,
+                    reason: transfer.reason,
+                    adminNote: transfer.adminNote,
+                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Market',
+                    timestamp: formatDate(transfer.createdAt),
+                    fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
+                    fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
+                    toUserBalanceBefore: transfer.toUserBalanceBefore || 0,
+                    toUserBalanceAfter: transfer.toUserBalanceAfter || 0,
+                    isIncoming: toUserId === userId,
+                    isOutgoing: fromUserId === userId
+                };
+            });
+
+            res.json({
+                success: true,
+                data: formattedTransfers,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total,
+                    pages: Math.ceil(total / Number(limit))
+                }
+            });
+
+        } catch (error) {
+            logger.error('Error getting user transfer logs:', error);
             res.status(500).json({ message: 'Internal server error' });
         }
     };

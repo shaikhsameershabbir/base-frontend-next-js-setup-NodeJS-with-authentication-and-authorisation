@@ -5,6 +5,7 @@ import { Market } from '../../../models/Market';
 import { logger } from '../../../config/logger';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { isBettingAllowed } from '../../../utils/timeUtils';
+import { createBetTransferLog } from '../../../utils/transferLogger';
 
 export class BetController {
     async placeBet(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -121,6 +122,17 @@ export class BetController {
             // Update user balance
             user.balance = userAfterAmount;
             await user.save();
+
+            // Create transfer log for bet placement
+            await createBetTransferLog(
+                req.user.userId,
+                amount,
+                userBeforeAmount,
+                userAfterAmount,
+                String(bet._id),
+                market.marketName,
+                gameType
+            );
 
             res.json({
                 success: true,

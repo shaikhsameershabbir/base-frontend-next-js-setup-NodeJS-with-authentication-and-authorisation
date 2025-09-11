@@ -223,7 +223,7 @@ app.use((req, res, next) => {
     requestLog.headers = headers;
 
     // Log the complete request (production logging handled by logger)
-    // console.log(`[${timestamp}] ${method} ${endpoint}`);
+    console.log(`[${timestamp}] ${method} ${endpoint}`);
     // console.log('Request Details:', requestLog.query);
 
     next();
@@ -232,7 +232,6 @@ app.use((req, res, next) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-
     res.json({
         status: dbStatus === 'connected' ? 'OK' : 'WARNING',
         timestamp: new Date().toISOString(),

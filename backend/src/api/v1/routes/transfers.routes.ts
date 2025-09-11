@@ -17,7 +17,6 @@ router.get('/children',
 
 router.post('/process',
     authMiddleware.authenticateToken,
-
     transfersValidator.validateTransfer,
     transfersController.processTransfer
 );
@@ -32,6 +31,12 @@ router.get('/stats',
     authMiddleware.authenticateToken,
 
     transfersController.getTransferStats
+);
+
+router.get('/logs',
+    authMiddleware.authenticateToken,
+
+    transfersController.getUserTransferLogs
 );
 
 export default router; 
