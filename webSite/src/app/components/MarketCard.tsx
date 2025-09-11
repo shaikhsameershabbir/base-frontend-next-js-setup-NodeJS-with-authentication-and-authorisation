@@ -125,7 +125,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
             </div>
 
             {/* Time Display */}
-            <div className="flex items-center gap-2 text-[15px] text-black">
+            <div className="flex items-center gap-2 text-xl text-black">
               <span className="font-bold">{formatTimeDisplay(market.openTime)}</span>
               <span className="mx-1">|</span>
               <span className="font-bold">{formatTimeDisplay(market.closeTime)}</span>
