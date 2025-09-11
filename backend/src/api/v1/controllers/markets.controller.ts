@@ -200,6 +200,28 @@ export class MarketsController {
 
     async createMarket(req: Request, res: Response): Promise<void> {
         try {
+            const authReq = req as AuthenticatedRequest;
+            const userId = authReq.user?.userId;
+            const userRole = authReq.user?.role;
+
+            // Check if user is authenticated
+            if (!userId) {
+                res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+                return;
+            }
+
+            // Check if user has permission to create markets (superadmin or admin)
+            if (userRole !== 'superadmin' && userRole !== 'admin') {
+                res.status(403).json({
+                    success: false,
+                    message: 'Only superadmin and admin users can create markets'
+                });
+                return;
+            }
+
             const { marketName, openTime, closeTime, weekDays } = req.body;
 
             // Check if market already exists
@@ -231,6 +253,26 @@ export class MarketsController {
             });
 
             await newMarket.save();
+
+            // If the user is an admin (not superadmin), automatically assign the market to them
+            if (userRole === 'admin') {
+                try {
+                    const marketAssignment = new UserMarketAssignment({
+                        assignedBy: userId, // Admin assigns to themselves
+                        assignedTo: userId, // Admin assigns to themselves
+                        marketId: newMarket._id,
+                        assignedAt: new Date(),
+                        isActive: true,
+                        hierarchyLevel: 'admin'
+                    });
+
+                    await marketAssignment.save();
+            
+                } catch (assignmentError) {
+                    logger.error('Error creating market assignment for admin:', assignmentError);
+                    // Don't fail the market creation if assignment fails, just log the error
+                }
+            }
 
             res.status(201).json({
                 success: true,
