@@ -247,6 +247,42 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     };
   }, [isClient, isAuthenticated, authLoading]);
 
+  // Handle page visibility changes and refresh markets when page becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      // Only refresh if user is authenticated and page becomes visible
+      if (isAuthenticated && !document.hidden && isClient) {
+        // Small delay to ensure page is fully loaded
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchData();
+          }
+        }, 500);
+      }
+    };
+
+    const handleBeforeUnload = async () => {
+      // Refresh data before page unload to ensure latest data is saved
+      if (isAuthenticated && isMountedRef.current && isClient) {
+        try {
+          await fetchData();
+        } catch (err) {
+          // Silently fail on unload
+        }
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup event listeners
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAuthenticated, isClient]); // Re-run when authentication status or client status changes
+
   const value = {
     markets,
     marketResults,

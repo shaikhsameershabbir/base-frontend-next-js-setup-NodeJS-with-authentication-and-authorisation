@@ -40,6 +40,39 @@ const Header = () => {
     }
   }, [user]);
 
+  // Refresh data when page becomes visible or on focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user && refreshUser) {
+        refreshUser();
+      }
+    };
+
+    const handlePageShow = () => {
+      if (user && refreshUser) {
+        refreshUser();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (user && refreshUser && !document.hidden) {
+        refreshUser();
+      }
+    };
+
+    // Add event listeners for page focus, show, and visibility events
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, refreshUser]);
+
   // No periodic refresh - only refresh when needed (after claiming)
 
   const toggleSidebar = () => {

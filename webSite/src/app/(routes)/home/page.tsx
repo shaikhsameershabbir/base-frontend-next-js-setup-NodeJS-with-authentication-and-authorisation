@@ -20,6 +20,31 @@ const HomeContent = React.memo(() => {
         setIsHydrated(true);
     }, []);
 
+    // Refresh data when page becomes visible or on focus
+    useEffect(() => {
+        const handleFocus = () => {
+            if (isHydrated) {
+                fetchData();
+            }
+        };
+
+        const handlePageShow = () => {
+            if (isHydrated) {
+                fetchData();
+            }
+        };
+
+        // Add event listeners for page focus and show events
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('pageshow', handlePageShow);
+
+        // Cleanup event listeners
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('pageshow', handlePageShow);
+        };
+    }, [isHydrated, fetchData]);
+
     // Sort markets by rank
     const sortedMarkets = useMemo(() => {
         return [...markets].sort((a, b) => {
