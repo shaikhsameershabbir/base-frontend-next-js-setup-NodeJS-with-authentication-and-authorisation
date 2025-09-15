@@ -64,7 +64,7 @@ export function StatsCard({
 
     return (
         <Card className={cn(
-            "glass-card hover-lift animate-fade-in border-2 bg-gradient-to-br bg-card/80 dark:bg-card/80 backdrop-blur-lg border-border",
+            "glass-card  border-2 bg-gradient-to-br bg-card/80 dark:bg-card/80 backdrop-blur-lg border-border",
             getColorClasses(color),
             className
         )}>

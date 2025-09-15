@@ -259,11 +259,7 @@ export default function MarketPage() {
                             : 'View your assigned markets and manage their timings'
                         }
                     </p>
-                    {!isSuperadmin && (
-                        <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg">
-                            📋 Showing only markets assigned to your account
-                        </div>
-                    )}
+                  
                 </div>
 
                 {/* Filters and Search */}
@@ -655,13 +651,7 @@ export default function MarketPage() {
 
                     {/* Pagination */}
                     <div className="p-4 sm:p-6 pt-0">
-                        {pagination.totalPages > 1 && (
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="text-sm text-muted-foreground">
-                                    Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} markets
-                                </div>
-                            </div>
-                        )}
+        
                         <Pagination
                             currentPage={pagination.page}
                             totalPages={pagination.totalPages}

@@ -124,52 +124,54 @@ export default function DashboardPage() {
                                 </div>
                             ) : stats?.markets && stats.markets.length > 0 ? (
                                 <div className="grid gap-4 md:grid-cols-3">
-                                    {stats.markets.map((market, index) => {
-                                        const colors = [
-                                            'from-green-500/10 to-green-600/10 dark:from-green-900/30 dark:to-green-800/30 border-green-500/20',
-                                            'from-blue-500/10 to-blue-600/10 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500/20',
-                                            'from-purple-500/10 to-purple-600/10 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-500/20',
-                                            'from-orange-500/10 to-orange-600/10 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-500/20'
-                                        ];
-                                        const textColors = [
-                                            'text-green-400 dark:text-green-300',
-                                            'text-blue-400 dark:text-blue-300',
-                                            'text-purple-400 dark:text-purple-300',
-                                            'text-orange-400 dark:text-orange-300'
-                                        ];
-                                        const bgColors = [
-                                            'bg-green-500',
-                                            'bg-blue-500',
-                                            'bg-purple-500',
-                                            'bg-orange-500'
-                                        ];
+                                    {stats.markets
+                                        .sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))
+                                        .map((market, index) => {
+                                            const colors = [
+                                                'from-green-500/10 to-green-600/10 dark:from-green-900/30 dark:to-green-800/30 border-green-500/20',
+                                                'from-blue-500/10 to-blue-600/10 dark:from-blue-900/30 dark:to-blue-800/30 border-blue-500/20',
+                                                'from-purple-500/10 to-purple-600/10 dark:from-purple-900/30 dark:to-purple-800/30 border-purple-500/20',
+                                                'from-orange-500/10 to-orange-600/10 dark:from-orange-900/30 dark:to-orange-800/30 border-orange-500/20'
+                                            ];
+                                            const textColors = [
+                                                'text-green-400 dark:text-green-300',
+                                                'text-blue-400 dark:text-blue-300',
+                                                'text-purple-400 dark:text-purple-300',
+                                                'text-orange-400 dark:text-orange-300'
+                                            ];
+                                            const bgColors = [
+                                                'bg-green-500',
+                                                'bg-blue-500',
+                                                'bg-purple-500',
+                                                'bg-orange-500'
+                                            ];
 
-                                        return (
-                                            <div key={market._id} className={`flex items-center justify-between p-4 rounded-xl bg-gradient-to-r ${colors[index % colors.length]} border`}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`h-8 w-8 rounded-lg ${bgColors[index % bgColors.length]} flex items-center justify-center`}>
-                                                        <Target className="h-4 w-4 text-white" />
+                                            return (
+                                                <div key={market._id} className={`flex items-center justify-between p-4 rounded-xl bg-gradient-to-r ${colors[index % colors.length]} border`}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`h-8 w-8 rounded-lg ${bgColors[index % bgColors.length]} flex items-center justify-center`}>
+                                                            <Target className="h-4 w-4 text-white" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-semibold text-primary">{market.marketName}</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {market.isActive ? 'Active' : 'Inactive'}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-semibold text-primary">{market.marketName}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {market.isActive ? 'Active' : 'Inactive'}
+                                                    <div className="text-right">
+                                                        <p className={`font-bold ${textColors[index % textColors.length]}`}>
+                                                            {market.totalBids.toLocaleString()}
                                                         </p>
+                                                        <p className="text-xs text-muted-foreground">Total Bids</p>
+                                                        <p className={`font-bold ${textColors[index % textColors.length]}`}>
+                                                            ₹{market.totalAmount?.toLocaleString() || "0"}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">Total Amount</p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className={`font-bold ${textColors[index % textColors.length]}`}>
-                                                        {market.totalBids.toLocaleString()}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">Total Bids</p>
-                                                    <p className={`font-bold ${textColors[index % textColors.length]}`}>
-                                                        ₹{market.totalAmount?.toLocaleString() || "0"}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">Total Amount</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
                                 </div>
                             ) : (
                                 <div className="text-center py-8">

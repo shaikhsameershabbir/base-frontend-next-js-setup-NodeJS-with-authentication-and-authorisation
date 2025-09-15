@@ -131,10 +131,7 @@ export function BetDetailModal({ betId, isOpen, onClose }: BetDetailModalProps) 
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <p className="text-sm text-secondary">Bet ID</p>
-                                    <p className="font-mono text-primary">{bet._id}</p>
-                                </div>
+                          
                                 <div className="space-y-2">
                                     <p className="text-sm text-secondary">Created At</p>
                                     <p className="text-primary flex items-center gap-2">
@@ -182,10 +179,7 @@ export function BetDetailModal({ betId, isOpen, onClose }: BetDetailModalProps) 
                                     <p className="text-sm text-secondary">Current Balance</p>
                                     <p className="text-primary font-medium">{formatCurrency(bet.userId.balance)}</p>
                                 </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm text-secondary">Player ID</p>
-                                    <p className="font-mono text-primary text-sm">{bet.userId._id}</p>
-                                </div>
+                              
                             </div>
                         </CardContent>
                     </Card>

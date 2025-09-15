@@ -161,7 +161,7 @@ export default function PaymentConfigurationPage() {
                             <Phone className="h-5 w-5 text-primary" />
                             <h2 className="text-xl font-semibold text-primary">WhatsApp Number</h2>
                         </div>
-                        <p className="text-muted mb-4">Enter your WhatsApp contact number for customer support</p>
+                        <p className="text-white mb-4">Enter your WhatsApp contact number for customer support</p>
 
                         <div className="space-y-4">
                             <div>
