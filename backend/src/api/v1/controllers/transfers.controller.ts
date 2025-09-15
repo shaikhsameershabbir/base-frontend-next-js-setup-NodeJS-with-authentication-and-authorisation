@@ -5,7 +5,6 @@ import { User } from '../../../models/User';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { UserHierarchy } from '../../../models/UserHierarchy';
 import { logger } from '../../../config/logger';
-import { createManualTransferLog } from '../../../utils/transferLogger';
 
 // Interface for populated user data
 interface PopulatedUser {
@@ -218,22 +217,8 @@ export class TransfersController {
                 transfer.fromUserBalanceAfter = fromUserBalanceAfter;
                 transfer.toUserBalanceAfter = toUserBalanceAfter;
                 transfer.status = 'completed';
+                transfer.transactionType = 'manual'; // Add transaction type for manual transfers
                 await transfer.save();
-
-                // Create additional transfer log for manual transfers
-                await createManualTransferLog(
-                    fromUserId,
-                    toUserId,
-                    amount,
-                    type,
-                    reason,
-                    adminNote || '',
-                    fromUserId,
-                    fromUserBalanceBefore,
-                    fromUserBalanceAfter,
-                    toUserBalanceBefore,
-                    toUserBalanceAfter
-                );
 
                 res.json({
                     success: true,

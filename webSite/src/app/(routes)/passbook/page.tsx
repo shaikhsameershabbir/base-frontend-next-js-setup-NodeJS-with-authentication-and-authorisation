@@ -39,6 +39,7 @@ function Page() {
             );
 
             if (response.success && response.data) {
+                console.log(response.data);
                 setTransfers(response.data);
                 setTotalItems(response.pagination.total);
                 setTotalPages(response.pagination.pages);
@@ -272,6 +273,12 @@ function Page() {
                                                     </span>
                                                 </div>
                                                 <div>
+                                                    <span className="text-gray-600 font-medium">Balance:</span>
+                                                    <span className="ml-1 font-semibold text-gray-900">
+                                                        ₹{transfer.isIncoming ? transfer.toUserBalanceAfter : transfer.fromUserBalanceAfter}
+                                                    </span>
+                                                </div>
+                                                <div>
                                                     <span className="text-gray-600 font-medium">Date:</span>
                                                     <span className="ml-1 text-gray-800">{formatDate(transfer.timestamp)}</span>
                                                 </div>
@@ -313,8 +320,10 @@ function Page() {
                                             <TableRow className="bg-gray-50">
                                                 <TableHead className="font-semibold text-gray-700">Direction</TableHead>
                                                 <TableHead className="font-semibold text-gray-700">From User</TableHead>
-                                                <TableHead className="font-semibold text-gray-700">To User</TableHead>
+                                                <TableHead className="font-semibold text-gray-700">To</TableHead>
                                                 <TableHead className="font-semibold text-gray-700">Amount</TableHead>
+
+                                                <TableHead className="font-semibold text-gray-700">Balance</TableHead>
                                                 <TableHead className="font-semibold text-gray-700">Type</TableHead>
                                                 <TableHead className="font-semibold text-gray-700">Status</TableHead>
                                                 <TableHead className="font-semibold text-gray-700">Date & Time</TableHead>
@@ -337,6 +346,10 @@ function Page() {
                                                     <TableCell className={`font-semibold ${getAmountColor(transfer.isIncoming, transfer.isOutgoing)}`}>
                                                         ₹{transfer.amount}
                                                     </TableCell>
+                                                    <TableCell className={`font-semibold text-gray-900`}>
+                                                        ₹{transfer.isIncoming ? transfer.toUserBalanceAfter : transfer.fromUserBalanceAfter}
+                                                    </TableCell>
+
                                                     <TableCell>{getTypeBadge(transfer.type)}</TableCell>
                                                     <TableCell>{getStatusBadge(transfer.status)}</TableCell>
                                                     <TableCell className="text-sm text-gray-800">

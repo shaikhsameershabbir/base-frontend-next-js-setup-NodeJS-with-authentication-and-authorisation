@@ -15,6 +15,7 @@ export interface ITransfer extends Document {
     toUserBalanceAfter: number;
     createdAt: Date;
     updatedAt: Date;
+    transactionType: string;
 }
 
 const transferSchema = new Schema<ITransfer>({
@@ -37,6 +38,10 @@ const transferSchema = new Schema<ITransfer>({
         type: String,
         enum: ['credit', 'debit'],
         required: true
+    },
+    transactionType: {
+        type: String,
+        required: false
     },
     status: {
         type: String,

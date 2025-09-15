@@ -13,6 +13,7 @@ export interface TransferLogData {
     fromUserBalanceAfter: number;
     toUserBalanceBefore: number;
     toUserBalanceAfter: number;
+    transactionType: string;
 }
 
 /**
@@ -26,6 +27,7 @@ export async function createTransferLog(data: TransferLogData): Promise<void> {
             amount: data.amount,
             type: data.type,
             reason: data.reason,
+            transactionType: data.transactionType,
             adminNote: data.adminNote,
             processedBy: data.processedBy,
             status: 'completed',
@@ -58,12 +60,12 @@ export async function createBetTransferLog(
     // For bet placement, we need to create a system user ID for the market
     // Using a special system user ID that represents the market
     const marketSystemUserId = '000000000000000000000000'; // Special system user ID for market
-
     await createTransferLog({
         fromUser: userId,
         toUser: marketSystemUserId, // User to Market
         amount: amount,
         type: 'debit',
+        transactionType: 'bet_placement',
         reason: `Bet placed - ${gameType} in ${marketName}`,
         adminNote: `Bet ID: ${betId}`,
         processedBy: userId,
@@ -93,13 +95,14 @@ export async function createClaimTransferLog(
         toUser: userId,
         amount: amount,
         type: 'credit',
+        transactionType: 'bet_claiming',
         reason: `Winning tickets claimed - ${betIds.length} tickets`,
         adminNote: `Bet IDs: ${betIds.join(', ')}`,
         processedBy: userId,
         fromUserBalanceBefore: 0, // Market balance (system)
         fromUserBalanceAfter: 0,  // Market balance (system)
         toUserBalanceBefore: balanceBefore,
-        toUserBalanceAfter: balanceAfter
+        toUserBalanceAfter: balanceAfter,
     });
 }
 
@@ -124,12 +127,13 @@ export async function createManualTransferLog(
         toUser: toUserId,
         amount: amount,
         type: type,
+        transactionType: 'manual',
         reason: reason,
         adminNote: adminNote,
         processedBy: processedBy,
         fromUserBalanceBefore: fromUserBalanceBefore,
         fromUserBalanceAfter: fromUserBalanceAfter,
         toUserBalanceBefore: toUserBalanceBefore,
-        toUserBalanceAfter: toUserBalanceAfter
+        toUserBalanceAfter: toUserBalanceAfter,
     });
 }

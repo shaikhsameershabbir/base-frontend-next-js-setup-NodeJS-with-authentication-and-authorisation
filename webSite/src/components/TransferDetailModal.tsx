@@ -148,11 +148,11 @@ const TransferDetailModal: React.FC<TransferDetailModalProps> = ({ isOpen, onClo
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <span className="text-sm text-gray-600">Before:</span>
-                                        <div className="font-semibold text-gray-900">₹{transfer.toUserBalanceBefore}</div>
+                                        <div className="font-semibold text-gray-900">₹ {transfer.isIncoming ? transfer.toUserBalanceBefore : transfer.fromUserBalanceBefore}</div>
                                     </div>
                                     <div>
                                         <span className="text-sm text-gray-600">After:</span>
-                                        <div className="font-semibold text-gray-900">₹{transfer.toUserBalanceAfter}</div>
+                                        <div className="font-semibold text-gray-900">₹{transfer.isIncoming ? transfer.toUserBalanceAfter : transfer.fromUserBalanceAfter}</div>
                                     </div>
                                 </div>
                             </div>

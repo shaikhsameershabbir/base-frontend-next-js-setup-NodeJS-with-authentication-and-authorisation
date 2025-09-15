@@ -122,7 +122,7 @@ export class BetController {
             // Update user balance
             user.balance = userAfterAmount;
             await user.save();
-
+       
             // Create transfer log for bet placement
             await createBetTransferLog(
                 req.user.userId,
