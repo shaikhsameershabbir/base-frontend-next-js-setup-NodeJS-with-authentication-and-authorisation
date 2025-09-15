@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import MarketCard from './MarketCard';
 
 interface Market {
@@ -34,29 +34,40 @@ interface SimpleMarketGridProps {
     marketResults: Record<string, MarketResult>;
 }
 
-const SimpleMarketGrid: React.FC<SimpleMarketGridProps> = ({
+// Memoized market card renderer to prevent unnecessary re-renders
+const MarketCardWrapper = React.memo(({ market, marketResult }: { market: Market; marketResult: MarketResult | undefined }) => (
+    <MarketCard
+        key={market._id}
+        market={market}
+        marketResult={marketResult}
+    />
+));
+
+MarketCardWrapper.displayName = 'MarketCardWrapper';
+
+const SimpleMarketGrid: React.FC<SimpleMarketGridProps> = React.memo(({
     markets,
     marketResults
 }) => {
-    // Show all markets immediately - no progressive rendering
-    const visibleMarkets = useMemo(() => {
-        return markets;
-    }, [markets]);
+    // Memoize the markets with their results to prevent unnecessary re-renders
+    const marketsWithResults = useMemo(() => {
+        return markets.map(market => ({
+            market,
+            marketResult: marketResults[market._id]
+        }));
+    }, [markets, marketResults]);
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 py-4">
-            {visibleMarkets.map((market) => {
-                const marketResult = marketResults[market._id];
-                return (
-                    <MarketCard
-                        key={market._id}
-                        market={market}
-                        marketResult={marketResult}
-                    />
-                );
-            })}
+            {marketsWithResults.map(({ market, marketResult }) => (
+                <MarketCardWrapper
+                    key={market._id}
+                    market={market}
+                    marketResult={marketResult}
+                />
+            ))}
         </div>
     );
-};
+});
 
 export default SimpleMarketGrid;

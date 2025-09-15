@@ -25,6 +25,22 @@ interface MarketResult {
     };
 }
 
+// Parse time once and cache the result
+const parseTimeString = (timeStr: string): { hours: number; minutes: number } | null => {
+    try {
+        if (timeStr.includes('T')) {
+            const date = new Date(timeStr);
+            return { hours: date.getHours(), minutes: date.getMinutes() };
+        } else {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return null;
+            return { hours, minutes };
+        }
+    } catch {
+        return null;
+    }
+};
+
 const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
     marketId,
     marketName,
@@ -33,7 +49,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
     weekDays,
     marketResult
 }) => {
-    const [currentTime, setCurrentTime] = useState<Date>(new Date());
+    const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
 
     // Update current time every minute
     useEffect(() => {
@@ -44,6 +60,13 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
         return () => clearInterval(interval);
     }, []);
 
+    // Memoize parsed times to avoid recalculation
+    const parsedTimes = useMemo(() => {
+        const open = parseTimeString(openTime);
+        const close = parseTimeString(closeTime);
+        return { open, close };
+    }, [openTime, closeTime]);
+
     // Use passed result or null
     const result = marketResult || null;
 
@@ -53,76 +76,30 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
         return days[date.getDay()];
     };
 
-    // Check if market is open today based on weekDays
-    const isMarketOpenToday = (): boolean => {
+    // Memoized helper functions using parsed times
+    const marketStatus = useMemo(() => {
         const currentDay = currentTime.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-
-        // Convert to market days (Monday = 1, Tuesday = 2, ..., Sunday = 7)
         const marketDay = currentDay === 0 ? 7 : currentDay;
+        const isOpenToday = marketDay <= weekDays;
 
-        return marketDay <= weekDays;
-    };
-
-    // Check if current time is in loading window (15 minutes before open/close times)
-    const isInLoadingWindow = (): boolean => {
-        try {
-            // Parse times
-            let openTimeParsed, closeTimeParsed;
-
-            if (openTime.includes('T')) {
-                const openDate = new Date(openTime);
-                openTimeParsed = { hours: openDate.getHours(), minutes: openDate.getMinutes() };
-            } else {
-                const [hours, minutes] = openTime.split(':').map(Number);
-                openTimeParsed = { hours, minutes };
-            }
-
-            if (closeTime.includes('T')) {
-                const closeDate = new Date(closeTime);
-                closeTimeParsed = { hours: closeDate.getHours(), minutes: closeDate.getMinutes() };
-            } else {
-                const [hours, minutes] = closeTime.split(':').map(Number);
-                closeTimeParsed = { hours, minutes };
-            }
-
-            // Create Date objects for today with the market times
-            const today = new Date();
-            const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
-            const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), closeTimeParsed.hours, closeTimeParsed.minutes);
-
-            // Create 15-minute windows BEFORE the times only (not after)
-            const openWindowStart = new Date(todayOpenTime.getTime() - 15 * 60 * 1000);
-            const closeWindowStart = new Date(todayCloseTime.getTime() - 15 * 60 * 1000);
-
-            // Only show loading if we're in the 15-minute window BEFORE the time
-            return (currentTime >= openWindowStart && currentTime < todayOpenTime) ||
-                (currentTime >= closeWindowStart && currentTime < todayCloseTime);
-        } catch (error) {
-            return false;
+        if (!parsedTimes.open || !parsedTimes.close) {
+            return { isOpenToday, inLoadingWindow: false, openTimePassed: false };
         }
-    };
 
-    // Check if open time has passed
-    const hasOpenTimePassed = (): boolean => {
-        try {
-            let openTimeParsed;
+        const today = new Date();
+        const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parsedTimes.open.hours, parsedTimes.open.minutes);
+        const todayCloseTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parsedTimes.close.hours, parsedTimes.close.minutes);
 
-            if (openTime.includes('T')) {
-                const openDate = new Date(openTime);
-                openTimeParsed = { hours: openDate.getHours(), minutes: openDate.getMinutes() };
-            } else {
-                const [hours, minutes] = openTime.split(':').map(Number);
-                openTimeParsed = { hours, minutes };
-            }
+        const openWindowStart = new Date(todayOpenTime.getTime() - 15 * 60 * 1000);
+        const closeWindowStart = new Date(todayCloseTime.getTime() - 15 * 60 * 1000);
 
-            const today = new Date();
-            const todayOpenTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), openTimeParsed.hours, openTimeParsed.minutes);
+        const inLoadingWindow = (currentTime >= openWindowStart && currentTime < todayOpenTime) ||
+            (currentTime >= closeWindowStart && currentTime < todayCloseTime);
 
-            return currentTime > todayOpenTime;
-        } catch (error) {
-            return false;
-        }
-    };
+        const openTimePassed = currentTime > todayOpenTime;
+
+        return { isOpenToday, inLoadingWindow, openTimePassed };
+    }, [currentTime, weekDays, parsedTimes]);
 
     const getTodayResult = (): { open: string | null; main: string | null; close: string | null } | null => {
         if (!result) return null;
@@ -182,12 +159,10 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
 
     // Determine what to display - memoized for performance
     const displayContent = useMemo(() => {
-        const isClosedToday = !isMarketOpenToday();
-        const inLoadingWindow = isInLoadingWindow();
-        const openTimePassed = hasOpenTimePassed();
+        const { isOpenToday, inLoadingWindow, openTimePassed } = marketStatus;
 
         // Check if market is closed today - show ***-**-*** instead of previous result
-        if (isClosedToday) {
+        if (!isOpenToday) {
             return {
                 type: 'closed',
                 content: '*** ** ***',
@@ -228,7 +203,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
             content: '*** ** ***',
             icon: <Calendar className="w-4 h-4" />
         };
-    }, [currentTime, result, openTime, closeTime, weekDays]);
+    }, [marketStatus, result]);
 
     return (
         <div>

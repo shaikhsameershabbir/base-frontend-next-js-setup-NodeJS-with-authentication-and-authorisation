@@ -335,9 +335,9 @@ export class TransfersController {
                 const toUserId = (transfer.toUser as unknown as PopulatedUser)?._id?.toString();
 
                 const fromUserDisplay = fromUserId === marketSystemUserId ? 'Market' :
-                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Unknown User';
+                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Market';
                 const toUserDisplay = toUserId === marketSystemUserId ? 'Market' :
-                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Unknown User';
+                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Market';
 
                 return {
                     id: transfer._id,
@@ -348,7 +348,7 @@ export class TransfersController {
                     status: transfer.status,
                     reason: transfer.reason,
                     adminNote: transfer.adminNote,
-                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Unknown User',
+                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Market',
                     timestamp: formatDate(transfer.createdAt),
                     fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
                     fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,
@@ -481,9 +481,9 @@ export class TransfersController {
                 const toUserId = (transfer.toUser as unknown as PopulatedUser)?._id?.toString();
 
                 const fromUserDisplay = fromUserId === marketSystemUserId ? 'Market' :
-                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Unknown User';
+                    (transfer.fromUser as unknown as PopulatedUser)?.username || 'Market';
                 const toUserDisplay = toUserId === marketSystemUserId ? 'Market' :
-                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Unknown User';
+                    (transfer.toUser as unknown as PopulatedUser)?.username || 'Market';
 
                 return {
                     id: transfer._id,
@@ -494,7 +494,7 @@ export class TransfersController {
                     status: transfer.status,
                     reason: transfer.reason,
                     adminNote: transfer.adminNote,
-                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Unknown User',
+                    processedBy: (transfer.processedBy as unknown as PopulatedUser)?.username || 'Market',
                     timestamp: formatDate(transfer.createdAt),
                     fromUserBalanceBefore: transfer.fromUserBalanceBefore || 0,
                     fromUserBalanceAfter: transfer.fromUserBalanceAfter || 0,

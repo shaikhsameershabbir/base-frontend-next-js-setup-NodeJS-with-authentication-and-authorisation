@@ -65,17 +65,17 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
                         <DropdownMenuContent className="w-56" align="end" forceMount>
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium leading-none text-primary truncate">{user.username || 'Unknown User'}</p>
+                                    <p className="text-sm font-medium leading-none text-primary truncate">{user.username || 'Market'}</p>
                                     <p className="text-xs leading-none text-white capitalize">{user.role || 'Unknown Role'}</p>
-                               
+
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-primary">
-                          
+
                                 <p className="text-xs leading-none text-white">₹{(user.balance || 0).toLocaleString()}</p>
                             </DropdownMenuItem>
-                          
+
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                                 onClick={handleLogout}
