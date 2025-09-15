@@ -58,7 +58,7 @@ const SimpleMarketGrid: React.FC<SimpleMarketGridProps> = React.memo(({
     }, [markets, marketResults]);
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4 py-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4">
             {marketsWithResults.map(({ market, marketResult }) => (
                 <MarketCardWrapper
                     key={market._id}

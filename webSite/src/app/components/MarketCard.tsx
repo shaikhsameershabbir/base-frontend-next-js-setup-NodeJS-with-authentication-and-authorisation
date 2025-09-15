@@ -94,10 +94,10 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
       }}
     >
       {/* Main Content - Perfectly Centered */}
-      <div className="flex flex-col items-center justify-center text-center py-4 px-4 flex-1 min-h-[140px] relative">
+      <div className="flex flex-col items-center justify-center text-center py-3 px-3 sm:py-4 sm:px-4 flex-1 min-h-[120px] sm:min-h-[140px] relative">
         {/* Market Name */}
         <h3
-          className="text-2xl font-extrabold text-[#b80000] drop-shadow-lg mb-3"
+          className="text-lg sm:text-2xl font-extrabold text-[#b80000] drop-shadow-lg mb-2 sm:mb-3"
           style={{
             fontFamily: "'Pepper Sans', sans-serif",
             textShadow: "2px 2px 8px #fff, 0 0 2px #0000",
@@ -117,7 +117,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
         )}
 
         {/* Winning Numbers Section - Centered */}
-        <div className="mb-3">
+        <div className="mb-2 sm:mb-3">
           <WinningNumbers
             marketId={market._id}
             marketName={market.marketName}
@@ -129,24 +129,24 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
         </div>
 
         {/* Time Display - Centered */}
-        <div className="flex items-center gap-2 text-xl text-black">
+        <div className="flex items-center gap-1 sm:gap-2 text-base sm:text-xl text-black">
           <span className="font-bold">{formattedTimes.openTime}</span>
           <span className="mx-1">|</span>
           <span className="font-bold">{formattedTimes.closeTime}</span>
         </div>
 
         {/* Play Button - Vertically centered on the right */}
-        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
+        <div className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 flex flex-col items-center">
           <button
             onClick={handlePlayClick}
             disabled={!marketStatus?.isOpen}
-            className={`border-2 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
+            className={`border-2 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center transition-all duration-200 ${marketStatus?.isOpen
               ? 'border-black bg-white hover:bg-gray-50 cursor-pointer'
               : 'border-gray-300 bg-gray-100 cursor-not-allowed'
               }`}
           >
             <PlayCircle
-              className={`w-8 h-8 rounded-full ${marketStatus?.isOpen
+              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${marketStatus?.isOpen
                 ? 'bg-primary text-white'
                 : 'text-gray-400 bg-gray-200'
                 }`}

@@ -215,7 +215,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
             ) : (
                 <div className="flex items-center gap-2">
                     <p
-                        className="text-4xl italic font-black text-[#000] mb-1 tracking-wider"
+                        className="text-2xl sm:text-4xl italic font-black text-[#000] mb-1 tracking-wider"
                         style={{ textShadow: "1px 1px 6px #fff" }}
                     >
                         {displayContent.content}
