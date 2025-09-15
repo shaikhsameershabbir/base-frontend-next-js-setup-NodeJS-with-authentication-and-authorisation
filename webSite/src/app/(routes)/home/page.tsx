@@ -45,42 +45,8 @@ export default function Home() {
         setIsHydrated(true);
     }, []);
 
-    // Refresh data when page becomes visible or on focus
-    useEffect(() => {
-        const handleFocus = () => {
-            if (isHydrated) {
-                console.log('Page focused - refreshing data');
-                fetchData();
-            }
-        };
-
-        const handlePageShow = (event: PageTransitionEvent) => {
-            if (isHydrated) {
-                console.log('Page shown - refreshing data', event.persisted);
-                // Force refresh even if page was restored from cache
-                fetchData();
-            }
-        };
-
-        const handleVisibilityChange = () => {
-            if (isHydrated && !document.hidden) {
-                console.log('Page became visible - refreshing data');
-                fetchData();
-            }
-        };
-
-        // Add event listeners for page focus and show events
-        window.addEventListener('focus', handleFocus);
-        window.addEventListener('pageshow', handlePageShow);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-
-        // Cleanup event listeners
-        return () => {
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('pageshow', handlePageShow);
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-        };
-    }, [isHydrated, fetchData]);
+    // Note: Data fetching is handled by MarketDataContext
+    // No need for additional event listeners here to prevent multiple reloads
 
     // Sort markets by rank - memoized to prevent unnecessary re-sorting
     const sortedMarkets = useMemo(() => {
@@ -94,8 +60,7 @@ export default function Home() {
 
     // Refresh handler - memoized to prevent unnecessary re-renders
     const handleRefresh = useCallback(() => {
-        console.log('Manual refresh triggered');
-        // Force a complete refresh by calling fetchData
+        // Manual refresh triggered
         fetchData();
     }, [fetchData]);
 
@@ -133,7 +98,7 @@ export default function Home() {
         <main className="h-screen bg-gray-100 flex flex-col">
             {/* Header */}
             <div className="flex px-4 py-2 bg-white items-center relative min-h-[56px] flex-shrink-0">
-           
+
                 <div className="absolute right-4">
                     <Button
                         onClick={handleRefresh}
