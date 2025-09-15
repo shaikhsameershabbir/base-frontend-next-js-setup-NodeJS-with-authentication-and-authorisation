@@ -7,6 +7,7 @@ import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMarketData } from "@/contexts/MarketDataContext";
+import MessageSection from "@/app/components/Message";
 
 // Memoized loading component to prevent re-renders
 const LoadingState = React.memo(() => (
@@ -48,12 +49,22 @@ export default function Home() {
     useEffect(() => {
         const handleFocus = () => {
             if (isHydrated) {
+                console.log('Page focused - refreshing data');
                 fetchData();
             }
         };
 
-        const handlePageShow = () => {
+        const handlePageShow = (event: PageTransitionEvent) => {
             if (isHydrated) {
+                console.log('Page shown - refreshing data', event.persisted);
+                // Force refresh even if page was restored from cache
+                fetchData();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (isHydrated && !document.hidden) {
+                console.log('Page became visible - refreshing data');
                 fetchData();
             }
         };
@@ -61,11 +72,13 @@ export default function Home() {
         // Add event listeners for page focus and show events
         window.addEventListener('focus', handleFocus);
         window.addEventListener('pageshow', handlePageShow);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
 
         // Cleanup event listeners
         return () => {
             window.removeEventListener('focus', handleFocus);
             window.removeEventListener('pageshow', handlePageShow);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [isHydrated, fetchData]);
 
@@ -81,6 +94,8 @@ export default function Home() {
 
     // Refresh handler - memoized to prevent unnecessary re-renders
     const handleRefresh = useCallback(() => {
+        console.log('Manual refresh triggered');
+        // Force a complete refresh by calling fetchData
         fetchData();
     }, [fetchData]);
 
@@ -118,9 +133,7 @@ export default function Home() {
         <main className="h-screen bg-gray-100 flex flex-col">
             {/* Header */}
             <div className="flex px-4 py-2 bg-white items-center relative min-h-[56px] flex-shrink-0">
-                <div className="flex-1 flex justify-center items-center">
-                    <Message />
-                </div>
+           
                 <div className="absolute right-4">
                     <Button
                         onClick={handleRefresh}

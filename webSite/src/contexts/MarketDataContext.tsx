@@ -90,11 +90,13 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const fetchData = async () => {
     // Only fetch on client side
     if (!isClient) {
+      console.log('MarketDataContext: Not client-side, skipping fetch');
       return;
     }
 
     // Prevent concurrent fetch calls only for a short time
     if (isFetchingRef.current) {
+      console.log('MarketDataContext: Already fetching, queuing retry');
       // Wait a bit and try again
       setTimeout(() => {
         if (!isFetchingRef.current) {
@@ -104,13 +106,14 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       return;
     }
 
+    console.log('MarketDataContext: Starting data fetch');
     isFetchingRef.current = true;
 
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch markets
+      // Fetch markets with cache busting
       const marketsResponse = await marketsAPI.getAssignedMarkets();
       if (!marketsResponse.success || !marketsResponse.data) {
         throw new Error(marketsResponse.message || 'Failed to fetch markets');
@@ -132,6 +135,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       });
 
       setMarkets(marketsData);
+      console.log('MarketDataContext: Markets fetched:', marketsData.length);
 
       // Fetch all market results in a single API call
       const marketIds = marketsData.map(market => market._id);
@@ -145,9 +149,11 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
           }
         });
         setMarketResults(resultsMap);
+        console.log('MarketDataContext: Market results fetched:', Object.keys(resultsMap).length);
       }
 
       setIsInitialized(true);
+      console.log('MarketDataContext: Data fetch completed successfully');
     } catch (error: any) {
       console.error('MarketData fetch error:', error);
       setError(error.message || 'Failed to fetch data');
@@ -239,6 +245,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   // Fetch data on mount (only if authenticated and client-side)
   useEffect(() => {
     if (isClient && isMountedRef.current && isAuthenticated && !authLoading) {
+      console.log('MarketDataContext: Initial data fetch triggered');
       fetchData();
     }
 
@@ -247,17 +254,45 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     };
   }, [isClient, isAuthenticated, authLoading]);
 
+  // Force refresh on page load/reload
+  useEffect(() => {
+    if (isClient && isAuthenticated && !authLoading) {
+      console.log('MarketDataContext: Page load refresh triggered');
+      // Small delay to ensure everything is ready
+      const timer = setTimeout(() => {
+        if (isMountedRef.current) {
+          fetchData();
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isClient, isAuthenticated, authLoading]);
+
   // Handle page visibility changes and refresh markets when page becomes visible
   useEffect(() => {
     const handleVisibilityChange = async () => {
       // Only refresh if user is authenticated and page becomes visible
       if (isAuthenticated && !document.hidden && isClient) {
+        console.log('MarketDataContext: Page became visible, refreshing data');
         // Small delay to ensure page is fully loaded
         setTimeout(() => {
           if (isMountedRef.current) {
             fetchData();
           }
         }, 500);
+      }
+    };
+
+    const handleWindowLoad = async () => {
+      // Refresh data when window loads (handles page reload)
+      if (isAuthenticated && isClient) {
+        console.log('MarketDataContext: Window loaded, refreshing data');
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchData();
+          }
+        }, 200);
       }
     };
 
@@ -274,11 +309,13 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
 
     // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('load', handleWindowLoad);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     // Cleanup event listeners
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('load', handleWindowLoad);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isAuthenticated, isClient]); // Re-run when authentication status or client status changes
