@@ -106,8 +106,8 @@ export class TransfersController {
             }
 
             // Validate required fields
-            if (!toUserId || !amount || !type || !reason) {
-                res.status(400).json({ message: 'Missing required fields' });
+            if (!toUserId || !amount || !type) {
+                res.status(400).json({ message: 'Missing required fields: toUserId, amount, and type are required' });
                 return;
             }
 
@@ -180,8 +180,8 @@ export class TransfersController {
                 toUser: toUserId,
                 amount,
                 type,
-                reason,
-                adminNote,
+                reason: reason || 'Manual transfer', // Provide default reason if empty
+                adminNote: adminNote || '',
                 processedBy: fromUserId,
                 status: 'pending',
                 fromUserBalanceBefore,

@@ -50,8 +50,9 @@ const transferSchema = new Schema<ITransfer>({
     },
     reason: {
         type: String,
-        required: true,
-        trim: true
+        required: false,
+        trim: true,
+        default: 'Manual transfer'
     },
     adminNote: {
         type: String,

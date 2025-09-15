@@ -41,7 +41,7 @@ export function NewTransferForm({ childUsers, onTransfer, loading }: NewTransfer
     }, [])
 
     const handleTransfer = async () => {
-        if (!newTransfer.toUserId || !newTransfer.amount || !newTransfer.reason) {
+        if (!newTransfer.toUserId || !newTransfer.amount) {
             return
         }
 
@@ -81,7 +81,7 @@ export function NewTransferForm({ childUsers, onTransfer, loading }: NewTransfer
                         <Input
                             id="toUserId"
                             placeholder="Select a child user"
-                            value={selectedUser ? `${selectedUser.username} (${selectedUser.id})` : newTransfer.toUserId}
+                            value={selectedUser ? `${selectedUser.username}` : newTransfer.toUserId}
                             onClick={() => setShowUserDropdown(!showUserDropdown)}
                             readOnly
                             className="bg-card/60 dark:bg-card/40 border-border focus:bg-card/80 dark:focus:bg-card/60 cursor-pointer"
@@ -173,7 +173,7 @@ export function NewTransferForm({ childUsers, onTransfer, loading }: NewTransfer
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="reason" className="text-secondary">Reason</Label>
+                    <Label htmlFor="reason" className="text-secondary">Reason (Optional)</Label>
                     <Input
                         id="reason"
                         placeholder="Winning payout, commission, etc."
@@ -197,7 +197,7 @@ export function NewTransferForm({ childUsers, onTransfer, loading }: NewTransfer
                 <Button
                     className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                     onClick={handleTransfer}
-                    disabled={loading || !newTransfer.toUserId || !newTransfer.amount || !newTransfer.reason}
+                    disabled={loading || !newTransfer.toUserId || !newTransfer.amount}
                 >
                     <Send className="h-4 w-4 mr-2" />
                     {loading ? "Processing..." : "Process Transfer"}

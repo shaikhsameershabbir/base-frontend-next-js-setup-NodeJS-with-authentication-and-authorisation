@@ -24,9 +24,8 @@ export class TransfersValidator {
             .withMessage('Transfer type must be either credit or debit'),
 
         body('reason')
+            .optional()
             .trim()
-            .notEmpty()
-            .withMessage('Transfer reason is required')
             .isLength({ max: 500 })
             .withMessage('Reason must be less than 500 characters'),
 
