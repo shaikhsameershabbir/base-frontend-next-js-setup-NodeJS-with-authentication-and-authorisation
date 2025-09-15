@@ -135,6 +135,21 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
     }));
   };
 
+  // Handle Select All functionality - place selected amount on all pannas for the selected digit
+  const handleSelectAll = () => {
+    if (selectedAmount === null) {
+      showError('Amount Required', 'Please select an amount first.');
+      return;
+    }
+
+    const newAmounts = { ...amounts };
+    subRanges[selectedNumber.toString()].forEach(panna => {
+      newAmounts[panna] = (newAmounts[panna] || 0) + selectedAmount;
+    });
+
+    setAmounts(newAmounts);
+  };
+
   // Handle right click events
   const handleRightClick = (e: React.MouseEvent, action: () => void) => {
     e.preventDefault();
@@ -374,9 +389,7 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
             <div className="grid grid-cols-10 sm:grid-cols-10 lg:grid-cols-10 gap-1 sm:gap-2 lg:gap-3 mb-3 sm:mb-6">
               {Array.from({ length: 10 }).map((_, i) => (
                 <div key={i} className="group">
-                  <div className="text-center mb-0.5 sm:mb-1 lg:mb-2">
-                    <span className="text-xs sm:text-sm font-bold text-gray-600">{i}</span>
-                  </div>
+                  
                   <button
                     type="button"
                     onClick={() => setSelectedNumber(i)}
@@ -393,6 +406,25 @@ const SinglePanna: React.FC<SinglePannaProps> = ({ marketId, marketName = 'Marke
                 </div>
               ))}
             </div>
+
+            {/* Select All Button - Only show when amount is selected */}
+            {selectedAmount !== null && (
+              <div className="mb-3 sm:mb-4">
+                <button
+                  type="button"
+                  onClick={handleSelectAll}
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold py-2 sm:py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Select All Pannas for Digit {selectedNumber} (₹{selectedAmount})
+                  </div>
+                </button>
+              </div>
+            )}
 
             {/* Compact Panna Selection */}
             <div className="grid grid-cols-6 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 gap-1 sm:gap-1.5 lg:gap-2">
