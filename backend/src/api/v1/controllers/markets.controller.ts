@@ -454,11 +454,9 @@ export class MarketsController {
             if (autoResult) {
                 // Add market to auto result service
                 await autoResultService.addMarketToAutoResult(id);
-                logger.info(`Market ${updatedMarket.marketName} added to auto result service`);
             } else {
                 // Remove market from auto result service
                 await autoResultService.removeMarketFromAutoResult();
-                logger.info(`Market ${updatedMarket.marketName} removed from auto result service`);
             }
 
             res.json({

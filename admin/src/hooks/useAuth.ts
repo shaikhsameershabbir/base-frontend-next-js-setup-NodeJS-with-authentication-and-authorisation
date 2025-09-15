@@ -32,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    
 
             if (!storedAuth || !storedUser) {
-                console.log('❌ No stored auth data found');
                 setLoading(false);
                 return;
             }
@@ -55,7 +54,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const hasToken = apiUtils.isAuthenticated();
 
             if (!hasToken) {
-                console.log('❌ No valid token found');
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('user');
                 setIsAuthenticated(false);

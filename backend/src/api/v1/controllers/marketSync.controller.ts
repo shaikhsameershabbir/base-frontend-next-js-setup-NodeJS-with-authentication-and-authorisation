@@ -9,10 +9,7 @@ export class MarketSyncController {
      */
     async syncMarkets(req: Request, res: Response): Promise<void> {
         try {
-            logger.info('Manual market sync requested');
-
             const result = await marketSyncService.syncMarkets();
-
             if (result.success) {
                 res.json({
                     success: true,

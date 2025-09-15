@@ -39,7 +39,6 @@ function Page() {
             );
 
             if (response.success && response.data) {
-                console.log(response.data);
                 setTransfers(response.data);
                 setTotalItems(response.pagination.total);
                 setTotalPages(response.pagination.pages);

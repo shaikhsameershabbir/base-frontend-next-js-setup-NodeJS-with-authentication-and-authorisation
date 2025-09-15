@@ -189,7 +189,6 @@ export default function MarketPage() {
                 // Refresh markets list after sync
                 await fetchMarkets(); // Refresh all markets
                 // You could add a toast notification here
-                console.log('Markets synced successfully:', result.data);
             } else {
                 console.error('Market sync failed:', result.message);
             }

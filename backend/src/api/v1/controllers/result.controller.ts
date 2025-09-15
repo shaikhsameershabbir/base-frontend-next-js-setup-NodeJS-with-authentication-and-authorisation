@@ -32,8 +32,6 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
         const { date } = req.query; // Optional date parameter, defaults to today
 
         // Debug logs
-        logger.info('=== GET MARKET RESULTS DEBUG ===');
-        logger.info(`MarketId: ${marketId}, Date: ${date || 'today'}, User: ${currentUser.userId}`);
 
         if (!marketId) {
             res.status(400).json({ success: false, message: 'Market ID is required' });
@@ -42,7 +40,6 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
 
         // Get market
         const market = await Market.findById(marketId);
-        logger.info(`Market lookup - Found: ${!!market}, MarketName: ${market?.marketName || 'N/A'}`);
         if (!market) {
             res.status(404).json({ success: false, message: 'Market not found' });
             return;
@@ -51,17 +48,12 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
         // Use provided date or default to today
         const targetDate = date ? new Date(date as string) : new Date();
         const normalizedDate = normalizeDate(targetDate);
-        logger.info(`Target date normalized: ${normalizedDate.toISOString()}`);
-
         const result = await Result.findOne({
             marketId,
             resultDate: normalizedDate
         }).populate('marketId', 'marketName weekDays').populate('declaredBy', 'username');
 
-        logger.info(`Result lookup - Found: ${!!result}`);
-        if (result) {
-            logger.info(`Result data - Open: ${result.results.open}, Close: ${result.results.close}, Main: ${result.results.main}`);
-        }
+      
 
         if (!result) {
             res.json({
@@ -82,7 +74,6 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
             return;
         }
 
-        logger.info('=== GET MARKET RESULTS SUCCESS ===');
         res.json({
             success: true,
             message: 'Results retrieved successfully',

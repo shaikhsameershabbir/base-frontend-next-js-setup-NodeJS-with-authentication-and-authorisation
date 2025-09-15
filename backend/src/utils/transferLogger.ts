@@ -38,7 +38,7 @@ export async function createTransferLog(data: TransferLogData): Promise<void> {
         });
 
         await transfer.save();
-        logger.info(`Transfer log created: ${data.type} ${data.amount} from ${data.fromUser} to ${data.toUser} - ${data.reason}`);
+        
     } catch (error) {
         logger.error('Error creating transfer log:', error);
         // Don't throw error to avoid breaking the main operation

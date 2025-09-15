@@ -302,13 +302,6 @@ export class AutoResultService {
         const timeDiff = Math.abs(current - open);
         const isOpenTime = timeDiff <= 5;
 
-        // console.log(`🔓 Open time check for ${market.marketName}:`);
-        // console.log(`   Current: ${currentTime} (${current} minutes)`);
-        // console.log(`   Open: ${openTime} (${open} minutes)`);
-        // console.log(`   Time difference: ${timeDiff} minutes`);
-        // console.log(`   Is open time: ${isOpenTime ? '✅ YES' : '❌ NO'}`);
-
-        // Check if current time is within 5 minutes of open time
         return isOpenTime;
     }
 
@@ -322,14 +315,6 @@ export class AutoResultService {
 
         const timeDiff = Math.abs(current - close);
         const isCloseTime = timeDiff <= 5;
-
-        // console.log(`🔒 Close time check for ${market.marketName}:`);
-        // console.log(`   Current: ${currentTime} (${current} minutes)`);
-        // console.log(`   Close: ${closeTime} (${close} minutes)`);
-        // console.log(`   Time difference: ${timeDiff} minutes`);
-        // console.log(`   Is close time: ${isCloseTime ? '✅ YES' : '❌ NO'}`);
-
-        // Check if current time is within 5 minutes of close time
         return isCloseTime;
     }
 
@@ -340,7 +325,6 @@ export class AutoResultService {
         const [hours, minutes] = timeString.split(':').map(Number);
         const totalMinutes = hours * 60 + minutes;
 
-        // console.log(`⏰ Converting time "${timeString}" to minutes: ${hours}h ${minutes}m = ${totalMinutes} minutes`);
 
         return totalMinutes;
     }
@@ -351,7 +335,6 @@ export class AutoResultService {
     private getDayName(date: Date): string {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         const dayName = days[date.getDay()];
-        // console.log(`📅 Date ${date.toDateString()} corresponds to: ${dayName}`);
         return dayName;
     }
 
@@ -455,11 +438,8 @@ export class AutoResultService {
             // Check if result is for today or future (not yesterday or older)
             const resultDate = this.parseResultDate(marketResult.updated_date);
             if (!this.isResultForTodayOrFuture(resultDate, date)) {
-                logger.info(`Skipping open result for ${market.marketName}: result date ${marketResult.updated_date} (${resultDate.toDateString()}) is in the past`);
                 return;
             }
-
-            logger.info(`Processing open result for ${market.marketName}: ${marketResult.result} on ${marketResult.updated_date}`);
 
             // Use the actual result date from API, not the current date
             await this.saveOpenResult(market._id, dayName, openNumber, openMain, resultDate, null);
@@ -512,11 +492,8 @@ export class AutoResultService {
             // Check if result is for today or future (not yesterday or older)
             const resultDate = this.parseResultDate(marketResult.updated_date);
             if (!this.isResultForTodayOrFuture(resultDate, date)) {
-                logger.info(`Skipping close result for ${market.marketName}: result date ${marketResult.updated_date} (${resultDate.toDateString()}) is in the past`);
                 return;
             }
-
-            logger.info(`Processing close result for ${market.marketName}: ${marketResult.result} on ${marketResult.updated_date}`);
 
             // Update the existing result with close
             if (existingResult) {
@@ -587,8 +564,6 @@ export class AutoResultService {
 
         const isSame = d1.getTime() === d2.getTime();
 
-
-
         return isSame;
     }
 
@@ -605,10 +580,6 @@ export class AutoResultService {
 
         // Result should be today or in the future, not yesterday or older
         const isTodayOrFuture = result.getTime() >= current.getTime();
-
-        if (!isTodayOrFuture) {
-            logger.info(`Result date ${resultDate.toDateString()} is in the past, skipping`);
-        }
 
         return isTodayOrFuture;
     }

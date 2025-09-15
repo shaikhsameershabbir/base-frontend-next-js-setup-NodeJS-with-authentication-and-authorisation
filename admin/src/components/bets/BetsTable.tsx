@@ -91,7 +91,6 @@ export const BetsTable: React.FC<BetsTableProps> = ({
             </Card>
         );
     }
-    console.log('-------------------->> bets', bets);
     if (bets.length === 0) {
         return (
             <Card>

@@ -48,10 +48,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         const { marketId, resultType, resultNumber, targetDate }: DeclareResultRequest = req.body;
 
-        // Debug logs
-        logger.info('=== DECLARE RESULT DEBUG ===');
-        logger.info(`Request received - MarketId: ${marketId}, ResultType: ${resultType}, ResultNumber: ${resultNumber}, TargetDate: ${targetDate}`);
-        logger.info(`Current User: ${currentUser.userId} (${currentUser.role})`);
+      
 
         // Validate required fields
         if (!marketId || !resultType || !resultNumber || !targetDate) {
@@ -92,8 +89,6 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         // Check if market exists
         const market = await Market.findById(marketId);
-        logger.info(`Market lookup - Found: ${!!market}, MarketName: ${market?.marketName || 'N/A'}`);
-
         if (!market) {
             res.status(404).json({ success: false, message: 'Market not found' });
             return;
@@ -101,21 +96,16 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         // Parse target date and normalize to start of day
         const targetDateObj = normalizeDate(new Date(targetDate));
-        logger.info(`Target date normalized: ${targetDateObj.toISOString()}`);
-
         // Find or create result for the specific date
         let existingResult = await Result.findOne({
             marketId,
             resultDate: targetDateObj
         });
 
-        logger.info(`Existing result lookup - Found: ${!!existingResult}`);
         if (existingResult) {
-            logger.info(`Existing result data - Open: ${existingResult.results.open}, Close: ${existingResult.results.close}, Main: ${existingResult.results.main}`);
 
             // Update existing result
             if (resultType === 'open') {
-                logger.info('Updating existing result - OPEN type');
                 existingResult.results.open = resultNumberStr;
                 existingResult.results.main = mainValueString;
                 existingResult.results.openDeclationTime = new Date();
@@ -127,9 +117,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     resultNumberStr,
                     mainValue
                 );
-                logger.info(`Open result updated - Result: ${resultNumberStr}, Main: ${mainValueString}`);
             } else {
-                logger.info('Updating existing result - CLOSE type');
                 // For close, check if open is already declared
                 if (!existingResult.results.open || existingResult.results.open === null) {
                     res.status(400).json({
@@ -158,16 +146,12 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     resultNumberStr,
                     closeMain
                 );
-                logger.info(`Close result updated - Result: ${resultNumberStr}, Combined Main: ${finalMain}`);
             }
 
             await existingResult.save();
-            logger.info('Result saved successfully to database');
         } else {
             // Create new result
-            logger.info('Creating new result document');
             if (resultType === 'close') {
-                logger.info('ERROR: Cannot create close result without open result');
                 res.status(400).json({
                     success: false,
                     message: 'Open result must be declared before declaring close result'
@@ -217,10 +201,8 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 resultNumberStr,
                 mainValue
             );
-            logger.info(`New result created - Result: ${resultNumberStr}, Main: ${mainValueString}`);
         }
 
-        logger.info('=== DECLARE RESULT SUCCESS ===');
         // Existing result checked
         res.json({
             success: true,

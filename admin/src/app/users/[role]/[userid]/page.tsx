@@ -170,7 +170,6 @@ export default function UsersPage() {
             const response = await usersAPI.deleteUser(userId);
             if (response.success) {
                 // Show success message or notification
-                console.log('User deleted successfully');
                 // Refresh the users list
                 fetchUsers();
             } else {
@@ -259,7 +258,6 @@ export default function UsersPage() {
         if (userId === "all") {
             return directParentChild[currentUser.role] === role
         }
-        console.log('==-------------------------------->>', currentUser.role)
         // Case 2: userId is a specific user ID - always show button, backend will validate
         return true
     }
