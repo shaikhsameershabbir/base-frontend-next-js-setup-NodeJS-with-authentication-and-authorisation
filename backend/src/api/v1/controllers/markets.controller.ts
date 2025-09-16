@@ -267,7 +267,7 @@ export class MarketsController {
                     });
 
                     await marketAssignment.save();
-            
+
                 } catch (assignmentError) {
                     logger.error('Error creating market assignment for admin:', assignmentError);
                     // Don't fail the market creation if assignment fails, just log the error
@@ -528,7 +528,7 @@ export class MarketsController {
                 return;
             }
 
-            // For markets without ranks, assign default ranks
+            // For markets without ranks, assign default ranks based on open time
             const marketsWithoutRanks = assignments.filter(assignment => {
                 // Skip assignments with null marketId
                 if (!assignment.marketId) {
@@ -549,6 +549,27 @@ export class MarketsController {
             });
 
             if (marketsWithoutRanks.length > 0) {
+                // Sort markets by open time for auto-ranking
+                const sortedMarkets = marketsWithoutRanks
+                    .filter(assignment => assignment.marketId) // Additional safety check
+                    .map(assignment => {
+                        const marketData = assignment.marketId as { marketName?: string; openTime?: string };
+                        if (!assignment.marketId || !marketData.marketName) {
+                            logger.warn(`Assignment ${assignment._id} has invalid marketId data`);
+                            return null;
+                        }
+                        return {
+                            assignment,
+                            marketData,
+                            openTime: marketData.openTime || '00:00:00' // Default to midnight if no open time
+                        };
+                    })
+                    .filter(item => item !== null)
+                    .sort((a, b) => {
+                        // Sort by open time (HH:MM:SS format)
+                        return a!.openTime.localeCompare(b!.openTime);
+                    });
+
                 // Get all existing ranks to find the next available rank number
                 const existingRanks = await MarketRank.find({
                     userId: userId,
@@ -563,42 +584,31 @@ export class MarketsController {
                     nextRank = maxRank + 1;
                 }
 
-                // Use upsert operations instead of insertMany to avoid duplicates
-                const upsertPromises = marketsWithoutRanks
-                    .filter(assignment => assignment.marketId) // Additional safety check
-                    .map((assignment, index) => {
-                        const newRank = nextRank + index;
+                // Use upsert operations with ranks based on open time order
+                const upsertPromises = sortedMarkets.map((item, index) => {
+                    const newRank = nextRank + index;
 
-                        // Ensure assignment.marketId exists and has required properties
-                        const marketData = assignment.marketId as { marketName?: string };
-                        if (!assignment.marketId || !marketData.marketName) {
-                            logger.warn(`Assignment ${assignment._id} has invalid marketId data`);
-                            return null;
+                    return MarketRank.findOneAndUpdate(
+                        {
+                            userId: userId,
+                            marketId: item!.assignment.marketId
+                        },
+                        {
+                            marketName: item!.marketData.marketName,
+                            marketId: item!.assignment.marketId,
+                            rank: newRank,
+                            userId: userId
+                        },
+                        {
+                            upsert: true,
+                            new: true,
+                            setDefaultsOnInsert: true
                         }
-
-                        return MarketRank.findOneAndUpdate(
-                            {
-                                userId: userId,
-                                marketId: assignment.marketId
-                            },
-                            {
-                                marketName: marketData.marketName,
-                                marketId: assignment.marketId,
-                                rank: newRank,
-                                userId: userId
-                            },
-                            {
-                                upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true
-                            }
-                        );
-                    })
-                    .filter(promise => promise !== null); // Filter out null promises
+                    );
+                });
 
                 if (upsertPromises.length > 0) {
                     await Promise.all(upsertPromises);
-
                 }
 
                 // Fetch updated ranks with pagination

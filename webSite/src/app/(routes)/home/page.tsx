@@ -2,26 +2,38 @@
 
 import BottomNav from "@/app/components/BottomNav";
 import SimpleMarketGrid from "@/app/components/SimpleMarketGrid";
-import Message from "@/app/components/Message";
-import React, { useMemo, useCallback, useState, useEffect } from "react";
+import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMarketData } from "@/contexts/MarketDataContext";
 import MessageSection from "@/app/components/Message";
 
 // Memoized loading component to prevent re-renders
-const LoadingState = React.memo(() => (
-    <div className="flex justify-center items-center h-full">
-        <div className="text-lg text-primary">Loading markets...</div>
+const LoadingState = React.memo(({ onRetry }: { onRetry: () => void }) => (
+    <div className="flex flex-col justify-center items-center h-full p-4">
+        <div className="text-lg text-primary mb-4">Loading markets...</div>
+        <div className="text-sm text-muted mb-4">This may take a moment</div>
+        <button
+            onClick={onRetry}
+            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+        >
+            Refresh
+        </button>
     </div>
 ));
 
 LoadingState.displayName = 'LoadingState';
 
-// Memoized error component
-const ErrorState = React.memo(({ error }: { error: string }) => (
-    <div className="flex justify-center items-center h-full">
-        <div className="text-lg text-red-500">{error}</div>
+// Memoized error component with retry button
+const ErrorState = React.memo(({ error, onRetry }: { error: string; onRetry: () => void }) => (
+    <div className="flex flex-col justify-center items-center h-full p-4">
+        <div className="text-lg text-red-500 mb-4 text-center">{error}</div>
+        <button
+            onClick={onRetry}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+        >
+            Try Again
+        </button>
     </div>
 ));
 
@@ -37,19 +49,21 @@ const EmptyState = React.memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 export default function Home() {
-    const { markets, marketResults, loading, error, fetchData } = useMarketData();
+    const { markets, marketResults, loading, error, fetchData, refreshData } = useMarketData();
     const [isHydrated, setIsHydrated] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastRefreshTimeRef = useRef<number>(0);
 
     // Handle hydration
     useEffect(() => {
         setIsHydrated(true);
     }, []);
 
-    // Note: Data fetching is handled by MarketDataContext
-    // No need for additional event listeners here to prevent multiple reloads
-
     // Sort markets by rank - memoized to prevent unnecessary re-sorting
     const sortedMarkets = useMemo(() => {
+        if (!markets.length) return [];
+
         return [...markets].sort((a, b) => {
             if (a.rank === undefined && b.rank === undefined) return 0;
             if (a.rank === undefined) return 1;
@@ -58,11 +72,42 @@ export default function Home() {
         });
     }, [markets]);
 
-    // Refresh handler - memoized to prevent unnecessary re-renders
-    const handleRefresh = useCallback(() => {
-        // Manual refresh triggered
-        fetchData();
-    }, [fetchData]);
+    // Optimized refresh handler with debouncing
+    const handleRefresh = useCallback(async () => {
+        const now = Date.now();
+
+        // Prevent rapid successive refreshes
+        if (now - lastRefreshTimeRef.current < 2000) { // 2 seconds minimum between refreshes
+            return;
+        }
+
+        // Clear any pending refresh
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+        }
+
+        // Set refreshing state
+        setIsRefreshing(true);
+
+        // Debounce the refresh call
+        refreshTimeoutRef.current = setTimeout(async () => {
+            lastRefreshTimeRef.current = Date.now();
+            try {
+                await refreshData(); // Use refreshData instead of fetchData for forced refresh
+            } finally {
+                setIsRefreshing(false);
+            }
+        }, 300);
+    }, [refreshData]);
+
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (refreshTimeoutRef.current) {
+                clearTimeout(refreshTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Memoized content renderer to prevent unnecessary re-renders
     const renderContent = useMemo(() => {
@@ -75,14 +120,14 @@ export default function Home() {
         }
 
         if (loading) {
-            return <LoadingState />;
+            return <LoadingState onRetry={() => refreshData()} />;
         }
 
         if (error) {
-            return <ErrorState error={error} />;
+            return <ErrorState error={error} onRetry={() => refreshData()} />;
         }
 
-        if (markets.length === 0) {
+        if (!markets.length) {
             return <EmptyState />;
         }
 
@@ -106,8 +151,9 @@ export default function Home() {
                         className="rounded-full"
                         size="icon"
                         aria-label="Refresh Markets"
+                        disabled={isRefreshing}
                     >
-                        <RefreshCcw className="text-primary" />
+                        <RefreshCcw className={`text-primary ${isRefreshing ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Wallet, Menu, Gift, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useMarketData } from '@/contexts/MarketDataContext';
 import apiClient from '@/lib/api-client';
 
 interface Ticket {
@@ -31,7 +32,9 @@ const Header = () => {
   const [claimData, setClaimData] = useState<ClaimData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [claimMessage, setClaimMessage] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { state: { user }, updateBalance, refreshUser } = useAuthContext();
+  const { refreshData } = useMarketData();
 
   // Fetch claim data when component mounts (only once)
   useEffect(() => {
@@ -90,6 +93,30 @@ const Header = () => {
   };
 
   const [isFetching, setIsFetching] = useState(false);
+
+  // Comprehensive refresh function that refreshes both balance and markets
+  const handleRefreshAll = async () => {
+    if (isRefreshing || isFetching) return;
+
+    setIsRefreshing(true);
+    try {
+      // Refresh user balance and profile
+      if (refreshUser) {
+        await refreshUser();
+      }
+
+      // Refresh markets and results
+      await refreshData();
+
+      // Refresh claim data
+      await fetchUnclaimedTickets();
+
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const fetchUnclaimedTickets = async () => {
     // Prevent duplicate calls
@@ -174,17 +201,18 @@ const Header = () => {
             <span className="flex-shrink-0"><Wallet size={16} className="sm:w-5 sm:h-5" /></span>
             <span className="font-bold text-sm sm:text-base truncate">₹{user?.balance || 0}</span>
             <button
-              onClick={() => {
-                if (refreshUser && !isFetching) {
-                  refreshUser();
-                }
-              }}
-              disabled={isFetching}
-              className={`text-white hover:text-yellow-200 transition-colors p-0.5 sm:p-1 flex-shrink-0 ${isFetching ? 'opacity-50 cursor-not-allowed' : ''
+              onClick={handleRefreshAll}
+              disabled={isRefreshing || isFetching}
+              className={`text-white hover:text-yellow-200 transition-colors p-0.5 sm:p-1 flex-shrink-0 ${(isRefreshing || isFetching) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-              title="Refresh balance"
+              title="Refresh balance and markets"
             >
-              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className={`w-3 h-3 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
@@ -201,11 +229,17 @@ const Header = () => {
               <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">Claim Winning Tickets</h2>
               <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                 <button
-                  onClick={fetchUnclaimedTickets}
-                  className="text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors"
-                  title="Refresh tickets"
+                  onClick={handleRefreshAll}
+                  disabled={isRefreshing || isFetching}
+                  className={`text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors ${(isRefreshing || isFetching) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title="Refresh all data"
                 >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className={`w-4 h-4 sm:w-5 sm:h-5 ${isRefreshing ? 'animate-spin' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>

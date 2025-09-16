@@ -459,41 +459,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     /**
      * Handle page visibility changes and refresh data when page becomes visible
+     * DISABLED to prevent automatic refresh when returning to page
      */
-    useEffect(() => {
-        const handleVisibilityChange = async () => {
-            // Only refresh if user is authenticated and page becomes visible
-            if (state.isAuthenticated && !document.hidden) {
-                // Small delay to ensure page is fully loaded
-                setTimeout(() => {
-                    if (isMountedRef.current) {
-                        refreshUser();
-                    }
-                }, 500);
-            }
-        };
+    // useEffect(() => {
+    //     const handleVisibilityChange = async () => {
+    //         // Only refresh if user is authenticated and page becomes visible
+    //         if (state.isAuthenticated && !document.hidden) {
+    //             // Small delay to ensure page is fully loaded
+    //             setTimeout(() => {
+    //                 if (isMountedRef.current) {
+    //                     refreshUser();
+    //                 }
+    //             }, 500);
+    //         }
+    //     };
 
-        const handleBeforeUnload = async () => {
-            // Refresh data before page unload to ensure latest data is saved
-            if (state.isAuthenticated && isMountedRef.current) {
-                try {
-                    await refreshUser();
-                } catch (err) {
-                    // Silently fail on unload
-                }
-            }
-        };
+    //     const handleBeforeUnload = async () => {
+    //         // Refresh data before page unload to ensure latest data is saved
+    //         if (state.isAuthenticated && isMountedRef.current) {
+    //             try {
+    //                 await refreshUser();
+    //             } catch (err) {
+    //                 // Silently fail on unload
+    //             }
+    //         }
+    //     };
 
-        // Add event listeners
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('beforeunload', handleBeforeUnload);
+    //     // Add event listeners
+    //     document.addEventListener('visibilitychange', handleVisibilityChange);
+    //     window.addEventListener('beforeunload', handleBeforeUnload);
 
-        // Cleanup event listeners
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [state.isAuthenticated]); // Re-run when authentication status changes
+    //     // Cleanup event listeners
+    //     return () => {
+    //         document.removeEventListener('visibilitychange', handleVisibilityChange);
+    //         window.removeEventListener('beforeunload', handleBeforeUnload);
+    //     };
+    // }, [state.isAuthenticated]); // Re-run when authentication status changes
 
     // ============================================================================
     // PROVIDER VALUE

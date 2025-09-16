@@ -74,11 +74,7 @@ export const superNavbar: NavbarItem[] = [
 
         ],
     },
-    {
-        title: "Payment Configuration",
-        href: "/payment-configuration",
-        icon: "QrCode",
-    },
+
     {
         title: "Logs",
         href: "/logs",
@@ -153,11 +149,7 @@ export const adminNavbar: NavbarItem[] = [
 
         ],
     },
-    {
-        title: "Payment Configuration",
-        href: "/payment-configuration",
-        icon: "QrCode",
-    },
+
     {
         title: "Logs",
         href: "/logs",

@@ -20,21 +20,34 @@ apiClient.interceptors.request.use((config) => {
         }
     }
 
-    // Add aggressive cache-busting headers for all environments
-    config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-    config.headers['Pragma'] = 'no-cache'
-    config.headers['Expires'] = '0'
+    // Add intelligent cache-busting headers based on request type
+    const isMarketDataRequest = config.url?.includes('/player/assigned-markets') ||
+        config.url?.includes('/result/player/markets') ||
+        config.url?.includes('/player/market/') && config.url?.includes('/status');
+
+    if (isMarketDataRequest) {
+        // Allow short-term caching for market data (30 seconds)
+        config.headers['Cache-Control'] = 'max-age=30, stale-while-revalidate=60'
+    } else {
+        // Aggressive cache-busting for other requests
+        config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        config.headers['Pragma'] = 'no-cache'
+        config.headers['Expires'] = '0'
+    }
+
     config.headers['Last-Modified'] = new Date().toUTCString()
     config.headers['ETag'] = `"${Date.now()}"`
 
-    // Add timestamp to prevent caching for all requests
-    if (config.method === 'get') {
-        const separator = config.url?.includes('?') ? '&' : '?'
-        config.url = `${config.url}${separator}_t=${Date.now()}&_r=${Math.random()}`
-    } else {
-        // For POST/PUT/PATCH requests, add cache-busting to URL as well
-        const separator = config.url?.includes('?') ? '&' : '?'
-        config.url = `${config.url}${separator}_t=${Date.now()}`
+    // Add timestamp to prevent caching for non-market data requests
+    if (!isMarketDataRequest) {
+        if (config.method === 'get') {
+            const separator = config.url?.includes('?') ? '&' : '?'
+            config.url = `${config.url}${separator}_t=${Date.now()}&_r=${Math.random()}`
+        } else {
+            // For POST/PUT/PATCH requests, add cache-busting to URL as well
+            const separator = config.url?.includes('?') ? '&' : '?'
+            config.url = `${config.url}${separator}_t=${Date.now()}`
+        }
     }
 
     // Ensure the 'credentials' option is set to 'include'

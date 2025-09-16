@@ -36,6 +36,8 @@ export default function MarketRankPage() {
   const [editingRank, setEditingRank] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [updatingRank, setUpdatingRank] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filteredRanks, setFilteredRanks] = useState<MarketRank[]>([]);
 
   // Fetch admins with their assigned markets
   const fetchAdmins = async () => {
@@ -63,7 +65,10 @@ export default function MarketRankPage() {
       const response = await marketsAPI.getMarketRanks(selectedAdmin, page, pagination.limit);
 
       if (response.success) {
-        setMarketRanks(response.data || []);
+        const ranks = response.data || [];
+        setMarketRanks(ranks);
+        const filtered = filterMarkets(ranks, searchTerm);
+        setFilteredRanks(filtered);
         setPagination(prev => ({
           ...prev,
           page,
@@ -139,9 +144,29 @@ export default function MarketRankPage() {
     setSelectedAdmin(adminId);
     setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
     setMarketRanks([]);
+    setFilteredRanks([]);
     setEditingRank(null);
     setEditValue('');
     setError(null);
+    setSearchTerm('');
+  };
+
+  // Filter markets based on search term
+  const filterMarkets = (ranks: MarketRank[], search: string) => {
+    if (!search.trim()) {
+      return ranks;
+    }
+
+    return ranks.filter(rank =>
+      rank.marketName.toLowerCase().includes(search.toLowerCase())
+    );
+  };
+
+  // Handle search input change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    const filtered = filterMarkets(marketRanks, value);
+    setFilteredRanks(filtered);
   };
 
   // Format time
@@ -168,6 +193,12 @@ export default function MarketRankPage() {
       fetchMarketRanks(1);
     }
   }, [selectedAdmin]);
+
+  // Update filtered ranks when marketRanks or searchTerm changes
+  useEffect(() => {
+    const filtered = filterMarkets(marketRanks, searchTerm);
+    setFilteredRanks(filtered);
+  }, [marketRanks, searchTerm]);
 
   const selectedAdminData = admins.find(admin => admin._id === selectedAdmin);
 
@@ -246,6 +277,41 @@ export default function MarketRankPage() {
           </CardContent>
         </Card>
 
+        {/* Search and Filter */}
+        {selectedAdmin && (
+          <Card className="mb-4 sm:mb-6">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary text-xs font-bold">🔍</span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-primary">Search Markets</h3>
+                </div>
+
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search markets by name..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="pl-10 pr-4"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                    <span className="text-muted-foreground text-sm">🔍</span>
+                  </div>
+                </div>
+
+                {searchTerm && (
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredRanks.length} of {marketRanks.length} markets
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Market Rankings */}
         {selectedAdmin && (
           <Card>
@@ -266,12 +332,12 @@ export default function MarketRankPage() {
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <span className="ml-2 text-primary">Loading market rankings...</span>
                 </div>
-              ) : marketRanks.length === 0 ? (
+              ) : (searchTerm ? filteredRanks : marketRanks).length === 0 ? (
                 <div className="flex items-center justify-center py-12">
                   <div className="text-center">
                     <Store className="h-12 w-12 text-muted mx-auto mb-4" />
                     <p className="text-muted-foreground font-medium">
-                      No markets assigned to this admin
+                      {searchTerm ? 'No markets found matching your search' : 'No markets assigned to this admin'}
                     </p>
                   </div>
                 </div>
@@ -291,7 +357,7 @@ export default function MarketRankPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {marketRanks.map((marketRank) => (
+                        {(searchTerm ? filteredRanks : marketRanks).map((marketRank) => (
                           <tr key={marketRank._id} className="border-b border-border/50 hover:bg-muted/30 dark:hover:bg-zinc-800 transition-colors">
                             <td className="py-3 sm:py-4 px-2 sm:px-4">
                               {editingRank === marketRank._id ? (
@@ -409,8 +475,8 @@ export default function MarketRankPage() {
                     </table>
                   </div>
 
-                  {/* Pagination */}
-                  {pagination.totalPages > 1 && (
+                  {/* Pagination - Only show if not searching */}
+                  {!searchTerm && pagination.totalPages > 1 && (
                     <div className="mt-6">
                       <Pagination
                         currentPage={pagination.page}

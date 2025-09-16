@@ -80,6 +80,20 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
     closeTime: formatTimeDisplay(market.closeTime)
   }), [market.openTime, market.closeTime]);
 
+  // Memoize market status display logic
+  const statusDisplay = useMemo(() => {
+    if (marketStatus?.status === 'closed_today') {
+      return (
+        <div className="mb-2">
+          <div className="text-sm font-medium text-red-600">
+            Market closed
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }, [marketStatus?.status]);
+
 
 
   return (
@@ -108,13 +122,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
         </h3>
 
         {/* Market Status - Only show when closed today */}
-        {marketStatus?.status === 'closed_today' && (
-          <div className="mb-2">
-            <div className="text-sm font-medium text-red-600">
-              Market closed
-            </div>
-          </div>
-        )}
+        {statusDisplay}
 
         {/* Winning Numbers Section - Centered */}
         <div className="mb-2 sm:mb-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { marketsAPI } from '@/lib/api/auth';
 import { betAPI } from '@/lib/api/bet';
 import { useAuthContext } from './AuthContext';
@@ -45,6 +45,7 @@ interface MarketDataContextType {
   loading: boolean;
   error: string | null;
   fetchData: () => Promise<void>;
+  refreshData: () => Promise<void>; // Force refresh function
   getMarketResult: (marketId: string) => MarketResult | null;
   getMarketStatus: (marketId: string) => MarketStatus | null;
   updateMarketStatus: (marketId: string, status: MarketStatus) => void;
@@ -65,6 +66,51 @@ interface MarketDataProviderProps {
   children: React.ReactNode;
 }
 
+// Cache management
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const MARKET_STATUS_CACHE_DURATION = 30 * 1000; // 30 seconds
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+class SimpleCache {
+  private cache = new Map<string, CacheEntry<any>>();
+
+  set<T>(key: string, data: T, duration: number = CACHE_DURATION): void {
+    const now = Date.now();
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt: now + duration
+    });
+  }
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  delete(key: string): void {
+    this.cache.delete(key);
+  }
+}
+
+const marketCache = new SimpleCache();
+
 export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children }) => {
   const { state: { isAuthenticated, loading: authLoading } } = useAuthContext();
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -74,46 +120,70 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
   const [error, setError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  const isMountedRef = React.useRef(true);
-  const isFetchingRef = React.useRef(false);
-  const statusFetchingRef = React.useRef<Set<string>>(new Set());
-  const lastAuthStateRef = React.useRef<boolean | null>(null);
 
-  const resetData = () => {
+  // Refs for preventing race conditions and managing state
+  const isMountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
+  const statusFetchingRef = useRef<Set<string>>(new Set());
+  const lastAuthStateRef = useRef<boolean | null>(null);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchTimeRef = useRef<number>(0);
+
+  const resetData = useCallback(() => {
     setMarkets([]);
     setMarketResults({});
     setMarketStatuses({});
     setIsInitialized(false);
     setError(null);
-  };
+    marketCache.clear();
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async (forceRefresh: boolean = false) => {
     // Only fetch on client side
-    if (!isClient) {
-      console.log('MarketDataContext: Not client-side, skipping fetch');
+    if (!isClient || !isMountedRef.current) {
       return;
     }
 
-    // Prevent concurrent fetch calls only for a short time
+    // Clear cache if force refresh
+    if (forceRefresh) {
+      marketCache.clear();
+      lastFetchTimeRef.current = 0; // Reset last fetch time
+    }
+
+    // Check if we have recent data in cache
+    const now = Date.now();
+    const timeSinceLastFetch = now - lastFetchTimeRef.current;
+
+    if (!forceRefresh && timeSinceLastFetch < CACHE_DURATION) {
+      const cachedData = marketCache.get<{ markets: Market[], marketResults: Record<string, MarketResult> }>('markets_data');
+      if (cachedData) {
+        setMarkets(cachedData.markets);
+        setMarketResults(cachedData.marketResults);
+        setIsInitialized(true);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Prevent concurrent fetch calls
     if (isFetchingRef.current) {
-      console.log('MarketDataContext: Already fetching, queuing retry');
-      // Wait a bit and try again
-      setTimeout(() => {
-        if (!isFetchingRef.current) {
-          fetchData();
-        }
-      }, 1000);
       return;
     }
 
-    // Starting data fetch
+    // Clear any pending fetch timeout
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+      fetchTimeoutRef.current = null;
+    }
+
     isFetchingRef.current = true;
+    lastFetchTimeRef.current = now;
 
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch markets with cache busting
+      // Fetch markets
       const marketsResponse = await marketsAPI.getAssignedMarkets();
       if (!marketsResponse.success || !marketsResponse.data) {
         throw new Error(marketsResponse.message || 'Failed to fetch markets');
@@ -135,53 +205,76 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       });
 
       setMarkets(marketsData);
-      // Markets fetched successfully
 
-      // Fetch all market results in a single API call
-      const marketIds = marketsData.map(market => market._id);
-      const resultsResponse = await betAPI.getAllMarketResults(marketIds);
+      // Fetch market results in parallel
+      if (marketsData.length > 0) {
+        const marketIds = marketsData.map(market => market._id);
+        const resultsResponse = await betAPI.getAllMarketResults(marketIds);
 
-      if (resultsResponse.success && resultsResponse.data) {
-        const resultsMap: Record<string, MarketResult> = {};
-        resultsResponse.data.forEach((item: any) => {
-          if (item.success && item.data) {
-            resultsMap[item.marketId] = item.data;
-          }
-        });
+        let resultsMap: Record<string, MarketResult> = {};
+        if (resultsResponse.success && resultsResponse.data) {
+          resultsResponse.data.forEach((item: any) => {
+            if (item.success && item.data) {
+              resultsMap[item.marketId] = item.data;
+            }
+          });
+        }
         setMarketResults(resultsMap);
-        // Market results fetched successfully
       }
 
       setIsInitialized(true);
-      // Data fetch completed successfully
+
+      // Cache the data
+      marketCache.set('markets_data', {
+        markets: marketsData,
+        marketResults: marketsData.length > 0 ?
+          (marketResults || {}) : {}
+      });
+
     } catch (error: any) {
       console.error('MarketData fetch error:', error);
       setError(error.message || 'Failed to fetch data');
+
+      // Retry after a delay if it's a network error
+      if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+        fetchTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current && !isFetchingRef.current) {
+            fetchData(true);
+          }
+        }, 5000);
+      }
     } finally {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  };
+  }, [isClient]);
 
-  const getMarketResult = (marketId: string): MarketResult | null => {
+  const getMarketResult = useCallback((marketId: string): MarketResult | null => {
     return marketResults[marketId] || null;
-  };
+  }, [marketResults]);
 
-  const getMarketStatus = (marketId: string): MarketStatus | null => {
+  const getMarketStatus = useCallback((marketId: string): MarketStatus | null => {
     return marketStatuses[marketId] || null;
-  };
+  }, [marketStatuses]);
 
-  const updateMarketStatus = (marketId: string, status: MarketStatus) => {
+  const updateMarketStatus = useCallback((marketId: string, status: MarketStatus) => {
     setMarketStatuses(prev => ({
       ...prev,
       [marketId]: status
     }));
-  };
+  }, []);
 
-  const fetchMarketStatus = async (marketId: string): Promise<MarketStatus | null> => {
+  const fetchMarketStatus = useCallback(async (marketId: string): Promise<MarketStatus | null> => {
     // Only fetch on client side
-    if (!isClient) {
+    if (!isClient || !isMountedRef.current) {
       return null;
+    }
+
+    // Check cache first
+    const cacheKey = `market_status_${marketId}`;
+    const cachedStatus = marketCache.get<MarketStatus>(cacheKey);
+    if (cachedStatus) {
+      return cachedStatus;
     }
 
     // Prevent duplicate calls for the same market
@@ -189,10 +282,10 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       return null;
     }
 
-    // Check if we already have the status
-    const cachedStatus = getMarketStatus(marketId);
-    if (cachedStatus) {
-      return cachedStatus;
+    // Check if we already have the status in state
+    const existingStatus = getMarketStatus(marketId);
+    if (existingStatus) {
+      return existingStatus;
     }
 
     // Mark as fetching
@@ -203,22 +296,33 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
       if (response.success && response.data) {
         const statusData = response.data;
         updateMarketStatus(marketId, statusData);
+
+        // Cache the status
+        marketCache.set(cacheKey, statusData, MARKET_STATUS_CACHE_DURATION);
+
         return statusData;
       }
     } catch (error) {
       console.error('Market status fetch error:', error);
-      // Error fetching status - silently fail
     } finally {
       // Remove from fetching set
       statusFetchingRef.current.delete(marketId);
     }
 
     return null;
-  };
+  }, [isClient, getMarketStatus, updateMarketStatus]);
 
   // Set client-side flag
   useEffect(() => {
     setIsClient(true);
+
+    // Set mounted flag when component mounts
+    isMountedRef.current = true;
+
+    // Cleanup on unmount
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // Monitor authentication state changes
@@ -231,7 +335,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     // If user just logged in (was not authenticated, now is)
     if (!lastAuthStateRef.current && isAuthenticated) {
       resetData();
-      fetchData();
+      fetchData(true); // Force refresh on login
     }
     // If user just logged out (was authenticated, now is not)
     else if (lastAuthStateRef.current && !isAuthenticated) {
@@ -240,63 +344,93 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
 
     // Update the last auth state
     lastAuthStateRef.current = isAuthenticated;
-  }, [isClient, isAuthenticated, authLoading]);
+  }, [isClient, isAuthenticated, authLoading, resetData]); // Removed fetchData from dependencies
 
-  // Fetch data on mount (only if authenticated and client-side)
+  // Initial data fetch
   useEffect(() => {
-    if (isClient && isMountedRef.current && isAuthenticated && !authLoading) {
-      // Initial data fetch triggered
-      fetchData();
+    if (isClient && isAuthenticated && !authLoading) {
+      if (!isInitialized) {
+        fetchData();
+      }
+    } else if (!isAuthenticated && !authLoading) {
+      // User is not authenticated, set loading to false
+      setLoading(false);
+      setIsInitialized(true); // Mark as initialized even without data
     }
 
+    // Don't set isMounted to false here - it should only be set to false on unmount
     return () => {
-      isMountedRef.current = false;
+      // Clear any pending timeouts
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
     };
-  }, [isClient, isAuthenticated, authLoading]);
+  }, [isClient, isAuthenticated, authLoading, isInitialized]); // Removed fetchData from dependencies
 
-  // Note: Removed duplicate page load refresh to prevent multiple fetches
-  // Initial data fetch is already handled by the mount effect above
-
-  // Handle page visibility changes and refresh markets when page becomes visible
+  // Add a timeout fallback to prevent infinite loading
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      // Only refresh if user is authenticated and page becomes visible
-      if (isAuthenticated && !document.hidden && isClient) {
-        // Page became visible, refreshing data
-        // Small delay to ensure page is fully loaded
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            fetchData();
-          }
-        }, 500);
+    const loadingTimeout = setTimeout(() => {
+      if (loading && isClient) {
+        setLoading(false);
+        setError('Loading timeout - please refresh the page');
       }
-    };
+    }, 30000); // 30 second timeout
 
-    // Removed handleWindowLoad to prevent duplicate fetches
+    return () => clearTimeout(loadingTimeout);
+  }, [loading, isClient]);
 
-    const handleBeforeUnload = async () => {
-      // Refresh data before page unload to ensure latest data is saved
-      if (isAuthenticated && isMountedRef.current && isClient) {
-        try {
-          await fetchData();
-        } catch (err) {
-          // Silently fail on unload
-        }
-      }
-    };
+  // Page visibility handling - DISABLED to prevent auto-refresh on page return
+  // Users can manually refresh using the refresh button if needed
+  // useEffect(() => {
+  //   let visibilityTimeout: NodeJS.Timeout | null = null;
 
-    // Add event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  //   const handleVisibilityChange = () => {
+  //     if (!isAuthenticated || document.hidden || !isClient) {
+  //       return;
+  //     }
 
-    // Cleanup event listeners
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [isAuthenticated, isClient]); // Re-run when authentication status or client status changes
+  //     // Clear any existing timeout
+  //     if (visibilityTimeout) {
+  //       clearTimeout(visibilityTimeout);
+  //     }
 
-  const value = {
+  //     // Debounce visibility changes
+  //     visibilityTimeout = setTimeout(() => {
+  //       if (isMountedRef.current) {
+  //         const now = Date.now();
+  //         const timeSinceLastFetch = now - lastFetchTimeRef.current;
+
+  //         // Only fetch if data is stale (older than cache duration)
+  //         if (timeSinceLastFetch > CACHE_DURATION) {
+  //           fetchData();
+  //         }
+  //       }
+  //     }, 1000);
+  //   };
+
+  //   document.addEventListener('visibilitychange', handleVisibilityChange);
+
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', handleVisibilityChange);
+  //     if (visibilityTimeout) {
+  //       clearTimeout(visibilityTimeout);
+  //     }
+  //   };
+  // }, [isAuthenticated, isClient, fetchData]);
+
+  const value = useMemo(() => ({
+    markets,
+    marketResults,
+    marketStatuses,
+    loading,
+    error,
+    fetchData: () => fetchData(false),
+    refreshData: () => fetchData(true), // Force refresh function
+    getMarketResult,
+    getMarketStatus,
+    updateMarketStatus,
+    fetchMarketStatus
+  }), [
     markets,
     marketResults,
     marketStatuses,
@@ -307,7 +441,7 @@ export const MarketDataProvider: React.FC<MarketDataProviderProps> = ({ children
     getMarketStatus,
     updateMarketStatus,
     fetchMarketStatus
-  };
+  ]);
 
   return (
     <MarketDataContext.Provider value={value}>
