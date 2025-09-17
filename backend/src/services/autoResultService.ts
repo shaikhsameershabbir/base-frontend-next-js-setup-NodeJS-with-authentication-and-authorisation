@@ -1,5 +1,6 @@
 import { Market } from '../models/Market';
 import { Result, IResult } from '../models/result';
+import { Bet } from '../models/Bet';
 import { hitApiAndLog } from './liveResultService';
 import { WinningCalculationService } from './winningCalculation.service';
 import { logger } from '../config/logger';
@@ -135,6 +136,53 @@ export class AutoResultService {
         }
 
         return null;
+    }
+
+    /**
+     * Update bet records with result information
+     */
+    private async updateBetsWithResult(
+        marketId: string,
+        resultDate: Date,
+        marketResult: string,
+        winningMode: 'auto' | 'manual'
+    ): Promise<void> {
+        try {
+            // Find all bets for this market and date
+            const bets = await Bet.find({
+                marketId,
+                createdAt: {
+                    $gte: new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate()),
+                    $lt: new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate() + 1)
+                }
+            });
+
+            // Update each bet with result information
+            for (const bet of bets) {
+                // Determine winner bet based on the bet type and result
+                let winnerBet: string | null = null;
+
+                if (bet.betType === 'open' && marketResult.split('-')[0]) {
+                    winnerBet = marketResult.split('-')[0];
+                } else if (bet.betType === 'close' && marketResult.split('-')[2]) {
+                    winnerBet = marketResult.split('-')[2];
+                } else if (bet.betType === 'both' && marketResult.split('-').length === 3) {
+                    // For 'both' type, we can store the full result or specific parts
+                    winnerBet = marketResult;
+                }
+
+                // Update the bet with result information
+                await Bet.findByIdAndUpdate(bet._id, {
+                    marketResult,
+                    winnerBet,
+                    winningMode
+                });
+            }
+
+            logger.info(`Updated ${bets.length} bets with result information for market ${marketId}`);
+        } catch (error) {
+            logger.error('Error updating bets with result information:', error);
+        }
     }
 
     /**
@@ -648,6 +696,10 @@ export class AutoResultService {
                 openNumber,
                 openMain
             );
+
+            // Update bets with result information
+            const marketResult = `${openNumber}-${openMain}`;
+            await this.updateBetsWithResult(marketId, date, marketResult, 'auto');
         }
     }
 
@@ -690,6 +742,10 @@ export class AutoResultService {
             closeNumber,
             closeMain
         );
+
+        // Update bets with complete result information
+        const marketResult = `${existingResult.results.open}-${finalMain}-${closeNumber}`;
+        await this.updateBetsWithResult(existingResult.marketId.toString(), date, marketResult, 'auto');
     }
 
     /**

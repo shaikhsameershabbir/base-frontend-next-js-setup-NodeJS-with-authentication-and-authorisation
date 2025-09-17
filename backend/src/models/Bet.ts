@@ -14,6 +14,10 @@ export interface IBet extends Document {
     claimStatus?: boolean;
     result?: string;
     selectedNumbers: { [key: number]: number }; // Store the numbers and their amounts
+    marketResult?: string; // Market result: open-main-close
+    winnerBet: string | null; // Winner bet number
+    winningMode: string | null; // Winning mode: auto, manualgit sta
+
 }
 
 const betSchema = new Schema<IBet>({
@@ -70,6 +74,19 @@ const betSchema = new Schema<IBet>({
     claimStatus: {
         type: Boolean,
         default: false
+    },
+    marketResult: {
+        type: String,
+        default: null
+    },
+    winnerBet: {
+        type: String,
+        default: null
+    },
+    winningMode: {
+        type: String,
+        enum: ['auto', 'manual'],
+        default: null
     }
 }, { timestamps: true });
 

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { Result } from '../../../models/result';
 import { Market } from '../../../models/Market';
+import { Bet } from '../../../models/Bet';
 import { WinningCalculationService } from '../../../services/winningCalculation.service';
 import { logger } from '../../../config/logger';
 
@@ -34,6 +35,51 @@ const normalizeDate = (date: Date): Date => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     return normalized;
+};
+
+// Helper function to update bet records with result information
+const updateBetsWithResult = async (
+    marketId: string,
+    resultDate: Date,
+    marketResult: string,
+    winningMode: 'auto' | 'manual'
+): Promise<void> => {
+    try {
+        // Find all bets for this market and date
+        const bets = await Bet.find({
+            marketId,
+            createdAt: {
+                $gte: new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate()),
+                $lt: new Date(resultDate.getFullYear(), resultDate.getMonth(), resultDate.getDate() + 1)
+            }
+        });
+
+        // Update each bet with result information
+        for (const bet of bets) {
+            // Determine winner bet based on the bet type and result
+            let winnerBet: string | null = null;
+
+            if (bet.betType === 'open' && marketResult.split('-')[0]) {
+                winnerBet = marketResult.split('-')[0];
+            } else if (bet.betType === 'close' && marketResult.split('-')[2]) {
+                winnerBet = marketResult.split('-')[2];
+            } else if (bet.betType === 'both' && marketResult.split('-').length === 3) {
+                // For 'both' type, we can store the full result or specific parts
+                winnerBet = marketResult;
+            }
+
+            // Update the bet with result information
+            await Bet.findByIdAndUpdate(bet._id, {
+                marketResult,
+                winnerBet,
+                winningMode
+            });
+        }
+
+        logger.info(`Updated ${bets.length} bets with result information for market ${marketId}`);
+    } catch (error) {
+        logger.error('Error updating bets with result information:', error);
+    }
 };
 
 // Declare result for a specific market and day
@@ -117,6 +163,10 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     resultNumberStr,
                     mainValue
                 );
+
+                // Update bets with result information
+                const marketResult = `${resultNumberStr}-${mainValueString}`;
+                await updateBetsWithResult(marketId, targetDateObj, marketResult, 'manual');
             } else {
                 // For close, check if open is already declared
                 if (!existingResult.results.open || existingResult.results.open === null) {
@@ -146,6 +196,10 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                     resultNumberStr,
                     closeMain
                 );
+
+                // Update bets with complete result information
+                const marketResult = `${existingResult.results.open}-${finalMain}-${resultNumberStr}`;
+                await updateBetsWithResult(marketId, targetDateObj, marketResult, 'manual');
             }
 
             await existingResult.save();
@@ -201,6 +255,10 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
                 resultNumberStr,
                 mainValue
             );
+
+            // Update bets with result information for new result
+            const marketResult = `${resultNumberStr}-${mainValueString}`;
+            await updateBetsWithResult(marketId, targetDateObj, marketResult, 'manual');
         }
 
         // Existing result checked
