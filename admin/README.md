@@ -1,6 +1,6 @@
-# Matka SK Admin Panel
+# MR GAME Admin Panel
 
-A modern, production-level admin panel built with Next.js 14, TypeScript, and Tailwind CSS, designed to manage the Matka SK backend system.
+A modern, production-level admin panel built with Next.js 14, TypeScript, and Tailwind CSS, designed to manage the MR GAME backend system.
 
 ## 📋 Table of Contents
 

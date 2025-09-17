@@ -53,7 +53,7 @@ export const getMarketResults = async (req: Request, res: Response): Promise<voi
             resultDate: normalizedDate
         }).populate('marketId', 'marketName weekDays').populate('declaredBy', 'username');
 
-      
+
 
         if (!result) {
             res.json({

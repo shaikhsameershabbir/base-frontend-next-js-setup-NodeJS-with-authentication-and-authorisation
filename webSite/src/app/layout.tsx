@@ -15,8 +15,8 @@ const quicksand = Quicksand({
 });
 
 export const metadata: Metadata = {
-  title: 'Matka SK',
-  description: 'Matka SK - Online Matka Game',
+  title: 'MR GAME',
+  description: 'MR GAME - Online Matka Game',
   other: {
     'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
     'Pragma': 'no-cache',

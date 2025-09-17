@@ -15,6 +15,7 @@ interface Ticket {
   marketId?: {
     marketName: string;
   };
+  amount: number;
 }
 
 interface ClaimData {
@@ -313,8 +314,10 @@ const Header = () => {
                           <div key={ticket._id} className="bg-yellow-50 p-2 sm:p-3 rounded-lg border border-yellow-200">
                             <div className="flex justify-between items-start gap-2">
                               <div className="min-w-0 flex-1">
+                              <div className="font-medium text-yellow-800 text-sm sm:text-base truncate">{ticket.marketId?.marketName}</div>
+
                                 <div className="font-medium text-yellow-800 text-sm sm:text-base truncate">{ticket.type}</div>
-                                <div className="text-xs sm:text-sm text-yellow-600">Result: {ticket.result}</div>
+                                <div className="text-xs sm:text-sm text-yellow-600">Bet Amount: {ticket.amount}</div>
                               </div>
                               <div className="text-yellow-800 font-bold text-xs sm:text-sm flex-shrink-0">Winning not declared</div>
                             </div>

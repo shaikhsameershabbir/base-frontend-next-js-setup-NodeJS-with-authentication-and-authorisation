@@ -50,7 +50,7 @@ export default function DashboardPage() {
                         </Button>
                     </div>
                     <p className="text-lg font-medium text-secondary dark:text-white">
-                        Welcome to Matka Skill Game Management System
+                        Welcome to MR GAMEill Game Management System
                     </p>
                 </div>
 

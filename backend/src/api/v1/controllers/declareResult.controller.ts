@@ -48,7 +48,7 @@ export const declareResult = async (req: Request, res: Response): Promise<void> 
 
         const { marketId, resultType, resultNumber, targetDate }: DeclareResultRequest = req.body;
 
-      
+
 
         // Validate required fields
         if (!marketId || !resultType || !resultNumber || !targetDate) {

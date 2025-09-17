@@ -210,12 +210,12 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
             {!result ? (
                 <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                    <span className="text-green-700 text-sm">Loading results...</span>
+                    <span className="text-green-700 text-lg">Loading results...</span>
                 </div>
             ) : (
                 <div className="flex items-center gap-2">
                     <p
-                        className="text-2xl sm:text-4xl italic font-black text-[#000] mb-1 tracking-wider"
+                        className="text-4xl sm:text-5xl italic font-black text-[#000] mb-1 tracking-wider"
                         style={{ textShadow: "1px 1px 6px #fff" }}
                     >
                         {displayContent.content}
@@ -225,7 +225,7 @@ const WinningNumbers: React.FC<WinningNumbersProps> = React.memo(({
 
             {/* Only show "Market closed today" message */}
             {displayContent.type === 'closed' && (
-                <div className="text-xs text-gray-600 mt-1">
+                <div className="text-base text-gray-600 mt-1">
                     Market closed today
                 </div>
             )}

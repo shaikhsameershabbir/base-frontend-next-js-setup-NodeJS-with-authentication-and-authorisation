@@ -85,7 +85,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
     if (marketStatus?.status === 'closed_today') {
       return (
         <div className="mb-2">
-          <div className="text-sm font-medium text-red-600">
+          <div className="text-base font-medium text-red-600">
             Market closed
           </div>
         </div>
@@ -111,7 +111,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
       <div className="flex flex-col items-center justify-center text-center py-3 px-3 sm:py-4 sm:px-4 flex-1 min-h-[120px] sm:min-h-[140px] relative">
         {/* Market Name */}
         <h3
-          className="text-lg sm:text-2xl font-extrabold text-[#b80000] drop-shadow-lg mb-2 sm:mb-3"
+          className="text-2xl sm:text-3xl font-extrabold text-[#b80000] drop-shadow-lg mb-2 sm:mb-3"
           style={{
             fontFamily: "'Pepper Sans', sans-serif",
             textShadow: "2px 2px 8px #fff, 0 0 2px #0000",
@@ -137,7 +137,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
         </div>
 
         {/* Time Display - Centered */}
-        <div className="flex items-center gap-1 sm:gap-2 text-base sm:text-xl text-black">
+        <div className="flex items-center gap-1 sm:gap-2 text-xl sm:text-2xl text-black">
           <span className="font-bold">{formattedTimes.openTime}</span>
           <span className="mx-1">|</span>
           <span className="font-bold">{formattedTimes.closeTime}</span>
@@ -160,7 +160,7 @@ const MarketCard: React.FC<MarketCardProps> = React.memo(({
                 }`}
             />
           </button>
-          <span className={`text-xs mt-1 font-bold ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
+          <span className={`text-sm mt-1 font-bold ${marketStatus?.isOpen ? 'text-green-600' : 'text-red-800'
             }`}>
             {marketStatus?.isOpen ? 'Play' : 'Closed'}
           </span>

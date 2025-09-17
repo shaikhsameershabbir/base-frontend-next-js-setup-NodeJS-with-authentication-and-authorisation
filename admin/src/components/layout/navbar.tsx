@@ -47,7 +47,7 @@ export function Navbar({ onSidebarToggle, user }: NavbarProps) {
 
                 {/* Logo and Title */}
                 <div className="flex items-center space-x-2 sm:space-x-4 min-w-0 flex-1">
-                    <h1 className="text-lg sm:text-xl font-bold text-primary truncate">Matka SK Admin</h1>
+                    <h1 className="text-lg sm:text-xl font-bold text-primary truncate">MR GAME Admin</h1>
                 </div>
 
                 {/* User Menu */}
