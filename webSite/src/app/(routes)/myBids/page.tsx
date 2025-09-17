@@ -31,6 +31,9 @@ interface BetData {
   createdAt: string;
   claimStatus?: boolean;
   winAmount?: number;
+  marketResult?: string;
+  winnerBet?: string;
+  winningMode?: string;
 }
 
 function Page() {
@@ -148,12 +151,14 @@ function Page() {
 
   const getStatusBadge = (status: boolean, result?: string) => {
     if (!status) return <Badge variant="destructive">Cancelled</Badge>;
-    if (result === "won") return <Badge variant="success">Won</Badge>;
-    if (result === "lost") return <Badge variant="destructive">Lost</Badge>;
+    if (result === "won") return <Badge variant="success">Win</Badge>;
+    if (result === "lost" || result === "loss") return <Badge variant="destructive">Loss</Badge>;
     return <Badge variant="warning">Pending</Badge>;
   };
 
-  const getClaimStatusBadge = (claimStatus?: boolean) => {
+  const getClaimStatusBadge = (claimStatus?: boolean, result?: string) => {
+    // Don't show claim status for lost bets
+    if (result === "loss" || result === "lost") return null;
     if (claimStatus === undefined) return <Badge variant="secondary">N/A</Badge>;
     return claimStatus ? (
       <Badge variant="success">Claimed</Badge>
@@ -284,7 +289,7 @@ function Page() {
                       </div>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(bet.status, bet.result)}
-                        {getClaimStatusBadge(bet.claimStatus)}
+                        {getClaimStatusBadge(bet.claimStatus, bet.result)}
                         <div className="flex justify-end">
                           <Button
                             variant="outline"
@@ -310,12 +315,12 @@ function Page() {
                         </div>
                         <div>
                           <span className="text-gray-600 font-medium text-sm">Amount:</span>
-                          <div className="font-bold text-green-600 text-sm mt-1">₹{bet.amount}</div>
+                          <div className="font-bold text-black text-sm mt-1">₹{bet.amount}</div>
                         </div>
-                        {bet.winAmount && (
+                        {bet.winAmount && bet.winAmount > 0 && (
                           <div>
                             <span className="text-gray-600 font-medium text-sm">Win Amount:</span>
-                            <div className="font-bold text-black text-sm mt-1">₹{bet.winAmount}</div>
+                            <div className="font-bold text-green-600 text-sm mt-1">₹{bet.winAmount}</div>
                           </div>
                         )}
                         <div>
@@ -370,8 +375,14 @@ function Page() {
                           <TableCell className="capitalize text-gray-800 font-medium">{bet.betType}</TableCell>
                           <TableCell className="font-semibold text-green-600">₹{bet.amount}</TableCell>
                           <TableCell>{getStatusBadge(bet.status, bet.result)}</TableCell>
-                          <TableCell className="text-xs sm:text-sm text-black">{bet.winAmount ? `₹${bet.winAmount}` : '-'}</TableCell>
-                          <TableCell>{getClaimStatusBadge(bet.claimStatus)}</TableCell>
+                          <TableCell className="text-xs sm:text-sm">
+                            {bet.winAmount && bet.winAmount > 0 ? (
+                              <span className="text-green-600 font-bold">₹{bet.winAmount}</span>
+                            ) : (
+                              <span className="text-gray-500">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{getClaimStatusBadge(bet.claimStatus, bet.result)}</TableCell>
                           <TableCell className="text-sm text-gray-800">
                             {formatDate(bet.createdAt)}
                           </TableCell>
