@@ -114,6 +114,15 @@ export default function LoadV2Page() {
         fetchFilters();
     }, []);
 
+    // Auto-refresh when date changes
+    useEffect(() => {
+        if (selectedDate) {
+            const userId = selectedUser !== 'all' ? selectedUser : undefined;
+            setCurrentDataUser(userId || 'all');
+            fetchLoadData(selectedDate, userId, selectedMarket !== 'all' ? selectedMarket : undefined);
+        }
+    }, [selectedDate]);
+
     // Auto-refresh today's results every 30 seconds
     useEffect(() => {
         const interval = setInterval(() => {
@@ -297,9 +306,12 @@ export default function LoadV2Page() {
         try {
             setLoading(true);
             setError(null);
+            console.log('Fetching data with params:', { date, userId, marketId });
             const response = await loadApiV2.getAllLoads(date, userId, marketId);
+            console.log('Received data:', response);
             setData(response);
         } catch (err: any) {
+            console.error('Error fetching data:', err);
             setError(err.message || 'Failed to fetch load data');
         } finally {
             setLoading(false);
@@ -321,21 +333,28 @@ export default function LoadV2Page() {
 
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedDate(e.target.value);
+        const newDate = e.target.value;
+        setSelectedDate(newDate);
+
+        // Immediately fetch data for the new date
+        if (newDate) {
+            const userId = selectedUser !== 'all' ? selectedUser : undefined;
+            setCurrentDataUser(userId || 'all');
+            fetchLoadData(newDate, userId, selectedMarket !== 'all' ? selectedMarket : undefined);
+        }
     };
 
     const handleDateSubmit = () => {
-        if (selectedDate) {
-            const userId = selectedUser !== 'all' ? selectedUser : undefined;
-            setCurrentDataUser(userId || 'all');
-            fetchLoadData(selectedDate, userId, selectedMarket !== 'all' ? selectedMarket : undefined);
-        }
+        const userId = selectedUser !== 'all' ? selectedUser : undefined;
+        setCurrentDataUser(userId || 'all');
+        fetchLoadData(selectedDate || undefined, userId, selectedMarket !== 'all' ? selectedMarket : undefined);
     };
 
     const handleTodayClick = () => {
         setSelectedDate('');
         const userId = selectedUser !== 'all' ? selectedUser : undefined;
         setCurrentDataUser(userId || 'all');
+        // Fetch today's data (no date parameter means today)
         fetchLoadData(undefined, userId, selectedMarket !== 'all' ? selectedMarket : undefined);
     };
 
