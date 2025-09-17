@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Wallet, Menu, Gift, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Wallet, Menu, Gift, X, CheckCircle } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useMarketData } from '@/contexts/MarketDataContext';
@@ -21,10 +21,8 @@ interface Ticket {
 interface ClaimData {
   unclaimedTickets: Ticket[];
   winningTickets: Ticket[];
-  pendingTickets: Ticket[];
   totalUnclaimed: number;
   totalWinning: number;
-  totalPending: number;
 }
 
 const Header = () => {
@@ -223,20 +221,28 @@ const Header = () => {
 
       {/* Claim Modal */}
       {isClaimModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-white rounded-lg max-w-sm sm:max-w-md lg:max-w-lg w-full max-h-[90vh] sm:max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
-              <h2 className="text-lg sm:text-xl font-bold text-gray-800 truncate">Claim Winning Tickets</h2>
-              <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                  <Gift className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Claim Winnings</h2>
+                  <p className="text-sm text-gray-500">Collect your winning tickets</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleRefreshAll}
                   disabled={isRefreshing || isFetching}
-                  className={`text-blue-500 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors ${(isRefreshing || isFetching) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${(isRefreshing || isFetching) ? 'opacity-50 cursor-not-allowed' : ''}`}
                   title="Refresh all data"
                 >
                   <svg
-                    className={`w-4 h-4 sm:w-5 sm:h-5 ${isRefreshing ? 'animate-spin' : ''}`}
+                    className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -246,115 +252,106 @@ const Header = () => {
                 </button>
                 <button
                   onClick={closeClaimModal}
-                  className="text-gray-500 hover:text-gray-700 p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
-                  <X size={20} className="sm:w-6 sm:h-6" />
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
             </div>
 
             {/* Modal Content */}
-            <div className="p-3 sm:p-4">
+            <div className="flex-1 overflow-y-auto p-6">
               {claimMessage && (
-                <div className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-sm text-sm sm:text-base ${claimMessage.includes('Successfully')
-                  ? 'bg-green-100 text-green-800 border border-green-200'
-                  : 'bg-red-100 text-red-800 border border-red-200'
+                <div className={`mb-4 p-4 rounded-xl text-sm ${claimMessage.includes('Successfully')
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
                   }`}>
                   {claimMessage}
                 </div>
               )}
 
               {claimData && (
-                <div className="space-y-3 sm:space-y-4">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <div className="bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
-                      <div className="text-green-800 font-bold text-base sm:text-lg">{claimData.totalWinning}</div>
-                      <div className="text-green-600 text-xs sm:text-sm">Winning Tickets</div>
-                    </div>
-                    <div className="bg-yellow-50 p-2 sm:p-3 rounded-lg border border-yellow-200">
-                      <div className="text-yellow-800 font-bold text-base sm:text-lg">{claimData.totalPending}</div>
-                      <div className="text-yellow-600 text-xs sm:text-sm">Pending Results</div>
+                <div className="space-y-6">
+                  {/* Summary Card */}
+                  <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold">{claimData.totalWinning}</h3>
+                        <p className="text-green-100">Winning Tickets</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-3xl font-bold">
+                          ₹{claimData.winningTickets.reduce((sum, ticket) => sum + ticket.winAmount, 0)}
+                        </div>
+                        <p className="text-green-100">Total Amount</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Winning Tickets */}
-                  {claimData.winningTickets.length > 0 && (
+                  {claimData.winningTickets.length > 0 ? (
                     <div>
-                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
-                        <CheckCircle className="text-green-600" size={16} />
-                        Winning Tickets to Claim
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <CheckCircle className="text-green-600" size={20} />
+                        Your Winning Tickets
                       </h3>
-                      <div className="space-y-1.5 sm:space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
+                      <div className="space-y-3 max-h-60 overflow-y-auto">
                         {claimData.winningTickets.map((ticket) => (
-                          <div key={ticket._id} className="bg-green-50 p-2 sm:p-3 rounded-lg border border-green-200">
-                            <div className="flex justify-between items-start gap-2">
+                          <div key={ticket._id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start gap-3">
                               <div className="min-w-0 flex-1">
-                                <div className="font-medium text-green-800 text-sm sm:text-base truncate">{ticket.marketId?.marketName}</div>
-                                <div className="font-medium text-green-800 text-sm sm:text-base truncate">{ticket.type}</div>
-                                <div className="text-xs sm:text-sm text-green-600">Result: {ticket.result}</div>
+                                <div className="font-semibold text-gray-900 text-base truncate">{ticket.marketId?.marketName}</div>
+                                <div className="text-sm text-gray-600 capitalize mt-1">{ticket.type}</div>
+                                <div className="text-xs text-gray-500 mt-1">Result: {ticket.result}</div>
                               </div>
-                              <div className="text-green-800 font-bold text-sm sm:text-base flex-shrink-0">₹{ticket.winAmount}</div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-lg font-bold text-green-600">₹{ticket.winAmount}</div>
+                                <div className="text-xs text-gray-500">Win Amount</div>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {/* Pending Tickets */}
-                  {claimData.pendingTickets.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2 text-sm sm:text-base">
-                        <Clock className="text-yellow-600" size={16} />
-                        Pending Results
-                      </h3>
-                      <div className="space-y-1.5 sm:space-y-2 max-h-32 sm:max-h-40 overflow-y-auto">
-                        {claimData.pendingTickets.map((ticket) => (
-                          <div key={ticket._id} className="bg-yellow-50 p-2 sm:p-3 rounded-lg border border-yellow-200">
-                            <div className="flex justify-between items-start gap-2">
-                              <div className="min-w-0 flex-1">
-                              <div className="font-medium text-yellow-800 text-sm sm:text-base truncate">{ticket.marketId?.marketName}</div>
-
-                                <div className="font-medium text-yellow-800 text-sm sm:text-base truncate">{ticket.type}</div>
-                                <div className="text-xs sm:text-sm text-yellow-600">Bet Amount: {ticket.amount}</div>
-                              </div>
-                              <div className="text-yellow-800 font-bold text-xs sm:text-sm flex-shrink-0">Winning not declared</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* No Tickets Message */}
-                  {claimData.totalUnclaimed === 0 && (
-                    <div className="text-center py-6 sm:py-8">
-                      <Gift className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 text-gray-400" />
-                      <p className="text-gray-600 text-sm sm:text-base">No unclaimed tickets found</p>
+                  ) : (
+                    <div className="text-center py-12">
+                      <Gift className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Winning Tickets</h3>
+                      <p className="text-gray-500">You don't have any winning tickets to claim at the moment.</p>
                     </div>
                   )}
                 </div>
               )}
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
-                {claimData && claimData.totalWinning > 0 && (
-                  <button
-                    onClick={claimTickets}
-                    disabled={isLoading}
-                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2.5 sm:py-2 px-4 rounded-lg font-medium transition-colors text-sm sm:text-base"
-                  >
-                    {isLoading ? 'Claiming...' : `Claim ₹${claimData.winningTickets.reduce((sum, ticket) => sum + ticket.winAmount, 0)}`}
-                  </button>
-                )}
+            {/* Action Buttons */}
+            <div className="p-6 border-t border-gray-200">
+              {claimData && claimData.totalWinning > 0 ? (
+                <button
+                  onClick={claimTickets}
+                  disabled={isLoading}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-400 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Claiming...
+                    </div>
+                  ) : (
+                    `Claim ₹${claimData.winningTickets.reduce((sum, ticket) => sum + ticket.winAmount, 0)}`
+                  )}
+                </button>
+              ) : (
                 <button
                   onClick={closeClaimModal}
-                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2.5 sm:py-2 px-4 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                  className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 px-6 rounded-xl font-semibold transition-colors"
                 >
                   Close
                 </button>
-              </div>
+              )}
             </div>
           </div>
         </div>
