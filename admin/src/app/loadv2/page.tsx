@@ -573,9 +573,9 @@ export default function LoadV2Page() {
     const exportToPDF = (sectionKey: string, data: { [key: string]: number }) => {
         const doc = new jsPDF();
 
-        // Get current date
-        const today = new Date();
-        const dateString = today.toLocaleDateString('en-IN');
+        // Get selected date or today's date
+        const reportDate = selectedDate ? new Date(selectedDate) : new Date();
+        const dateString = reportDate.toLocaleDateString('en-IN');
 
         // Get market name
         const marketName = assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets';
@@ -601,19 +601,19 @@ export default function LoadV2Page() {
 
         const gameType = getGameType(sectionKey);
 
-        // Header information
-        doc.setFontSize(16);
-        doc.text('Bet Data Report', 105, 20, { align: 'center' });
+        // Header information with larger fonts and better spacing
+        doc.setFontSize(20);
+        doc.text('Bet Data Report', 105, 25, { align: 'center' });
 
-        doc.setFontSize(10);
-        doc.text(`Market Name: ${marketName}`, 20, 35);
-        doc.text(`Game Type: ${gameType}`, 20, 45);
-        doc.text(`Date: ${dateString}`, 20, 55);
-        doc.text(`Bet Type: ${betTypeText}`, 20, 65);
+        doc.setFontSize(12);
+        doc.text(`Market Name: ${marketName}`, 15, 45);
+        doc.text(`Game Type: ${gameType}`, 15, 55);
+        doc.text(`Date: ${dateString}`, 15, 65);
+        doc.text(`Bet Type: ${betTypeText}`, 15, 75);
 
         // Calculate and show total amount
         const total = Object.values(data).reduce((sum, amount) => sum + amount, 0);
-        doc.text(`Total Amount: Rs. ${total.toLocaleString()}`, 20, 75);
+        doc.text(`Total Amount: Rs. ${total.toLocaleString()}`, 15, 85);
 
         // Prepare table data with 3 columns per row
         const entries = Object.entries(data);
@@ -636,15 +636,17 @@ export default function LoadV2Page() {
         autoTable(doc, {
             head: [['Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount']],
             body: tableData,
-            startY: 90,
+            startY: 100,
+            margin: { top: 10, right: 10, bottom: 10, left: 10 },
             styles: {
-                fontSize: 8,
-                cellPadding: 3,
+                fontSize: 10,
+                cellPadding: 4,
             },
             headStyles: {
                 fillColor: [41, 128, 185],
                 textColor: 255,
                 fontStyle: 'bold',
+                fontSize: 11,
             },
             alternateRowStyles: {
                 fillColor: [245, 245, 245],
@@ -652,10 +654,10 @@ export default function LoadV2Page() {
         });
 
         // Footer
-        const finalY = (doc as any).lastAutoTable.finalY || 90;
-        doc.setFontSize(8);
-        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 20, finalY + 20);
-        doc.text(`Total Numbers: ${Object.keys(data).length}`, 20, finalY + 30);
+        const finalY = (doc as any).lastAutoTable.finalY || 100;
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 15, finalY + 15);
+        doc.text(`Total Numbers: ${Object.keys(data).length}`, 15, finalY + 25);
 
         // Save the PDF
         const fileName = `${marketName}_${gameType}_${dateString.replace(/\//g, '-')}.pdf`;
@@ -667,9 +669,9 @@ export default function LoadV2Page() {
 
         const doc = new jsPDF();
 
-        // Get current date
-        const today = new Date();
-        const dateString = today.toLocaleDateString('en-IN');
+        // Get selected date or today's date
+        const reportDate = selectedDate ? new Date(selectedDate) : new Date();
+        const dateString = reportDate.toLocaleDateString('en-IN');
 
         // Get market name
         const marketName = assignedMarkets.find(market => market._id === selectedMarket)?.marketName || 'All Markets';
@@ -678,22 +680,22 @@ export default function LoadV2Page() {
         const betTypeText = selectedBetType === 'all' ? 'All Bet Types' :
             selectedBetType === 'open' ? 'Open Only' : 'Close Only';
 
-        // Header information
-        doc.setFontSize(16);
-        doc.text('Complete Bet Data Report', 105, 20, { align: 'center' });
+        // Header information with larger fonts and better spacing
+        doc.setFontSize(20);
+        doc.text('Complete Bet Data Report', 105, 25, { align: 'center' });
 
-        doc.setFontSize(10);
-        doc.text(`Market Name: ${marketName}`, 20, 35);
-        doc.text(`Date: ${dateString}`, 20, 45);
-        doc.text(`Bet Type: ${betTypeText}`, 20, 55);
+        doc.setFontSize(12);
+        doc.text(`Market Name: ${marketName}`, 15, 45);
+        doc.text(`Date: ${dateString}`, 15, 55);
+        doc.text(`Bet Type: ${betTypeText}`, 15, 65);
 
         // Calculate and show total amount for all sections
         const totalAmount = Object.values(processedData).reduce((sum, category) => {
             return sum + Object.values(category as { [key: string]: number }).reduce((catSum, amount) => catSum + amount, 0);
         }, 0);
-        doc.text(`Total Amount: Rs. ${totalAmount.toLocaleString()}`, 20, 65);
+        doc.text(`Total Amount: Rs. ${totalAmount.toLocaleString()}`, 15, 75);
 
-        let currentY = 80;
+        let currentY = 90;
 
         // Export each section
         const sections = [
@@ -712,10 +714,10 @@ export default function LoadV2Page() {
             const total = Object.values(data).reduce((sum, amount) => sum + amount, 0);
 
             // Section header
-            doc.setFontSize(12);
+            doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text(`${section.title} - Total: Rs. ${total.toLocaleString()}`, 20, currentY);
-            currentY += 10;
+            doc.text(`${section.title} - Total: Rs. ${total.toLocaleString()}`, 15, currentY);
+            currentY += 15;
 
             // Prepare table data with 3 columns per row
             const entries = Object.entries(data);
@@ -739,21 +741,23 @@ export default function LoadV2Page() {
                 head: [['Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount', 'Bet Number', 'Bet Amount']],
                 body: tableData,
                 startY: currentY,
+                margin: { top: 10, right: 10, bottom: 10, left: 10 },
                 styles: {
-                    fontSize: 8,
-                    cellPadding: 3,
+                    fontSize: 10,
+                    cellPadding: 4,
                 },
                 headStyles: {
                     fillColor: [41, 128, 185],
                     textColor: 255,
                     fontStyle: 'bold',
+                    fontSize: 11,
                 },
                 alternateRowStyles: {
                     fillColor: [245, 245, 245],
                 },
             });
 
-            currentY = (doc as any).lastAutoTable.finalY + 15;
+            currentY = (doc as any).lastAutoTable.finalY + 20;
 
             // Add page break if needed
             if (currentY > 250 && index < sections.length - 1) {
@@ -763,10 +767,10 @@ export default function LoadV2Page() {
         });
 
         // Footer
-        doc.setFontSize(8);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 20, currentY + 10);
-        doc.text(`Total Numbers: ${Object.keys(processedData).reduce((sum, key) => sum + Object.keys(processedData[key as keyof ProcessedBetData] as any).length, 0)}`, 20, currentY + 20);
+        doc.text(`Generated on: ${new Date().toLocaleString('en-IN')}`, 15, currentY + 15);
+        doc.text(`Total Numbers: ${Object.keys(processedData).reduce((sum, key) => sum + Object.keys(processedData[key as keyof ProcessedBetData] as any).length, 0)}`, 15, currentY + 25);
 
         // Save the PDF
         const fileName = `${marketName}_Complete_Report_${dateString.replace(/\//g, '-')}.pdf`;
